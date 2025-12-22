@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mentor Allocation Result</title>
+  <style>
+    :root {
+      --primary: #1c1c1c;
+      --secondary: #555555;
+      --accent: #cccccc;
+      --background: #F8F9FC;
+      --text-dark: #2E2E2E;
+      --text-light: #ffffff;
+      --error: #b02a37;
+      --highlight: #2f3542;
+    }
+
+    body {
+      font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--background);
+      margin: 0;
+      padding: 0;
+      color: var(--text-dark);
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 50px auto;
+      background-color: var(--text-light);
+      padding: 40px 50px;
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      transition: 0.3s ease;
+    }
+
+    .container:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 14px 40px rgba(0,0,0,0.15);
+    }
+
+    h2 {
+      text-align: center;
+      color: var(--primary);
+      margin-bottom: 30px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 12px 15px;
+      border: 1px solid var(--accent);
+      text-align: center;
+      font-size: 0.95rem;
+    }
+
+    th {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: var(--text-light);
+      font-weight: 600;
+      letter-spacing: 0.4px;
+    }
+
+    td {
+      background-color: #f9f9fb;
+      color: var(--text-dark);
+      transition: background 0.3s ease;
+    }
+
+    tr:hover td {
+      background: rgba(0, 0, 0, 0.04);
+    }
+
+    .similarity-score {
+      font-weight: 600;
+      color: var(--error);
+    }
+
+    .experience {
+      font-weight: 600;
+      color: var(--secondary);
+    }
+
+    .mentor-alt {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    /* Empty Data Message */
+    p {
+      text-align: center;
+      color: var(--error);
+      font-weight: 600;
+      font-size: 1rem;
+      margin-top: 20px;
+    }
+
+    /* Responsive Layout */
+    @media (max-width: 700px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+        width: 100%;
+      }
+
+      thead {
+        display: none;
+      }
+
+      tr {
+        background: var(--text-light);
+        margin-bottom: 15px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: hidden;
+      }
+
+      td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: left;
+        padding: 12px 16px;
+        border: none;
+        border-bottom: 1px solid var(--accent);
+      }
+
+      td:last-child {
+        border-bottom: none;
+      }
+
+      td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--secondary);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Mentor Allocation Result</h2>
+
+    {% if allocations %}
+      <table>
+        <thead>
+          <tr>
+            <th>Team</th>
+            <th>Team Domain</th>
+            <th>Mentor</th>
+            <th>Mentor Domain</th>
+            <th>Mentor Alt Domains</th>
+            <th>Experience</th>
+            <th>Similarity Score</th>
+            <th>Reason</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in allocations %}
+            <tr>
+              <td data-label="Team">{{ row.team_name }}</td>
+              <td data-label="Team Domain">{{ row.team_domain }}</td>
+              <td data-label="Mentor">{{ row.mentor_name }}</td>
+              <td data-label="Mentor Domain">{{ row.mentor_domain }}</td>
+              <td data-label="Mentor Alt Domains" class="mentor-alt">{{ row.alt_domains }}</td>
+              <td data-label="Experience" class="experience">{{ row.experience }}</td>
+              <td data-label="Similarity Score" class="similarity-score">{{ row.similarity_score }}</td>
+              <td data-label="Reason">{{ row.reason }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No allocation data available.</p>
+    {% endif %}
+  </div>
+</body>
+</html>

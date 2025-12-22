@@ -1,0 +1,347 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guide Hub - Review Paper</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+<style>
+body{
+  font-family: Montserrat, sans-serif;
+  background:#f8f9fc;
+  margin:0;
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+.dashboard-wrapper{
+  width:95%;
+  height:90vh;
+  display:flex;
+  background:#6a0dad;
+  border-radius:18px;
+  overflow:hidden;
+}
+.sidebar{
+  width:260px;
+  padding:25px;
+  background:linear-gradient(180deg,#6a0dad,#c7a4e0);
+  color:#fff;
+}
+.sidebar a{
+  display:block;
+  padding:12px;
+  margin-bottom:10px;
+  border-radius:10px;
+  color:#fff;
+  text-decoration:none;
+}
+.sidebar a.active,.sidebar a:hover{
+  background:#f9ddeb;
+  color:#2e2e2e;
+}
+.main-content{
+  flex:1;
+  padding:25px;
+  background:#f8f9fc;
+  overflow-y:auto;
+}
+.main-card{
+  background:linear-gradient(135deg,#6a0dad,#c7a4e0);
+  color:#fff;
+  padding:20px;
+  border-radius:14px;
+}
+.glass-btn{
+  background:#f9ddeb;
+  border:none;
+  padding:8px 14px;
+  border-radius:8px;
+  font-weight:600;
+  cursor:pointer;
+}
+.approval-select{display:none;}
+.approval-select.active{display:block;}
+.split-view{
+  display:none;
+  grid-template-columns:70% 30%;
+  gap:20px;
+  margin-top:20px;
+}
+.split-view.active{display:grid;}
+.color-btn{
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  border:2px solid #555;
+  margin-right:6px;
+  cursor:pointer;
+}
+.color-btn.active{
+  outline:3px solid #000;
+}
+.heading-tag{
+  cursor:pointer;
+  margin:3px;
+}
+.tag-item{
+  background:#f9ddeb;
+  padding:8px;
+  border-radius:8px;
+  margin-bottom:8px;
+  font-size:13px;
+}
+.locked-highlight{
+  cursor:pointer;
+}
+.pdf-toolbar{
+  position:absolute;
+  top:5px;
+  right:5px;
+  z-index:1000;
+}
+.pdf-toolbar button{
+  margin-left:5px;
+}
+</style>
+</head>
+
+<body>
+<div class="dashboard-wrapper">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <h5>Review Paper</h5>
+  <a href="{% url 'zero_ppt' %}">PPT</a>
+  <a href="{% url 'zero_form' %}">Review Form</a>
+  <a href="{% url 'zero_review' %}" class="active">Review Paper</a>
+  <a href="{% url 'zero_base' %}">Base Paper</a>
+</div>
+
+<!-- MAIN -->
+<div class="main-content">
+<div class="main-card">
+<h5>Review Paper</h5>
+
+{% if html_path %}
+<button class="glass-btn view-btn" data-file="{{ html_path }}">
+<i class="fa fa-eye"></i> View Review Paper
+</button>
+{% endif %}
+
+<!-- APPROVE -->
+<div class="mt-3">
+<button class="glass-btn approve-btn">
+<i class="fa fa-check"></i> Approve
+</button>
+<div class="approval-select">
+<select class="form-select mt-2">
+<option disabled selected>Select Status</option>
+<option>Approved</option>
+<option>Not Approved</option>
+</select>
+</div>
+</div>
+
+<!-- REMARK -->
+<div class="mt-3">
+<button class="glass-btn remark-btn">
+<i class="fa fa-comment"></i> Add Remark
+</button>
+</div>
+</div>
+
+<!-- SPLIT VIEW -->
+<div id="splitView" class="split-view">
+
+<!-- PDF VIEWER -->
+<div class="bg-white rounded p-2 position-relative" style="height:75vh;">
+<div class="pdf-toolbar">
+  <button class="btn btn-secondary btn-sm" onclick="zoomIn()">Zoom +</button>
+  <button class="btn btn-secondary btn-sm" onclick="zoomOut()">Zoom -</button>
+  <button class="btn btn-warning btn-sm" onclick="eraserMode()">Eraser</button>
+  <button class="btn btn-danger btn-sm" onclick="closeViewer()">Close</button>
+</div>
+<iframe id="pdfFrame" style="width:100%;height:100%;border:none;"></iframe>
+</div>
+
+<!-- ANNOTATION PANEL -->
+<div class="bg-light p-3 rounded">
+<h6>Annotation Helper</h6>
+
+<label>Highlight Color</label>
+<div class="mb-2">
+  <button class="color-btn active" data-color="yellow" style="background:#ffe066;"></button>
+  <button class="color-btn" data-color="red" style="background:#ff6b6b;"></button>
+  <button class="color-btn" data-color="green" style="background:#69db7c;"></button>
+</div>
+
+<label>Detected Heading</label>
+<input id="detectedHeading" class="form-control mb-2" readonly>
+
+<div class="mb-2">
+{% for h in sub_headings %}
+<button class="badge bg-secondary heading-tag" data-heading="{{ h }}">{{ h }}</button>
+{% endfor %}
+</div>
+
+<label>Remark</label>
+<textarea id="remarkText" class="form-control mb-2" rows="3"></textarea>
+
+<button id="saveTagBtn" class="glass-btn w-100">
+<i class="fa fa-tag"></i> Save Tag
+</button>
+
+<hr>
+<h6>Saved Tags</h6>
+<div id="savedTags"></div>
+<small id="noTags" class="text-muted">No tags yet</small>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+let savedTags=[];
+let selectedColor="yellow";
+let zoomLevel=1;
+let eraser=false;
+const iframe=document.getElementById("pdfFrame");
+const detectedHeading=document.getElementById("detectedHeading");
+const remarkBox=document.getElementById("remarkText");
+const savedTagsDiv=document.getElementById("savedTags");
+const noTags=document.getElementById("noTags");
+
+// Zoom functions
+function zoomIn(){ zoomLevel+=0.1; iframe.contentWindow.document.body.style.zoom=zoomLevel; }
+function zoomOut(){ zoomLevel=Math.max(0.2, zoomLevel-0.1); iframe.contentWindow.document.body.style.zoom=zoomLevel; }
+
+// Color selection
+document.querySelectorAll(".color-btn").forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll(".color-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    selectedColor=btn.dataset.color;
+  };
+});
+
+// Select heading manually
+document.querySelectorAll(".heading-tag").forEach(tag=>{
+  tag.onclick=()=>detectedHeading.value=tag.dataset.heading;
+});
+
+// View PDF
+document.querySelectorAll(".view-btn").forEach(btn=>{
+  btn.onclick=e=>{
+    e.preventDefault();
+    iframe.src=btn.dataset.file;
+    document.getElementById("splitView").classList.add("active");
+  };
+});
+
+// Close PDF
+function closeViewer(){
+  document.getElementById("splitView").classList.remove("active");
+  iframe.src="";
+}
+
+// Eraser mode
+function eraserMode(){
+  eraser=!eraser;
+  alert(eraser?"Eraser enabled: Click a highlight to remove":"Eraser disabled");
+}
+
+// Normalize
+function normalize(t){ return t.replace(/\s+/g," ").trim().toLowerCase(); }
+
+// Find heading
+function findHeading(text){
+  if(typeof DOCUMENT_MAP==="undefined") return "Unknown";
+  const words=normalize(text).split(" ").slice(0,6).join(" ");
+  for(let i=DOCUMENT_MAP.length-1;i>=0;i--){
+    if(normalize(DOCUMENT_MAP[i].heading).includes(words)){
+      return DOCUMENT_MAP[i].heading;
+    }
+  }
+  return "Unknown";
+}
+
+// PDF text selection & highlight
+iframe.onload=()=>{
+  try{
+    const win=iframe.contentWindow;
+    const doc=win.document;
+
+    doc.addEventListener("mouseup",()=>{
+      if(eraser) return;
+      const sel=win.getSelection();
+      if(!sel||sel.isCollapsed) return;
+
+      const text=sel.toString().trim();
+      if(!text) return;
+
+      detectedHeading.value=findHeading(text);
+
+      const range=sel.getRangeAt(0);
+      const span=doc.createElement("span");
+      span.className="locked-highlight";
+      span.style.background=
+        selectedColor==="yellow"?"#ffe066":
+        selectedColor==="red"?"#ff6b6b":"#69db7c";
+      span.style.padding="2px";
+
+      // Remove on click if eraser enabled
+      span.onclick=()=>{
+        if(eraser){
+          span.remove();
+        }
+      };
+
+      try{ range.surroundContents(span); }catch(err){ console.warn(err); }
+      sel.removeAllRanges();
+    });
+  }catch(err){ console.warn(err); }
+};
+
+// Save tag (only heading + remark)
+document.getElementById("saveTagBtn").onclick=()=>{
+  if(!detectedHeading.value){ alert("Detect or select a heading first"); return;}
+  savedTags.push({
+    heading:detectedHeading.value,
+    remark:remarkBox.value,
+    color:selectedColor
+  });
+  remarkBox.value="";
+  renderTags();
+};
+
+// Render saved tags
+function renderTags(){
+  savedTagsDiv.innerHTML="";
+  noTags.style.display=savedTags.length?"none":"block";
+  savedTags.forEach((t,idx)=>{
+    const d=document.createElement("div");
+    d.className="tag-item";
+    d.style.borderLeft=`5px solid ${t.color==="yellow"?"#ffe066":t.color==="red"?"#ff6b6b":"#69db7c"}`;
+    d.innerHTML=`<strong>${t.heading}</strong>
+                 <em>${t.remark}</em>
+                 <button class="btn btn-sm btn-danger float-end" onclick="deleteTag(${idx})">X</button>`;
+    savedTagsDiv.appendChild(d);
+  });
+}
+
+// Delete tag
+function deleteTag(idx){
+  savedTags.splice(idx,1);
+  renderTags();
+}
+</script>
+
+</body>
+</html>
+

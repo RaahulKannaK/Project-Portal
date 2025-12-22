@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Mentor</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --primary: #006D77;
+    --secondary: #FFB703;
+    --accent: #FB8500;
+    --background: #EDF6F9;
+    --text-dark: #1D3557;
+    --text-light: #ffffff;
+}
+body {
+    background: linear-gradient(120deg, var(--background), #ffffff);
+    font-family: 'Montserrat', sans-serif;
+    color: var(--text-dark);
+    min-height: 100vh;
+    padding: 50px;
+}
+h2 { font-weight: 600; color: var(--primary); margin: 0; }
+.card { border-radius: 1rem; padding: 30px; box-shadow: 0 12px 30px rgba(0,0,0,0.15); background: linear-gradient(135deg, var(--primary), #004E52); color: var(--text-light); }
+label { font-weight: 500; color: var(--text-light); }
+select.form-select, input.form-control { border-radius: 10px; padding: 10px; transition: all 0.3s ease; }
+select.form-select:focus, input.form-control:focus { box-shadow: 0 0 0 0.2rem rgba(255, 183, 3, 0.3); border-color: var(--secondary); }
+.btn-success { background: var(--secondary); border: none; font-weight: 600; transition: 0.3s; }
+.btn-success:hover { background: var(--accent); color: var(--text-light); }
+.more-options-btn { background: var(--accent); color: var(--text-light); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.3s; }
+.more-options-btn:hover { background: #d35400; }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>➕ Add Mentor</h2>
+        <div class="dropdown">
+            <button class="more-options-btn dropdown-toggle" type="button" id="moreOptionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-ellipsis-h"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="moreOptionsDropdown">
+                <li class="dropdown-item text-center fw-bold">{{ username }} – {{ mentor_name }}</li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Mentor Already Created Info -->
+    {% if mentor_created %}
+    <div class="alert alert-info">
+        ✅ Mentor domain already created!<br>
+        <strong>Primary Domain:</strong> {{ primary_domain }}<br>
+        <strong>Experience:</strong> {{ experience }} years<br>
+        <strong>Alternate Domains:</strong>
+        {% if alternative_domains %}
+            <ul>
+                {% for d in alternative_domains %}
+                    <li>{{ d }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            None
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Mentor Form -->
+    {% if not mentor_created %}
+    <div class="card shadow-sm p-4">
+        <form id="mentorForm">
+            <div class="mb-3">
+                <label class="form-label">Primary Domain</label>
+                <select class="form-select" id="primaryDomain" required>
+                    <option value="">-- Select Domain --</option>
+                        <option value="AIDS">Artificial Intelligence & Data Science (AIDS)</option>
+                        <option value="AIML">Artificial Intelligence & Machine Learning (AIML)</option>
+                        <option value="CYS">Cyber Security (CYS)</option>
+                        <option value="BW">Blockchain & Web (BW)</option>
+                        <option value="FS">Full Stack Development (FS)</option>
+                        <option value="AI">Artificial Intelligence (AI)</option>
+                        <option value="CD">Cloud & DevOps (CD)</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Experience (Years)</label>
+                <input type="number" class="form-control" id="experience" placeholder="Enter experience in years" min="0" required>
+            </div>
+
+            <div id="alternateDomainsContainer"></div>
+
+            <button type="submit" class="btn btn-success mt-3" id="submitBtn">Submit Mentor</button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const domains = [
+    { value: "AIDS", text: "Artificial Intelligence & Data Science (AIDS)" },
+    { value: "AIML", text: "Artificial Intelligence & Machine Learning (AIML)" },
+    { value: "CYS", text: "Cyber Security (CYS)" },
+    { value: "BW", text: "Blockchain & Web (BW)" },
+    { value: "FS", text: "Full Stack Development (FS)" },
+    { value: "CD", text: "Cloud & Devops (CD)" },
+    { value: "AI", text: "Artificial Intelligence (AI)" }
+];
+
+const experienceInput = document.getElementById("experience");
+const alternateContainer = document.getElementById("alternateDomainsContainer");
+
+// Show alternate domains if experience < 4
+experienceInput.addEventListener("input", function() {
+    const exp = parseInt(this.value) || 0;
+    alternateContainer.innerHTML = "";
+
+    if (exp > 0 && exp < 4) {
+        for (let i = 1; i <= 3; i++) {
+            let selectHtml = `<div class="mb-2">
+            <label class="form-label">Alternate Domain ${i}</label>
+            <select class="form-select alternate-domain" required>
+                <option value="">-- Select Alternate Domain --</option>`;
+            domains.forEach(d => selectHtml += `<option value="${d.value}">${d.text}</option>`);
+            selectHtml += `</select></div>`;
+            alternateContainer.innerHTML += selectHtml;
+        }
+    }
+});
+
+// Form submission
+document.getElementById("mentorForm")?.addEventListener("submit", function(e){
+    e.preventDefault();
+
+    const primary_domain = document.getElementById("primaryDomain").value;
+    const experience = parseInt(document.getElementById("experience").value) || 0;
+
+    let alt_domains = [];
+    if (experience < 3) {
+        document.querySelectorAll(".alternate-domain").forEach(s => alt_domains.push(s.value));
+    }
+
+    fetch("{% url 'add_men' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify({ primary_domain, experience, alt_domains })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.status === "success") {
+            alert("✅ Mentor added successfully!");
+            location.reload();
+        } else {
+            alert("❌ Error: " + (data.message || "Failed to add mentor"));
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert("❌ Server error, try again later");
+    });
+});
+</script>
+
+</body>
+</html>

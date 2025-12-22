@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zeroth Review - File Upload</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --primary: #333da4;
+      --secondary: #a1a7c9;
+      --accent: #d1d9ff;
+      --background: #f8f9fc;
+      --text-dark: #2e2e2e;
+      --text-light: #ffffff;
+      --hover: #0f00e0;
+      --button-active: #2b2b2b;
+    }
+    body {
+      margin: 0;
+      font-family: "Montserrat", sans-serif;
+      background: linear-gradient(120deg, var(--background), #ffffff);
+      color: var(--text-dark);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .dashboard-wrapper {
+      display: flex;
+      width: 95%;
+      max-width: 1400px;
+      height: 90vh;
+      background: var(--primary);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+    }
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      padding: 30px 20px;
+      background: linear-gradient(180deg, var(--primary), var(--secondary));
+      color: var(--text-light);
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar-header { text-align: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.2);}
+    .sidebar-header h4 { font-weight:600; color: var(--accent); }
+    .sidebar-nav .nav-item {
+      display: flex; align-items:center; padding:14px 18px; margin-bottom:12px;
+      text-decoration:none; font-weight:500; color:var(--text-light); border-radius:12px;
+      transition: all 0.3s ease;
+    }
+    .sidebar-nav .nav-item i { margin-right:14px; font-size:1.2rem; }
+    .sidebar-nav .nav-item:hover { background: rgba(255,255,255,0.15); transform:translateX(6px); }
+    .sidebar-nav .nav-item.active { background: linear-gradient(90deg,var(--accent),var(--secondary)); color: var(--text-dark); font-weight:600; }
+
+    /* Main Content */
+    .main-content { flex-grow:1; background: var(--background); padding:30px; display:flex; flex-direction:column; overflow-y:auto; }
+    .top-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; }
+    .user-greeting { display:flex; align-items:center; }
+    .profile-avatar { width:50px; height:50px; border-radius:50%; background: var(--secondary); display:flex; justify-content:center; align-items:center; font-weight:700; color:var(--text-dark); font-size:1.4rem; margin-right:15px;}
+    .welcome-text { font-size:1.4rem; font-weight:600; color: var(--text-dark);}
+    .more-options-btn { background:var(--primary); color:var(--text-light); border:none; width:45px; height:45px; border-radius:50%; display:flex; justify-content:center; align-items:center; cursor:pointer; transition:0.3s;}
+    .more-options-btn:hover { background:var(--secondary); }
+
+    /* Sections */
+    .section-content { display:none; }
+    .section-content.active { display:block; animation: fadeIn 0.4s ease;}
+    @keyframes fadeIn { from {opacity:0; transform:translateY(10px);} to {opacity:1; transform:translateY(0);} }
+
+    /* Upload Cards */
+    .upload-section { display:grid; grid-template-columns: repeat(auto-fit,minmax(300px,1fr)); gap:25px; }
+    .upload-card { background:var(--text-light); border-radius:16px; padding:25px; box-shadow:0 8px 25px rgba(0,0,0,0.1); text-align:center; transition:transform 0.3s ease;}
+    .upload-card:hover { transform:translateY(-5px); }
+    .upload-card h5 i { margin-right:8px; color: var(--primary); }
+    .file-label { display:flex; align-items:center; justify-content:center; background: linear-gradient(135deg,var(--primary),var(--secondary)); color: var(--text-light); padding:12px; border-radius:10px; cursor:pointer; margin-top:10px; transition:0.3s; }
+    .file-label:hover { background: var(--hover); }
+    .submit-button { background:var(--accent); color: var(--text-dark); font-weight:600; padding:12px 20px; border:none; border-radius:10px; margin-top:20px; transition:0.3s;}
+    .submit-button:hover { background: var(--primary); color: var(--text-light);}
+    .progress { height:8px; margin-top:5px; }
+    .status-text { display:block; margin-top:5px; font-size:0.9rem; }
+  </style>
+</head>
+
+<body>
+<div class="dashboard-wrapper">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h4><i class="fas fa-folder-open me-2"></i>Zeroth Review</h4>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" onclick="showSection('upload', this)"><i class="fas fa-upload"></i> File Upload</a>
+      <a href="#" class="nav-item" onclick="showSection('marks', this)"><i class="fas fa-trophy"></i> Marks Allocated</a>
+      <a href="#" class="nav-item" onclick="showSection('remarks', this)"><i class="fas fa-comments"></i> Remarks</a>
+    </nav>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="top-header">
+      <div class="user-greeting">
+        <div class="profile-avatar">A</div>
+        <span class="welcome-text">Welcome, {{student_name}}</span>
+      </div>
+      <button class="more-options-btn"><i class="fas fa-ellipsis-h"></i></button>
+    </div>
+
+    <!-- Upload Section -->
+    <div id="upload" class="section-content active">
+      <h5><i class="fas fa-file-upload me-2"></i>Upload Files for Zeroth Review</h5>
+      <form id="uploadForm" enctype="multipart/form-data">
+        <div class="upload-section">
+
+          <!-- PPT -->
+          <div class="upload-card">
+            <h5><i class="fas fa-file-powerpoint"></i> PPT Upload</h5>
+            <input type="file" id="pptFile" name="ppt_file" class="d-none" accept=".ppt,.pptx" required />
+            <label for="pptFile" class="file-label"><i class="fas fa-cloud-upload-alt me-2"></i> Choose PPT</label>
+            <div class="progress" style="display:none;"><div class="progress-bar" role="progressbar" style="width:0%;"></div></div>
+            <span class="status-text text-muted"></span>
+          </div>
+
+          <!-- Report -->
+          <div class="upload-card">
+            <h5><i class="fas fa-file-pdf"></i> Report PDF</h5>
+            <input type="file" id="pdfFile" name="pdf_file" class="d-none" accept=".pdf" required />
+            <label for="pdfFile" class="file-label"><i class="fas fa-cloud-upload-alt me-2"></i> Choose PDF</label>
+            <div class="progress" style="display:none;"><div class="progress-bar" role="progressbar" style="width:0%;"></div></div>
+            <span class="status-text text-muted"></span>
+          </div>
+
+          <!-- Abstract -->
+          <div class="upload-card">
+            <h5><i class="fas fa-file-alt"></i> Abstract PDF</h5>
+            <input type="file" id="abstractFile" name="abstract_file" class="d-none" accept=".pdf" required />
+            <label for="abstractFile" class="file-label"><i class="fas fa-cloud-upload-alt me-2"></i> Choose Abstract</label>
+            <div class="progress" style="display:none;"><div class="progress-bar" role="progressbar" style="width:0%;"></div></div>
+            <span class="status-text text-muted"></span>
+          </div>
+
+        </div>
+        <button type="submit" class="submit-button"><i class="fas fa-upload me-2"></i>Submit All Files</button>
+      </form>
+    </div>
+
+    <!-- Marks Section -->
+    <div id="marks" class="section-content">
+      <h5><i class="fas fa-star me-2"></i>Marks Allocated</h5>
+      <p>Your marks for the zeroth review will appear here once evaluated.</p>
+    </div>
+
+    <!-- Remarks Section -->
+    <div id="remarks" class="section-content">
+      <h5><i class="fas fa-comments me-2"></i>Team Remarks & Status</h5>
+      <div class="upload-card">
+        <p><strong>Status:</strong> On Track ✅</p>
+        <p><strong>Mentor Remarks:</strong> Continue refining your report formatting.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const uploadForm = document.getElementById("uploadForm");
+const pptFileInput = document.getElementById("pptFile");
+const pdfFileInput = document.getElementById("pdfFile");
+const abstractFileInput = document.getElementById("abstractFile");
+
+// Function to show file name
+function showFileName(input, labelText) {
+    const file = input.files[0];
+    const label = input.nextElementSibling;
+    if (file) {
+        label.innerHTML = `<i class="fas fa-check-circle me-2"></i>${file.name}`;
+    } else {
+        label.innerHTML = labelText;
+    }
+}
+
+// Add change event to show selected file name
+pptFileInput.addEventListener("change", () => showFileName(pptFileInput, '<i class="fas fa-cloud-upload-alt me-2"></i> Choose PPT'));
+pdfFileInput.addEventListener("change", () => showFileName(pdfFileInput, '<i class="fas fa-cloud-upload-alt me-2"></i> Choose PDF'));
+abstractFileInput.addEventListener("change", () => showFileName(abstractFileInput, '<i class="fas fa-cloud-upload-alt me-2"></i> Choose Abstract'));
+
+// Handle form submission
+uploadForm.addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    const files = [
+        {input: pptFileInput, name: "PPT"},
+        {input: pdfFileInput, name: "Report PDF"},
+        {input: abstractFileInput, name: "Abstract PDF"}
+    ];
+
+    const formData = new FormData();
+    let allFilesSelected = true;
+
+    files.forEach(f => {
+        if (f.input.files[0]) {
+            formData.append(f.input.id, f.input.files[0]);
+        } else {
+            allFilesSelected = false;
+        }
+    });
+
+    if (!allFilesSelected) {
+        alert("Please select all files before uploading.");
+        return;
+    }
+
+    // AJAX request with progress
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "{% url 'zero_ma1' %}");
+    xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
+
+    xhr.upload.addEventListener("progress", function(e) {
+        if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            document.querySelectorAll(".file-label").forEach(label => {
+                label.innerHTML += ` <span style="font-size:0.8rem;color:green;">(${percent}%)</span>`;
+            });
+        }
+    });
+
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+                const res = JSON.parse(xhr.responseText);
+                alert(res.message); // Success message
+                console.log(res.files); // Uploaded file paths
+                // Update file labels to show success
+                files.forEach(f => {
+                    const label = f.input.nextElementSibling;
+                    label.innerHTML = `<i class="fas fa-check-circle me-2"></i>${f.input.files[0].name} uploaded`;
+                });
+            } else {
+                alert("Upload failed. Try again.");
+            }
+        }
+    };
+
+    xhr.send(formData);
+});
+</script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

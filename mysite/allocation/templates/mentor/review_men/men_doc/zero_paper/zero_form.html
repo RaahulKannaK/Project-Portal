@@ -1,0 +1,335 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guide Hub - Review Form</title>
+
+  <!-- External Libraries -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --primary: #6a0dad;
+      --secondary: #f9ddeb;
+      --accent: #c7a4e0;
+      --background: #f8f9fc;
+      --text-dark: #2e2e2e;
+      --text-light: #ffffff;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Montserrat', sans-serif;
+      background: linear-gradient(120deg, var(--background), #ffffff);
+      color: var(--text-dark);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .dashboard-wrapper {
+      display: flex;
+      width: 95%;
+      max-width: 1400px;
+      height: 90vh;
+      background: var(--primary);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      padding: 30px 20px;
+      background: linear-gradient(180deg, var(--primary), var(--accent));
+      color: var(--text-light);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-header {
+      text-align: center;
+      padding-bottom: 20px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+    }
+
+    .sidebar-header h4 {
+      font-weight: 600;
+      color: var(--secondary);
+    }
+
+    .sidebar-nav {
+      flex-grow: 1;
+    }
+
+    .sidebar-nav .nav-item {
+      display: flex;
+      align-items: center;
+      color: var(--text-light);
+      text-decoration: none;
+      padding: 15px 20px;
+      margin-bottom: 12px;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .sidebar-nav .nav-item i {
+      margin-right: 15px;
+      font-size: 1.2rem;
+    }
+
+    .sidebar-nav .nav-item:hover {
+      background: rgba(249, 221, 235, 0.5);
+      transform: translateX(6px);
+      color: var(--text-dark);
+    }
+
+    .sidebar-nav .nav-item.active {
+      background: linear-gradient(90deg, var(--secondary), var(--accent));
+      color: var(--text-dark);
+      font-weight: 600;
+    }
+
+    /* Main Section */
+    .main-content {
+      flex-grow: 1;
+      padding: 30px;
+      background: var(--background);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 35px;
+    }
+
+    .profile-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: 700;
+      color: var(--text-dark);
+      font-size: 1.4rem;
+      margin-right: 15px;
+    }
+
+    .welcome-text {
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+
+    .glass-button {
+      background: var(--secondary);
+      color: var(--text-dark);
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .glass-button:hover {
+      background: var(--accent);
+      color: var(--text-light);
+    }
+
+    .main-card {
+      padding: 25px;
+      border-radius: 16px;
+      color: var(--text-light);
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .main-card h5 { font-weight: 600; }
+    .main-card i { position: absolute; top: 20px; right: 20px; font-size: 2rem; opacity: 0.15; }
+
+    .task-table td { padding: 12px; color: var(--text-light); }
+
+    .approval-select, .remark-input { display: none; margin-top: 10px; }
+    .approval-select.active, .remark-input.active { display: block; }
+
+    .split-view {
+      display: none;
+      grid-template-columns: 70% 30%;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .split-view.active { display: grid; }
+
+    .viewer-left {
+      background: var(--text-light);
+      border-radius: 10px;
+      padding: 10px;
+      height: 75vh;
+    }
+
+    .controls-right {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: var(--text-light);
+      padding: 20px;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="dashboard-wrapper">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h4><i class="fas fa-file-alt me-2"></i> Review Form</h4>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="{% url 'zero_ppt' %}" class="nav-item"><i class="fas fa-file-powerpoint"></i> PPT</a>
+        <a href="{% url 'zero_form' %}" class="nav-item active"><i class="fas fa-file-alt"></i> Review Form</a>
+        <a href="{% url 'zero_review' %}" class="nav-item"><i class="fas fa-file-pdf"></i> Review Paper</a>
+        <a href="{% url 'zero_base' %}" class="nav-item"><i class="fas fa-book"></i> Base Paper</a>
+      </nav>
+    </div>
+
+    <!-- Main Section -->
+    <div class="main-content">
+      <div class="top-header d-flex justify-content-between align-items-center">
+        <div></div>
+        <div class="user-greeting d-flex align-items-center">
+          <div class="profile-avatar">{{ request.session.mentor_name|slice:":1" }}</div>
+          <span class="welcome-text">Welcome, {{ mentor_name }}!</span>
+        </div>
+        <div class="dropdown">
+          <button class="glass-button dropdown-toggle" type="button" id="moreOptionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fas fa-ellipsis-h"></i>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="moreOptionsDropdown">
+            <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Review Form Card -->
+      <div id="form-card" class="main-card">
+        <i class="fas fa-file-alt"></i>
+        <h5>Review Form</h5>
+        <p>View and approve the submitted review form.</p>
+        <table class="task-table">
+          <tbody>
+            <tr>
+              <td>View File</td>
+              <td>
+              {% if pdf_path %}
+                <a href="{{ pdf_path }}" class="glass-button view-btn" data-file="{{ pdf_path }}">View Report</a>
+              {% else %}
+                <p style="color: red;">No Review Paper Found</p>
+              {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <td>Approve</td>
+              <td>
+                <a href="#" class="glass-button approve-btn">Approve</a>
+                <div class="approval-select">
+                  <select class="form-select">
+                    <option disabled selected>Select Status</option>
+                    <option>Approved</option>
+                    <option>Not Approved</option>
+                  </select>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>Remark</td>
+              <td>
+                <a href="#" class="glass-button remark-btn">Add Remark</a>
+                <div class="remark-input">
+                  <textarea class="form-control" rows="3" placeholder="Type your remark here..."></textarea>
+                  <button class="glass-button save-remark-btn mt-2">Save Remark</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Split View -->
+      <div id="split-view" class="split-view">
+        <div class="viewer-left">
+          <iframe id="viewer-frame" src="" width="100%" height="100%" style="border:none;"></iframe>
+        </div>
+        <div class="controls-right">
+          <h6>Review Controls</h6>
+          <button class="glass-button approve-btn">Approve</button>
+          <div class="approval-select">
+            <select class="form-select">
+              <option disabled selected>Select Status</option>
+              <option>Approved</option>
+              <option>Not Approved</option>
+            </select>
+          </div>
+          <hr>
+          <button class="glass-button remark-btn">Add Remark</button>
+          <div class="remark-input">
+            <textarea class="form-control" rows="3" placeholder="Add remark..."></textarea>
+            <button class="glass-button save-remark-btn mt-2">Save Remark</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JS -->
+  <script>
+    // PDF Viewer
+    document.querySelectorAll('.view-btn').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const file = this.dataset.file;
+        if(!file) return alert("No PDF file available!");
+
+        const split = document.getElementById('split-view');
+        const frame = document.getElementById('viewer-frame');
+        frame.src = file;
+        split.classList.add('active');
+      });
+    });
+
+    // Approve / Remark toggles
+    document.addEventListener('click', function(e) {
+      if(e.target.classList.contains('approve-btn')) {
+        e.target.nextElementSibling.classList.toggle('active');
+      } else if(e.target.classList.contains('remark-btn')) {
+        e.target.nextElementSibling.classList.toggle('active');
+      } else if(e.target.classList.contains('save-remark-btn')) {
+        const textarea = e.target.previousElementSibling;
+        alert('Remark saved: ' + textarea.value);
+        textarea.value = '';
+        textarea.parentElement.classList.remove('active');
+      }
+    });
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

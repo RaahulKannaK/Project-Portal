@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Final Mentor Allocation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            background: #f4f6f9;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        table {
+            width: 95%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            background: #fff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        th {
+            background: #34495e;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <h1>📊 Final Mentor Allocation</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Team</th>
+                <th>Team Domain</th>
+                <th>Mentor</th>
+                <th>Mentor Domain</th>
+                <th>Mentor Alt Domains</th>
+                <th>Experience</th>
+                <th>Similarity Score</th>
+                <th>Reason</th>
+                <th>Allocated At</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for alloc in allocations %}
+            <tr>
+                <td>{{ alloc.team.team_name }}</td>
+                <td>{{ alloc.team_domain }}</td>
+                <td>{{ alloc.mentor.name }}</td>
+                <td>{{ alloc.mentor_domain }}</td>
+                <td>{{ alloc.mentor_alt_domains|default:"-" }}</td>
+                <td>{{ alloc.mentor_experience }}</td>
+                <td>{{ alloc.similarity_score }}</td>
+                <td>{{ alloc.reason }}</td>
+                <td>{{ alloc.allocated_at|date:"Y-m-d H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9">No allocations yet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
