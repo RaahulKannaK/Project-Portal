@@ -1,5 +1,6 @@
 # allocation/models.py
 from django.db import models
+from django.contrib.auth.models import User
 
 class Student(models.Model):
     student_id = models.CharField(max_length=10, primary_key=True)
@@ -39,6 +40,15 @@ class Mentor_Login(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.username})"
+    
+class Coordinator_Login(models.Model):
+    username = models.CharField(max_length=80, unique=True)
+    name = models.CharField(max_length=80, unique=True)
+    password = models.CharField(max_length=80)
+# Example: CSE, IT, ECE
+
+    def __str__(self):
+        return f"{self.name} ({self.username})"
 
 class Mentor(models.Model):
     username = models.CharField(max_length=80, unique=True)
@@ -59,7 +69,6 @@ class Allocate_Mentor(models.Model):
     similarity_score = models.FloatField(default=0.0)
     reason = models.CharField(max_length=100, blank=True, null=True)
     allocated_at = models.DateTimeField(auto_now_add=True)
-
 
 
     def __str__(self):
@@ -101,3 +110,70 @@ class ModifyRequest(models.Model):
 
     def __str__(self):
         return f"Modify: {self.project_title} ({self.change_type})"
+
+class ZerothReviewRemark(models.Model):
+    team_name = models.CharField(max_length=255)
+    mentor_name = models.CharField(max_length=255)
+    heading = models.CharField(max_length=255)   # ✅ OK
+    remark = models.TextField()                  # ❌ NOT in constraint
+    color = models.CharField(max_length=20)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['team_name', 'mentor_name', 'heading'],  # ✅ ONLY THESE
+                name='unique_zeroth_review_remark'
+            )
+        ]
+class Announcement(models.Model):
+    ANN_TYPE_CHOICES = [
+        ("deadline", "Deadline"),
+        ("schedule", "Schedule"),
+        ("instruction", "Instruction"),
+    ]
+
+    TARGET_CHOICES = [
+        ("student", "Student"),
+        ("mentor", "Mentor"),
+        ("both", "Both"),
+    ]
+
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+
+    ann_type = models.CharField(max_length=20, choices=ANN_TYPE_CHOICES)
+    target_role = models.CharField(max_length=20, choices=TARGET_CHOICES)
+
+    deadline_date = models.DateField(null=True, blank=True)
+    deadline_time = models.TimeField(null=True, blank=True)
+
+    schedule_date = models.DateField(null=True, blank=True)
+    schedule_time = models.TimeField(null=True, blank=True)
+
+    venue = models.CharField(max_length=200, null=True, blank=True)
+
+    # ✅ SIMPLE CREATOR INFO
+    created_by_username = models.CharField(max_length=80)
+    created_by_name = models.CharField(max_length=80)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title
+class AnnouncementStatus(models.Model):
+    announcement = models.ForeignKey(
+        Announcement, on_delete=models.CASCADE
+    )
+
+    # ✅ WHO RECEIVED
+    receiver_role = models.CharField(max_length=20)   # student / mentor
+    receiver_id = models.CharField(max_length=80)     # student_id OR mentor username
+    receiver_name = models.CharField(max_length=80)
+
+    # ✅ STATUS
+    seen_at = models.DateTimeField(null=True, blank=True)
+    acknowledged_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.receiver_name} → {self.announcement.title}"

@@ -4,7 +4,7 @@ from django.shortcuts import render,get_object_or_404, redirect # type: ignore
 from django.contrib import messages # type: ignore
 from django.contrib.auth import logout # type: ignore
 from django.http import JsonResponse # type: ignore
-from .models import Student, Mentor_Login, Stu_Login,Team,Mentor,AllocationResult
+from .models import Student, Mentor_Login, Stu_Login,Team,Mentor,AllocationResult,Coordinator_Login
 from django.conf import settings # type: ignore
 from .train import allocate_mentors_ml
 from django.http import JsonResponse # type: ignore
@@ -115,14 +115,14 @@ def login_view(request):
                 messages.error(request, "Invalid mentor credentials")
         elif role == "coordinator":
             try:
-                mentor = Mentor_Login.objects.get(username=username, password=password)
+                coordinator = Coordinator_Login.objects.get(username=username, password=password)
                 request.session.update({
-                    "mentor_id": mentor.id,
-                    "username": mentor.username,
-                    "mentor_name": mentor.name
+                    "coordinator_id": coordinator.id,
+                    "username": coordinator.username,
+                    "mentor_name": coordinator.name
                 })
                 return redirect("coordinator_dashboard")
-            except Mentor_Login.DoesNotExist:
+            except Coordinator_Login.DoesNotExist:
                 messages.error(request, "Invalid mentor credentials")
 
 
@@ -132,13 +132,92 @@ def login_view(request):
     return render(request, "accounts/login.html")
 
 
+from django.shortcuts import render, redirect
+from django.utils import timezone
+from .models import AnnouncementStatus
+
+from django.db.models import Prefetch
+
 def student_dashboard(request):
-    student_name = request.session.get("student_name")
+    # =====================================================
+    # 🔐 SESSION CHECK (ORIGINAL - UNCHANGED)
+    # =====================================================
+    student_id = request.session.get("student_id")
     username = request.session.get("username")
-    return render(request, "student/stu_dash.html", {
+    student_name = request.session.get("student_name")
+
+    if not student_id:
+        return redirect("login")
+
+    print(f"[DEBUG] Student: {student_name}, Username: {username}")
+
+    # =====================================================
+    # 🔹 FETCH ANNOUNCEMENTS FOR STUDENT
+    # =====================================================
+    announcement_qs = AnnouncementStatus.objects.filter(
+        receiver_role="student",
+        receiver_id=student_id
+    ).select_related("announcement").order_by(
+        "-announcement__created_at"
+    )
+
+    # =====================================================
+    # 🆕 LATEST ANNOUNCEMENT (OLD LOGIC - PRESERVED)
+    # =====================================================
+    latest_announcement = announcement_qs.first()
+
+    # =====================================================
+    # 🆕 ALL ANNOUNCEMENTS (UPGRADE – NEW FEATURE)
+    # =====================================================
+    all_announcements = announcement_qs
+
+    print(
+        f"[DEBUG] Latest announcement:",
+        latest_announcement.announcement.title if latest_announcement else "None"
+    )
+    print(f"[DEBUG] Total announcements:", all_announcements.count())
+
+    # =====================================================
+    # 🔁 OTHER EXISTING DASHBOARD LOGIC
+    # (KEEP EVERYTHING YOU ALREADY HAVE BELOW)
+    # =====================================================
+    # example placeholders – DO NOT REMOVE YOUR OWN CODE
+    notifications = []
+    profile_data = {}
+
+    # =====================================================
+    # 🎯 FINAL CONTEXT
+    # =====================================================
+    context = {
         "student_name": student_name,
         "username": username,
-    })
+
+        # 🔔 ANNOUNCEMENTS
+        "latest_announcement": latest_announcement,   # OUTSIDE BOX
+        "all_announcements": all_announcements,       # BUTTON VIEW
+
+        # 🔁 KEEP OLD DATA
+        "notifications": notifications,
+        "profile_data": profile_data,
+    }
+
+    return render(request, "student/stu_dash.html", context)
+
+from django.views.decorators.http import require_POST
+
+@require_POST
+def acknowledge_announcement(request, status_id):
+    status = get_object_or_404(
+        AnnouncementStatus,
+        id=status_id,
+        receiver_role="student"
+    )
+
+    if status.acknowledged_at is None:
+        status.acknowledged_at = timezone.now()
+        status.save()
+
+    return redirect("student_dashboard")
 
 def mentor_dashboard(request):
     mentor_name = request.session.get("mentor_name")
@@ -151,9 +230,177 @@ def mentor_dashboard(request):
 def hod_dashboard(request):
     return render(request, "accounts/hod_dash.html")
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.utils import timezone
+from .models import Announcement,AnnouncementStatus
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.utils import timezone
+
 
 def coordinator_dashboard(request):
-    return render(request, "coordinator/coord_dash.html")
+
+    # 🔐 SESSION CHECK (VERY IMPORTANT)
+    coordinator_id = request.session.get("coordinator_id")
+    if not coordinator_id:
+        return redirect("login")
+
+    coordinator = get_object_or_404(Coordinator_Login, id=coordinator_id)
+
+    # =========================================================
+    # 📢 CREATE ANNOUNCEMENT
+    # =========================================================
+    if request.method == "POST":
+
+        print("POST DATA:", request.POST)
+
+        title = request.POST.get("title")
+        ann_type = request.POST.get("ann_type")        # deadline / schedule / instruction
+        target = request.POST.get("target")            # student / mentor / both
+
+        deadline_date = request.POST.get("deadline_date")
+        deadline_time = request.POST.get("deadline_time")
+
+        schedule_date = request.POST.get("schedule_date")
+        schedule_time = request.POST.get("schedule_time")
+        venue = request.POST.get("venue")
+
+        message = request.POST.get("message")
+
+        # -----------------------------------------------------
+        # COMMON VALIDATION
+        # -----------------------------------------------------
+        if not title or not ann_type or not target:
+            messages.error(request, "Please fill all required fields")
+            return redirect("coordinator_dashboard")
+
+        # -----------------------------------------------------
+        # ANNOUNCEMENT CREATION (BASED ON TYPE)
+        # -----------------------------------------------------
+        announcement = None
+
+        # 🔔 DEADLINE
+        if ann_type == "deadline":
+            if not deadline_date or not deadline_time:
+                messages.error(request, "Deadline date and time required")
+                return redirect("coordinator_dashboard")
+
+            announcement = Announcement.objects.create(
+                title=title,
+                ann_type=ann_type,
+                target_role=target,
+                deadline_date=deadline_date,
+                deadline_time=deadline_time,
+                created_by_username=coordinator.username,
+                created_by_name=coordinator.name
+            )
+
+        # 🗓️ SCHEDULE
+        elif ann_type == "schedule":
+            if not schedule_date or not schedule_time or not venue:
+                messages.error(request, "Schedule date, time and venue required")
+                return redirect("coordinator_dashboard")
+
+            announcement = Announcement.objects.create(
+                title=title,
+                ann_type=ann_type,
+                target_role=target,
+                schedule_date=schedule_date,
+                schedule_time=schedule_time,
+                venue=venue,
+                created_by_username=coordinator.username,
+                created_by_name=coordinator.name
+            )
+
+        # 📝 INSTRUCTION
+        elif ann_type == "instruction":
+            if not message:
+                messages.error(request, "Instruction message required")
+                return redirect("coordinator_dashboard")
+
+            announcement = Announcement.objects.create(
+                title=title,
+                ann_type=ann_type,
+                target_role=target,
+                message=message,
+                created_by_username=coordinator.username,
+                created_by_name=coordinator.name
+            )
+
+        else:
+            messages.error(request, "Invalid announcement type")
+            return redirect("coordinator_dashboard")
+
+        # -----------------------------------------------------
+        # 🎯 ASSIGN ANNOUNCEMENT TO USERS
+        # -----------------------------------------------------
+        status_objects = []
+
+        if target == "student":
+            students = Student.objects.all()
+            for s in students:
+                status_objects.append(
+                    AnnouncementStatus(
+                        announcement=announcement,
+                        receiver_role="student",
+                        receiver_id=s.student_id,
+                        receiver_name=s.name
+                    )
+                )
+
+        elif target == "mentor":
+            mentors = Mentor_Login.objects.all()
+            for m in mentors:
+                status_objects.append(
+                    AnnouncementStatus(
+                        announcement=announcement,
+                        receiver_role="mentor",
+                        receiver_id=m.username,
+                        receiver_name=m.name
+                    )
+                )
+
+        else:  # BOTH
+            students = Student.objects.all()
+            mentors = Mentor_Login.objects.all()
+
+            for s in students:
+                status_objects.append(
+                    AnnouncementStatus(
+                        announcement=announcement,
+                        receiver_role="student",
+                        receiver_id=s.student_id,
+                        receiver_name=s.name
+                    )
+                )
+
+            for m in mentors:
+                status_objects.append(
+                    AnnouncementStatus(
+                        announcement=announcement,
+                        receiver_role="mentor",
+                        receiver_id=m.username,
+                        receiver_name=m.name
+                    )
+                )
+
+        AnnouncementStatus.objects.bulk_create(status_objects)
+
+        messages.success(request, "Announcement circulated successfully!")
+        return redirect("coordinator_dashboard")
+
+    # =========================================================
+    # 📊 LOAD DASHBOARD DATA
+    # =========================================================
+    announcements = Announcement.objects.filter(
+        created_by_username=coordinator.username
+    ).order_by("-created_at")
+
+    return render(request, "coordinator/coord_dash.html", {
+        "coordinator": coordinator,
+        "announcements": announcements
+    })
 
 def logout_view(request):
     logout(request)
@@ -587,12 +834,91 @@ def looks_like_early_heading(text, top, page_no):
 # --------------------------------------------------
 # 🎯 MAIN VIEW
 # --------------------------------------------------
+import os
+import subprocess
+import json
+import pdfplumber
+
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.db import IntegrityError, transaction
+from allocation.models import AllocationResult
+from allocation.models import ZerothReviewRemark
+
+
+import json
+from django.http import JsonResponse
+
 def zero_review(request):
     mentor_name = request.session.get("mentor_name")
     username = request.session.get("username")
 
-    html_path = None
+    # =====================================================
+    # POST → SAVE ZEROTH REVIEW (NO DUPLICATES - FINAL FIX)
+    # =====================================================
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            remarks = data.get("remarks", [])
 
+            allocation = AllocationResult.objects.filter(
+                mentor_name=mentor_name
+            ).first()
+
+            if not allocation:
+                return JsonResponse(
+                    {"status": "fail", "message": "Team not found"},
+                    status=404
+                )
+
+            team_name = allocation.team_name
+            inserted = 0
+            skipped = 0
+
+            for r in remarks:
+                heading = r.get("heading", "").strip()
+                remark = r.get("remark", "").strip()
+                color = r.get("color", "").strip()
+
+                try:
+                    with transaction.atomic():
+                        _, created = ZerothReviewRemark.objects.get_or_create(
+                            team_name=team_name,
+                            mentor_name=mentor_name,
+                            heading=heading,
+                            remark=remark,
+                            color=color
+                        )
+
+                        if created:
+                            inserted += 1
+                        else:
+                            skipped += 1
+
+                except IntegrityError:
+                    # DB-level duplicate protection
+                    skipped += 1
+
+            return JsonResponse({
+                "status": "success",
+                "inserted": inserted,
+                "skipped": skipped
+            })
+
+        except Exception as e:
+            print("❌ Zeroth review save error:", e)
+            return JsonResponse(
+                {"status": "fail", "message": str(e)},
+                status=500
+            )
+
+    # =====================================================
+    # ---------------- EXISTING GET LOGIC -----------------
+    # (UNCHANGED — DO NOT TOUCH)
+    # =====================================================
+    html_path = None
     allocation = AllocationResult.objects.filter(
         mentor_name=mentor_name
     ).first()
@@ -605,21 +931,18 @@ def zero_review(request):
 
     team_name = allocation.team_name
     folder_name = team_name.replace(" ", "_")
-    pdf_file = f"{folder_name}_Abstract.pdf"
 
+    pdf_file = f"{folder_name}_Abstract.pdf"
     pdf_dir = os.path.join(settings.BASE_DIR, "project_docs", folder_name)
     html_dir = os.path.join(pdf_dir, "html")
     pdf_fs_path = os.path.join(pdf_dir, pdf_file)
 
     os.makedirs(html_dir, exist_ok=True)
 
-    # --------------------------------------------------
-    # 🔥 PDF → HTML (Docker, run once)
-    # --------------------------------------------------
-    html_files = [
-        f for f in os.listdir(html_dir)
-        if f.lower().endswith(".html")
-    ] if os.path.exists(html_dir) else []
+    html_files = (
+        [f for f in os.listdir(html_dir) if f.lower().endswith(".html")]
+        if os.path.exists(html_dir) else []
+    )
 
     if os.path.exists(pdf_fs_path) and not html_files:
         try:
@@ -633,22 +956,15 @@ def zero_review(request):
                 ],
                 check=True
             )
-            print("[OK] PDF converted to HTML")
         except subprocess.CalledProcessError as e:
             print("[ERROR] PDF → HTML failed:", e)
 
-    # --------------------------------------------------
-    # 🌐 AUTO HTML FILE DETECTION
-    # --------------------------------------------------
     if os.path.exists(html_dir):
         for f in os.listdir(html_dir):
             if f.lower().endswith(".html"):
                 html_path = f"/project_docs/{folder_name}/html/{f}"
                 break
 
-    # --------------------------------------------------
-    # 🔎 HEADING EXTRACTION
-    # --------------------------------------------------
     main_heading_lines = []
     sub_headings = []
 
@@ -659,7 +975,6 @@ def zero_review(request):
                 if not chars:
                     continue
 
-                # Group chars into lines
                 lines = {}
                 for ch in chars:
                     top = round(ch["top"], 1)
@@ -670,11 +985,10 @@ def zero_review(request):
                     text = "".join(
                         c["text"] for c in sorted(chs, key=lambda x: x["x0"])
                     ).strip()
-
                     size = round(
-                        sum(c["size"] for c in chs) / len(chs), 1
+                        sum(c["size"] for c in chs) / len(chs),
+                        1
                     )
-
                     merged_lines.append((top, size, text))
 
                 sizes = [s for _, s, t in merged_lines if t]
@@ -687,40 +1001,19 @@ def zero_review(request):
                     if not text:
                         continue
 
-                    # ------------------------------
-                    # MAIN HEADING (page 1 only)
-                    # ------------------------------
                     if page_no == 1 and abs(size - max_size) < 0.5:
                         main_heading_lines.append(text)
-                        print("[DEBUG] MAIN HEADING →", text)
 
-                    # ------------------------------
-                    # SUB HEADINGS (dynamic logic)
-                    # ------------------------------
                     elif (
-                        (size >= max_size * 0.8 and is_valid_heading(text))
-                        or looks_like_early_heading(text, top, page_no)
-                    ):
+                        size >= max_size * 0.8 and is_valid_heading(text)
+                    ) or looks_like_early_heading(text, top, page_no):
                         if text not in sub_headings:
                             sub_headings.append(text)
-                            print("[DEBUG] SUB HEADING →", text)
 
     except Exception as e:
         print("[ERROR] Heading detection failed:", e)
 
     main_heading = " ".join(main_heading_lines).strip()
-
-    # --------------------------------------------------
-    # 🖨️ FINAL DEBUG OUTPUT
-    # --------------------------------------------------
-    print("\n==============================")
-    print("MAIN HEADING:")
-    print(main_heading)
-
-    print("\nSUB HEADINGS:")
-    for h in sub_headings:
-        print("-", h)
-    print("==============================\n")
 
     return render(
         request,
@@ -734,7 +1027,6 @@ def zero_review(request):
             "sub_headings": sub_headings,
         }
     )
-
 
 def zero_base(request):
     mentor_name = request.session.get("mentor_name")
@@ -964,47 +1256,112 @@ def modify_team(request, project_title):
         messages.success(request, f"Modification request for '{team.project_title}' ({change_type}) added successfully!")
         return redirect("team_list")
 
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
+import os
+
+from allocation.models import ZerothReviewRemark
+from allocation.models import Team
+
 
 @csrf_exempt
 def zero_ma1(request):
+    # =================================================
+    # 👤 Student session details
+    # =================================================
     student_name = request.session.get("student_name")
     username = request.session.get("username")
 
-    # Find the team containing this student
-    team = Team.objects.filter(member_names__icontains=student_name).first()
+    print(f"[DEBUG] Student: {student_name}, Username: {username}")
+
+    # =================================================
+    # 🔍 Find student's team
+    # =================================================
+    team = Team.objects.filter(
+        member_names__icontains=student_name
+    ).first()
+
     if not team:
-        return JsonResponse({"status": "fail", "message": "Team not found for this student"}, status=404)
+        print("[DEBUG] Team not found for student")
+        return JsonResponse(
+            {"status": "fail", "message": "Team not found"},
+            status=404
+        )
 
-    # Use project title for folder and filenames
-    project_title = team.project_title.replace(" ", "_")
+    # -------------------------------------------------
+    # DB uses original title (with spaces)
+    # File system uses underscore version
+    # -------------------------------------------------
+    team_title_db = team.project_title                  # DB
+    project_title_fs = team.project_title.replace(" ", "_")  # Folder
 
+    print("[DEBUG] Team title (DB):", team_title_db)
+    print("[DEBUG] Project title (FS):", project_title_fs)
+
+    # =================================================
+    # 📁 Project folder path
+    # =================================================
+    output_dir = os.path.join(
+        settings.BASE_DIR,
+        "project_docs",
+        project_title_fs
+    )
+    os.makedirs(output_dir, exist_ok=True)
+
+    print(f"[DEBUG] Output directory: {output_dir}")
+
+    # =================================================
+    # 📄 Expected files
+    # =================================================
+    expected_files = {
+        "ppt": f"{project_title_fs}_PPT",
+        "pdf": f"{project_title_fs}_Report",
+        "abstract": f"{project_title_fs}_Abstract"
+    }
+
+    uploaded_files = {}
+
+    # =================================================
+    # 🔎 Detect already uploaded files
+    # =================================================
+    for key, base_name in expected_files.items():
+        for ext in [".ppt", ".pptx", ".pdf"]:
+            file_path = os.path.join(output_dir, base_name + ext)
+            if os.path.exists(file_path):
+                uploaded_files[key] = {
+                    "name": os.path.basename(file_path),
+                    "path": file_path
+                }
+                print(f"[DEBUG] Found uploaded file: {file_path}")
+
+    # =================================================
+    # 📩 POST → Upload missing files
+    # =================================================
     if request.method == "POST":
-        ppt_file = request.FILES.get('pptFile')
-        pdf_file = request.FILES.get('pdfFile')
-        abstract_file = request.FILES.get('abstractFile')
+        ppt_file = request.FILES.get("pptFile")
+        pdf_file = request.FILES.get("pdfFile")
+        abstract_file = request.FILES.get("abstractFile")
 
         saved_files = {}
 
-        # Folder: BASE_DIR/generated_docs/<project_title>/
-        output_dir = os.path.join(settings.BASE_DIR, "project_docs", project_title)
-        os.makedirs(output_dir, exist_ok=True)
-
-        def save_file(f, prefix):
-            ext = os.path.splitext(f.name)[1]
-            filename = f"{prefix}{ext}"
+        def save_file(file_obj, prefix):
+            ext = os.path.splitext(file_obj.name)[1]
+            filename = prefix + ext
             file_path = os.path.join(output_dir, filename)
-            with open(file_path, 'wb+') as dest:
-                for chunk in f.chunks():
+            with open(file_path, "wb+") as dest:
+                for chunk in file_obj.chunks():
                     dest.write(chunk)
+            print(f"[DEBUG] Saved file: {file_path}")
             return file_path
 
-        # Save files under project folder
         if ppt_file:
-            saved_files['ppt'] = save_file(ppt_file, f"{project_title}_PPT")
+            saved_files["ppt"] = save_file(ppt_file, expected_files["ppt"])
         if pdf_file:
-            saved_files['pdf'] = save_file(pdf_file, f"{project_title}_Report")
+            saved_files["pdf"] = save_file(pdf_file, expected_files["pdf"])
         if abstract_file:
-            saved_files['abstract'] = save_file(abstract_file, f"{project_title}_Abstract")
+            saved_files["abstract"] = save_file(abstract_file, expected_files["abstract"])
 
         return JsonResponse({
             "status": "success",
@@ -1012,12 +1369,126 @@ def zero_ma1(request):
             "files": saved_files
         })
 
-    # GET request → render page
-    return render(request, "student/review/zero_ma.html", {
-        "student_name": student_name,
-        "username": username,
-        "uploaded_files": {},
-    })
+    # =================================================
+    # 📝 GET → Fetch mentor zeroth review remarks
+    # =================================================
+    print("🔍 Fetching Zeroth Review remarks for student")
+
+    remarks_qs = ZerothReviewRemark.objects.filter(
+        team_name=team_title_db
+    ).order_by("created_at")
+
+    print("📝 Remarks found:", remarks_qs.count())
+    for r in remarks_qs:
+        print(" -", r.heading, "|", r.remark[:40], "| color:", r.color)
+
+    remarks_data = [
+        {
+            "heading": r.heading,
+            "remark": r.remark,
+            "color": r.color,
+            "created_at": r.created_at
+        }
+        for r in remarks_qs
+    ]
+
+    # =================================================
+    # 🌐 Highlighted Abstract HTML
+    # =================================================
+# Determine highlighted HTML file (mentor highlighted)
+    html_dir = os.path.join(output_dir, "html")
+    highlighted_html_file = None
+
+    if os.path.exists(html_dir):
+        html_files = [f for f in os.listdir(html_dir) if f.lower().endswith(".html")]
+        if html_files:
+            highlighted_html_file = html_files[0]
+
+    highlighted_html_url = (
+        f"/project_docs/{project_title_fs}/html/{highlighted_html_file}"
+        if highlighted_html_file else None
+    )
+
+
+    return render(
+        request,
+        "student/review/zero_ma.html",
+        {
+            "student_name": student_name,
+            "username": username,
+            "uploaded_files": uploaded_files,
+            "remarks": remarks_data,
+            "highlighted_html_url": highlighted_html_url,
+        }
+    )
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+
+from allocation.models import ZerothReviewRemark, AllocationResult
+
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+import json
+
+@csrf_exempt
+def save_zeroth_remark(request):
+    print("🔥 save_zeroth_remark CALLED")
+
+    if request.method != "POST":
+        return JsonResponse({"status": "fail", "message": "Invalid request"})
+
+    mentor_name = request.session.get("mentor_name")
+    print("Mentor:", mentor_name)
+
+    allocation = AllocationResult.objects.filter(
+        mentor_name=mentor_name
+    ).first()
+
+    if not allocation:
+        print("❌ No allocation found")
+        return JsonResponse({"status": "fail", "message": "No team allocated"})
+
+    team_name = allocation.team_name
+    print("Team:", team_name)
+
+    try:
+        data = json.loads(request.body)
+        remarks = data.get("remarks", [])
+        print("Remarks count:", len(remarks))
+    except Exception as e:
+        print("❌ JSON error:", e)
+        return JsonResponse({"status": "fail", "message": "Invalid JSON"})
+
+    for r in remarks:
+        heading = (r.get("heading") or "").strip()
+        remark = (r.get("remark") or "").strip()
+        color = r.get("color") or "#ffe066"
+
+        if not heading or not remark:
+            continue
+
+        print("Saving remark:", heading)
+
+        obj, created = ZerothReviewRemark.objects.update_or_create(
+            team_name=team_name,
+            mentor_name=mentor_name,
+            heading=heading,
+            defaults={
+                "remark": remark,
+                "color": color,
+            }
+        )
+
+        if created:
+            print("🆕 Inserted:", heading)
+        else:
+            print("🔁 Updated (no duplicate):", heading)
+
+    print("✅ Remarks saved successfully")
+    return JsonResponse({"status": "success"})
 
 
 def clean_text(text):

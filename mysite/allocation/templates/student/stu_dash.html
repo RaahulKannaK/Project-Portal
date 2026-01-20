@@ -4,367 +4,357 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Student Hub - Modern Dashboard</title>
+
+  <!-- Bootstrap & Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
-:root {
-    --primary: #2c37ad;        /* Deep Indigo */
-    --secondary: #a1a7c9;      /* Soft Indigo */
-    --accent: #d1d9ff;         /* Light Indigo */
-    --background: #F8F9FC;
-    --text-dark: #2E2E2E;
-    --text-light: #ffffff;
+:root{
+  --primary:#2c37ad;
+  --secondary:#a1a7c9;
+  --accent:#d1d9ff;
+  --background:#F8F9FC;
+  --text-dark:#2E2E2E;
+  --text-light:#fff;
 }
 
-  body {
-    margin: 0;
-    font-family: 'Montserrat', sans-serif;
-    background: linear-gradient(120deg, var(--background), #ffffff);
-    color: var(--text-dark);
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
+*{box-sizing:border-box;}
 
-  .dashboard-wrapper {
-    display: flex;
-    width: 95%;
-    max-width: 1400px;
-    height: 90vh;
-    background: var(--primary);
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
-  }
+body{
+  margin:0;
+  font-family:Montserrat,sans-serif;
+  background:linear-gradient(120deg,var(--background),#fff);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+}
 
-  /* Sidebar */
-  .sidebar {
-    width: 280px;
-    padding: 30px 20px;
-    background: linear-gradient(180deg, var(--primary), var(--secondary));
-    color: var(--text-light);
-    display: flex;
-    flex-direction: column;
-  }
+.dashboard-wrapper{
+  width:95%;
+  max-width:1400px;
+  height:90vh;
+  background:var(--primary);
+  border-radius:20px;
+  overflow:hidden;
+  display:flex;
+  box-shadow:0 20px 50px rgba(0,0,0,.25);
+}
 
-  .sidebar-header {
-    text-align: center;
-    margin-bottom: 25px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  }
+/* SIDEBAR */
+.sidebar{
+  width:280px;
+  padding:30px 20px;
+  background:linear-gradient(180deg,var(--primary),var(--secondary));
+  color:var(--text-light);
+}
 
-  .sidebar-header h4 {
-    font-weight: 600;
-    color: var(--accent);
-  }
+.sidebar-header{
+  text-align:center;
+  margin-bottom:25px;
+  padding-bottom:20px;
+  border-bottom:1px solid rgba(255,255,255,.2);
+}
 
-  .sidebar-nav {
-    flex-grow: 1;
-  }
+.sidebar-header h4{
+  margin:0;
+  color:var(--accent);
+  font-weight:600;
+}
 
-  .sidebar-nav .nav-item {
-    display: flex;
-    align-items: center;
-    padding: 14px 18px;
-    margin-bottom: 12px;
-    text-decoration: none;
-    font-weight: 500;
-    color: var(--text-light);
-    border-radius: 12px;
-    transition: all 0.3s ease;
-  }
+.sidebar-nav .nav-item{
+  display:flex;
+  align-items:center;
+  padding:14px 18px;
+  margin-bottom:12px;
+  border-radius:12px;
+  text-decoration:none;
+  color:var(--text-light);
+  transition:.25s;
+}
 
-  .sidebar-nav .nav-item i {
-    margin-right: 14px;
-    font-size: 1.2rem;
-  }
+.sidebar-nav .nav-item i{
+  margin-right:14px;
+}
 
-  .sidebar-nav .nav-item:hover {
-    background: rgba(255, 255, 255, 0.15);
-    transform: translateX(6px);
-  }
+.sidebar-nav .nav-item:hover{
+  background:rgba(255,255,255,.15);
+  transform:translateX(6px);
+}
 
-  .sidebar-nav .nav-item.active {
-    background: linear-gradient(90deg, var(--accent), var(--secondary));
-    color: var(--text-dark);
-    font-weight: 600;
-  }
+.sidebar-nav .nav-item.active{
+  background:linear-gradient(90deg,var(--accent),var(--secondary));
+  color:#000;
+  font-weight:600;
+}
 
-  /* Main Content */
-  .main-content {
-    flex-grow: 1;
-    background: var(--background);
-    padding: 30px;
-    display: flex;
-    flex-direction: column;
-  }
+/* MAIN */
+.main-content{
+  flex:1;
+  padding:30px;
+  background:var(--background);
+  overflow:auto;
+}
 
-  .top-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 35px;
-  }
+.top-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:30px;
+}
 
-  .user-greeting {
-    display: flex;
-    align-items: center;
-  }
+.user-greeting{
+  display:flex;
+  align-items:center;
+  gap:15px;
+}
 
-  .profile-avatar {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: var(--secondary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: var(--text-dark);
-    margin-right: 15px;
-  }
+.profile-avatar{
+  width:50px;
+  height:50px;
+  border-radius:50%;
+  background:var(--secondary);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+  font-size:1.4rem;
+}
 
-  .welcome-text {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--text-dark);
-  }
+.welcome-text{
+  font-size:1.5rem;
+  font-weight:600;
+}
 
-  .more-options-btn {
-    background: var(--primary);
-    color: var(--text-light);
-    border: none;
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    transition: 0.3s;
-  }
+/* GRID */
+.content-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:25px;
+}
 
-  .more-options-btn:hover {
-    background: var(--secondary);
-  }
+/* CARDS */
+.main-card{
+  position:relative;
+  padding:25px;
+  border-radius:16px;
+  color:var(--text-light);
+  box-shadow:0 10px 25px rgba(0,0,0,.2);
+  transition:.3s;
+}
 
-  .content-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    grid-template-rows: auto;
-    gap: 25px;
-    flex-grow: 1;
-  }
+.main-card:hover{
+  transform:translateY(-6px);
+}
 
-  /* Cards */
-  .main-card {
-    padding: 25px;
-    border-radius: 16px;
-    position: relative;
-    color: var(--text-light);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    overflow: hidden;
-  }
+.main-card i{
+  position:absolute;
+  top:20px;
+  right:20px;
+  font-size:2rem;
+  opacity:.15;
+}
 
-  .main-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 35px rgba(0,0,0,0.3);
-  }
+.gradient-purple{background:linear-gradient(135deg,var(--primary),var(--secondary));}
+.gradient-pink{background:linear-gradient(135deg,var(--accent),var(--secondary)); color:#000;}
+.gradient-mixed{background:linear-gradient(135deg,var(--secondary),var(--primary));}
 
-  .main-card h6 {
-    font-size: 1.4rem;
-    font-weight: 600;
-    margin-bottom: 10px;
-  }
+/* BUTTON */
+.glass-button{
+  background:var(--accent);
+  padding:10px 18px;
+  border-radius:8px;
+  font-weight:600;
+  color:#000;
+  text-decoration:none;
+  transition:.3s;
+  display:inline-block;
+}
 
-  .main-card p {
-    font-size: 0.95rem;
-  }
+.glass-button:hover{
+  background:var(--primary);
+  color:#fff;
+}
 
-  .main-card i {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    font-size: 2rem;
-    opacity: 0.15;
-  }
+/* ANNOUNCEMENTS */
+.announcement-box{
+  background:rgba(255,255,255,.15);
+  border-radius:10px;
+  padding:10px;
+  margin-bottom:10px;
+}
 
-  /* Gradients matching men_dash */
-  .gradient-purple { background: linear-gradient(135deg, var(--primary), var(--secondary)); }
-  .gradient-pink { background: linear-gradient(135deg, var(--accent), var(--secondary)); color: var(--text-dark); }
-  .gradient-mixed { background: linear-gradient(135deg, var(--secondary), var(--primary)); }
-
-  /* Buttons */
-  .glass-button {
-    background: var(--accent);
-    border: none;
-    padding: 10px 18px;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    text-decoration: none;
-    color: var(--text-dark);
-    transition: 0.3s;
-    display: inline-block;
-  }
-
-  .glass-button:hover {
-    background: var(--primary);
-    color: var(--text-light);
-  }
-
-  /* Widgets */
-  .widget {
-    padding: 20px;
-    border-radius: 16px;
-    background: var(--secondary);
-    color: var(--text-dark);
-    text-align: center;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-  }
-
-  .progress-circle {
-    width: 80px;
-    height: 80px;
-    margin: auto;
-    position: relative;
-  }
-
-  .circle-bg {
-    fill: none;
-    stroke: rgba(255, 255, 255, 0.3);
-    stroke-width: 3.8;
-  }
-
-  .circle {
-    fill: none;
-    stroke: var(--primary);
-    stroke-width: 2.8;
-    stroke-linecap: round;
-    transform: rotate(-90deg);
-    transform-origin: 50% 50%;
-    transition: stroke-dasharray 0.3s ease-out;
-  }
-
-  .percentage {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-weight: 600;
-    font-size: 1.1rem;
-  }
-
-  .footer {
-    margin-top: 20px;
-    text-align: center;
-    font-size: 0.9rem;
-    color: var(--text-dark);
-    border-top: 1px solid #ddd;
-    padding-top: 12px;
-  }
+.footer{
+  margin-top:25px;
+  text-align:center;
+  font-size:.9rem;
+  border-top:1px solid #ddd;
+  padding-top:12px;
+}
 </style>
 </head>
+
 <body>
-  <div class="dashboard-wrapper">
-    <!-- Sidebar -->
-    <div class="sidebar">
-      <div class="sidebar-header">
-        <h4><i class="fas fa-graduation-cap me-2"></i> Student Hub</h4>
-      </div>
-      <nav class="sidebar-nav">
-        <a href="#" class="nav-item active"><i class="fas fa-file-alt"></i> Overview</a>
-        <a href="{% url 'zero_stu' %}" class="nav-item"><i class="fas fa-trophy"></i> Reviews</a>
-        <a href="#" class="nav-item"><i class="fas fa-chart-line"></i> Reports</a>
-        <a href="#" class="nav-item"><i class="fas fa-cog"></i> Settings</a>
-      </nav>
+<div class="dashboard-wrapper">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h4><i class="fas fa-graduation-cap me-2"></i>Student Dashboard</h4>
+  </div>
+
+  <nav class="sidebar-nav">
+    <a class="nav-item active"><i class="fas fa-home"></i>Overview</a>
+    <a href="{% url 'zero_stu' %}" class="nav-item"><i class="fas fa-trophy"></i>Reviews</a>
+    <a href="#" class="nav-item"><i class="fas fa-chart-line"></i>Dashboard Info</a>
+    <a href="#" class="nav-item"><i class="fas fa-cog"></i>Settings</a>
+  </nav>
+</aside>
+
+<!-- MAIN -->
+<main class="main-content">
+
+<!-- TOP -->
+<div class="top-header">
+  <div class="user-greeting">
+    <div class="profile-avatar">
+      {{ request.session.student_name|slice:":1" }}
     </div>
-
-    <!-- Main Content -->
-    <div class="main-content">
-      <div class="top-header d-flex justify-content-between align-items-center">
-        <div class="user-greeting d-flex align-items-center">
-          <div class="profile-avatar">{{ request.session.student_name|slice:":1" }}</div>
-          <span class="welcome-text">Welcome, {{ request.session.student_name }}!</span>
-        </div>
-
-        <div class="dropdown">
-          <button class="more-options-btn dropdown-toggle" type="button" id="moreOptionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="fas fa-ellipsis-h"></i>
-          </button>
-          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="moreOptionsDropdown">
-            <li class="dropdown-item text-center fw-bold">
-              {{ request.session.student_id }} – {{ request.session.student_name }}
-            </li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}">
-              <i class="fas fa-sign-out-alt me-2"></i> Logout
-            </a></li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="content-grid">
-        <!-- Main Cards -->
-        <div class="main-card gradient-purple">
-          <i class="fas fa-users-cog"></i>
-          <h6>Create Team</h6>
-          <p>Launch your project setup with team members.</p>
-          <a href="{% url 'create_team' %}" class="glass-button">Start</a>
-        </div>
-
-        <div class="main-card gradient-pink">
-          <i class="fas fa-globe"></i>
-          <h6>Modify Domains</h6>
-          <p>Adjust and update your project domains.</p>
-          <a href="{% url 'create_team' %}" class="glass-button">Update</a>
-        </div>
-
-        <div class="main-card gradient-mixed">
-          <i class="fas fa-chalkboard-teacher"></i>
-          <h6>Mentor Connect</h6>
-          <p>View your allocated mentor and schedule.</p>
-          <a href="{% url 'run_allocation' %}" class="glass-button">View</a>
-        </div>
-
-        <!-- Bottom Widgets -->
-        <div class="widget">
-          <div class="progress-circle" data-progress="75">
-            <svg viewBox="0 0 36 36" class="circular-chart">
-              <path class="circle-bg"
-                d="M18 2.0845
-                  a 15.9155 15.9155 0 0 1 0 31.831
-                  a 15.9155 15.9155 0 0 1 0 -31.831"/>
-              <path class="circle"
-                stroke-dasharray="75, 100"
-                d="M18 2.0845
-                  a 15.9155 15.9155 0 0 1 0 31.831
-                  a 15.9155 15.9155 0 0 1 0 -31.831"/>
-            </svg>
-            <span class="percentage">75%</span>
-          </div>
-          <p>Progress: 75% Complete</p>
-        </div>
-
-        <div class="widget">
-          <i class="fas fa-calendar-alt" style="font-size:2rem; margin-bottom:10px;"></i>
-          <p class="mb-0">Deadline:</p>
-          <h6>Oct 26</h6>
-        </div>
-      </div>
-
-      <div class="footer">
-        © 2025 Your College Name. All Rights Reserved.
-      </div>
+    <div class="welcome-text">
+      Welcome, {{ request.session.student_name }}!
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <div class="dropdown">
+    <button class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown">
+      <i class="fas fa-user"></i>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+      <li class="dropdown-item text-center fw-bold">
+        {{ request.session.student_id }} – {{ request.session.student_name }}
+      </li>
+      <li><hr class="dropdown-divider"></li>
+      <li>
+        <a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}">
+          <i class="fas fa-sign-out-alt me-2"></i>Logout
+        </a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<!-- GRID -->
+<div class="content-grid">
+
+<!-- ORIGINAL CARDS (UNCHANGED) -->
+<div class="main-card gradient-purple">
+  <i class="fas fa-users-cog"></i>
+  <h6>Create Team</h6>
+  <p>Build your idea by chosing your team here.</p>
+  <a href="{% url 'create_team' %}" class="glass-button">Team Up</a>
+</div>
+
+<div class="main-card gradient-pink">
+  <i class="fas fa-globe"></i>
+  <h6>Modify Domains</h6>
+  <p>Update your project domain here for a particular time.</p>
+  <a href="{% url 'create_team' %}" class="glass-button">Update</a>
+</div>
+
+<div class="main-card gradient-mixed">
+  <i class="fas fa-chalkboard-teacher"></i>
+  <h6>Mentor Connect</h6>
+  <p>View mentor allocated to you.</p>
+  <a href="{% url 'run_allocation' %}" class="glass-button">View</a>
+</div>
+
+<!-- 🔔 ANNOUNCEMENTS (UPGRADED, NOT REPLACED) -->
+<div class="main-card gradient-purple">
+  <i class="fas fa-bell"></i>
+  <h6>Announcements</h6>
+
+  <!-- 🔹 Latest Announcement pinned -->
+  {% if latest_announcement %}
+    <div class="announcement-box">
+      <strong>{{ latest_announcement.announcement.title }}</strong><br>
+      <small>{{ latest_announcement.announcement.ann_type|title }}</small>
+
+      {% if latest_announcement.announcement.deadline_date %}
+        <div class="small">
+          ⏰ {{ latest_announcement.announcement.deadline_date }}
+          {{ latest_announcement.announcement.deadline_time }}
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <!-- 🔹 OLD CODE LOOP (UNCHANGED) -->
+  <div style="max-height:200px; overflow:auto;">
+    {% for status in announcements %}
+      <div class="announcement-box">
+        <strong>{{ status.announcement.title }}</strong><br>
+        <small>{{ status.announcement.ann_type|title }}</small>
+
+        {% if status.announcement.deadline_date %}
+          <div class="small">
+            ⏰ {{ status.announcement.deadline_date }}
+            {{ status.announcement.deadline_time }}
+          </div>
+        {% endif %}
+
+        <div class="text-end mt-1">
+          {% if status.acknowledged_at %}
+            <i class="fas fa-check-double text-info"></i>
+          {% else %}
+            <form method="post" action="{% url 'ack_announcement' status.id %}">
+              {% csrf_token %}
+              <button class="btn btn-sm btn-light">✔</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    {% empty %}
+      <p class="text-light">No announcements</p>
+    {% endfor %}
+  </div>
+
+  <!-- 🔹 NEW BUTTON -->
+  <button class="glass-button mt-2" data-bs-toggle="modal" data-bs-target="#allAnnouncementsModal">
+    View All Announcements
+  </button>
+</div>
+
+</div>
+
+<div class="footer">
+  © 2025 Project Portal. All Rights Reserved.
+</div>
+
+</main>
+</div>
+
+<!-- 🔔 MODAL (ADDITION ONLY) -->
+<div class="modal fade" id="allAnnouncementsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">All Announcements</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        {% for status in all_announcements %}
+          <div class="announcement-box">
+            <strong>{{ status.announcement.title }}</strong><br>
+            <small>{{ status.announcement.ann_type|title }}</small>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

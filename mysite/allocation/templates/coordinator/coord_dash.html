@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,375 +6,307 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Coordinator Hub — Dashboard</title>
 
-  <!-- Bootstrap + Font Awesome (CDN) -->
+  <!-- Bootstrap + Font Awesome -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
-  :root {
-    --primary: #1c1c1c;
-    --secondary: #555555;
-    --accent: #cccccc;
-    --background: #F8F9FC;
-    --text-dark: #2E2E2E;
-    --text-light: #ffffff;
-  }
+:root{
+  --primary:#1c1c1c;
+  --secondary:#555;
+  --accent:#cccccc;
+  --background:#F8F9FC;
+  --text-dark:#2E2E2E;
+  --text-light:#fff;
+}
 
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: "Montserrat", sans-serif;
-    background: linear-gradient(120deg, var(--background), #ffffff);
-    color: var(--text-dark);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-  }
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  font-family:Montserrat,sans-serif;
+  background:linear-gradient(120deg,var(--background),#fff);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+}
 
-  /* Dashboard Container */
-  .dashboard-wrapper {
-    width: 95%;
-    max-width: 1400px;
-    height: 90vh;
-    border-radius: 20px;
-    overflow: hidden;
-    display: flex;
-    background: var(--primary);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
-  }
+.dashboard-wrapper{
+  width:95%;
+  max-width:1400px;
+  height:90vh;
+  border-radius:20px;
+  overflow:hidden;
+  display:flex;
+  background:var(--primary);
+  box-shadow:0 20px 50px rgba(0,0,0,.25);
+}
 
-  /* Sidebar */
-  .sidebar {
-    width: 270px;
-    padding: 26px 18px;
-    background: linear-gradient(180deg, var(--primary), var(--secondary));
-    color: var(--text-light);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
+/* Sidebar */
+.sidebar{
+  width:270px;
+  padding:26px 18px;
+  background:linear-gradient(180deg,var(--primary),var(--secondary));
+  color:var(--text-light);
+}
 
-  .sidebar .brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 15px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-  }
+.brand{
+  display:flex;
+  gap:10px;
+  border-bottom:1px solid rgba(255,255,255,.15);
+  padding-bottom:12px;
+  margin-bottom:14px;
+}
+.brand h4{margin:0;color:var(--accent);}
 
-  .sidebar .brand h4 {
-    margin: 0;
-    color: var(--accent);
-    font-weight: 700;
-  }
+.nav-item{
+  padding:12px 14px;
+  border-radius:12px;
+  cursor:pointer;
+  display:flex;
+  gap:12px;
+  align-items:center;
+  transition:.25s;
+}
+.nav-item:hover{background:rgba(255,255,255,.15);transform:translateX(6px);}
+.nav-item.active{
+  background:linear-gradient(90deg,var(--accent),var(--secondary));
+  color:#000;
+}
 
-  .sidebar .nav-item {
-    padding: 12px 14px;
-    border-radius: 12px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    color: var(--text-light);
-    font-weight: 500;
-    transition: all 0.25s ease;
-  }
+/* Main */
+.main-content{
+  flex:1;
+  padding:26px;
+  background:var(--background);
+  overflow:auto;
+}
 
-  .sidebar .nav-item:hover {
-    background: rgba(255, 255, 255, 0.15);
-    transform: translateX(6px);
-  }
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:25px;
+}
 
-  .sidebar .nav-item.active {
-    background: linear-gradient(90deg, var(--accent), var(--secondary));
-    color: var(--text-dark);
-    font-weight: 600;
-  }
+.left-top{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
 
-  /* Main Content */
-  .main-content {
-    flex: 1;
-    padding: 26px;
-    background: var(--background);
-    display: flex;
-    flex-direction: column;
-    overflow: auto;
-  }
+.avatar{
+  width:50px;height:50px;border-radius:50%;
+  background:var(--secondary);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:700;
+}
 
-  .topbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 25px;
-  }
+.content-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:20px;
+}
 
-  .left-top {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
+.card-lg{
+  background:linear-gradient(135deg,var(--primary),var(--secondary));
+  color:#fff;
+  padding:20px;
+  border-radius:14px;
+  position:relative;
+}
 
-  .avatar {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: var(--secondary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: var(--text-light);
-  }
+.card-lg.alt{
+  background:linear-gradient(135deg,var(--accent),var(--secondary));
+  color:#000;
+}
 
-  .welcome {
-    font-weight: 700;
-    font-size: 1.2rem;
-    color: var(--text-dark);
-  }
+.card-lg i{
+  position:absolute;
+  right:12px;top:12px;
+  font-size:2rem;opacity:.15;
+}
 
-  .header-controls {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+.card-action{
+  display:inline-block;
+  background:var(--accent);
+  color:#000;
+  padding:8px 16px;
+  border-radius:8px;
+  font-weight:600;
+  text-decoration:none;
+}
 
-  .icon-btn {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    border: none;
-    background: var(--primary);
-    color: var(--text-light);
-    cursor: pointer;
-    transition: 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .icon-btn:hover {
-    background: var(--secondary);
-  }
-
-  .icon-btn.warn {
-    background: var(--accent);
-    color: var(--text-dark);
-    border-radius: 8px;
-    padding: 8px 14px;
-    font-weight: 600;
-  }
-
-  .notif-dot {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    background: #ef4444;
-    color: #fff;
-    font-size: 0.7rem;
-    padding: 2px 6px;
-    border-radius: 999px;
-  }
-
-  /* Search */
-  .search-wrap {
-    position: relative;
-  }
-
-  .search-wrap input {
-    padding: 8px 36px 8px 12px;
-    border-radius: 20px;
-    border: 1px solid #ccc;
-    min-width: 220px;
-  }
-
-  .search-wrap .fa-search {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--secondary);
-  }
-
-  /* Cards */
-  .content-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 20px;
-  }
-
-  .card-lg {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: var(--text-light);
-    padding: 20px;
-    border-radius: 14px;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
-    position: relative;
-    overflow: hidden;
-    transition: 0.3s ease;
-  }
-
-  .card-lg:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
-  }
-
-  .card-lg.alt {
-    background: linear-gradient(135deg, var(--accent), var(--secondary));
-    color: var(--text-dark);
-  }
-
-  .card-lg h6 {
-    margin: 0 0 8px 0;
-    font-size: 1.2rem;
-    font-weight: 600;
-  }
-
-  .card-lg p {
-    margin: 0 0 12px 0;
-    opacity: 0.95;
-    font-size: 0.95rem;
-  }
-
-  .card-lg .fa {
-    position: absolute;
-    right: 12px;
-    top: 12px;
-    font-size: 2rem;
-    opacity: 0.15;
-  }
-
-  .card-action {
-    background: var(--accent);
-    color: var(--text-dark);
-    padding: 10px 18px;
-    border-radius: 8px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: 0.3s;
-    display: inline-block;
-  }
-
-  .card-action:hover {
-    background: var(--primary);
-    color: var(--text-light);
-  }
-
-  .section { display: block; }
-  .d-none { display: none; }
+.section{display:block;}
+.d-none{display:none;}
 </style>
-
 </head>
+
 <body>
-  <div class="dashboard-wrapper">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="brand"><i class="fas fa-user me-1" style="color:var(--peach)"></i><h4>Coordinator Hub</h4></div>
-      <nav>
-        <div class="nav-item active" onclick="showSection('overview', this)"><i class="fas fa-home"></i> Overview</div>
-        <div class="nav-item" onclick="showSection('reviews', this)"><i class="fas fa-clipboard-list"></i> Reviews</div>
-        <div class="nav-item" onclick="showSection('chat', this)"><i class="fas fa-comments"></i> Chatbot</div>
-      </nav>
-    </aside>
+<div class="dashboard-wrapper">
 
-    <!-- Main -->
-    <main class="main-content">
-      <div class="topbar">
-        <div class="left-top">
-          <div class="avatar">C</div>
-          <div>
-            <div class="welcome">Welcome, Coordinator</div>
-            <div style="font-size:0.85rem;color:rgba(0,0,0,0.55)">KGISL Institute</div>
-          </div>
-          <div class="search-wrap"><input type="text" placeholder="Search teams, mentors..."><i class="fas fa-search"></i></div>
-          <div id="clock" style="font-weight:600; margin-left:12px;"></div>
-        </div>
-        <div class="header-controls">
-          <div class="dropdown">
-            <button class="icon-btn warn dropdown-toggle" data-bs-toggle="dropdown"><i class="fas fa-bell"></i><span class="notif-dot">3</span></button>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" href="#">Team A submitted PPT</a></li>
-              <li><a class="dropdown-item" href="#">Mentor assigned</a></li>
-              <li><a class="dropdown-item" href="#">Allocation saved</a></li>
-            </ul>
-          </div>
-          <div class="dropdown">
-            <button class="icon-btn" data-bs-toggle="dropdown"><i class="fas fa-ellipsis-h"></i></button>
-            <ul class="dropdown-menu dropdown-menu-end p-3"><li><a class="dropdown-item" href="{% url 'logout' %}" id="logoutBtn">Logout</a></li></ul>
-          </div>
-        </div>
-      </div>
-
-      <!-- Overview -->
-      <section id="overview" class="section">
-        <h5>Overview</h5>
-        <div class="content-grid">
-          <div class="card-lg"><i class="fas fa-bullhorn"></i><h6>Circulate Circular</h6><p>Post circulars to students and mentors.</p><a class="card-action" href="#">Create</a></div>
-          <div class="card-lg alt"><i class="fas fa-user-graduate"></i><h6>Mentor List – Overall</h6><p>View the entire Mentor Details<a class="card-action" href="{% url 'men_list' %}">Open</a></div>
-          <div class="card-lg"><i class="fas fa-users"></i><h6>Team List – Overall</h6><p>See teams and projects at a glance.</p><a class="card-action" href="{% url 'team_list' %}">View</a></div>
-          <div class="card-lg alt"><i class="fas fa-user-tie"></i><h6>Allocate Mentor</h6><p>Allocate or reassign mentors to teams.</p><a class="card-action" href="{% url 'run_allocation' %}">Allocate</a></div>
-          <div class="card-lg"><i class="fas fa-book"></i><h6>Circulate Rubrics</h6><p>Upload/share rubrics for evaluation.</p><a class="card-action" href="#">Share</a></div>
-        </div>
-      </section>
-
-      <!-- Reviews -->
-      <section id="reviews" class="section d-none">
-        <h5>Reviews</h5>
-        <div class="d-flex gap-2 flex-wrap">
-          <button class="btn btn-outline-primary" onclick="openReview('Zeroth')">Zeroth</button>
-          <button class="btn btn-outline-primary" onclick="openReview('First')">First</button>
-          <button class="btn btn-outline-primary" onclick="openReview('Second')">Second</button>
-          <button class="btn btn-outline-primary" onclick="openReview('Third')">Third</button>
-        </div>
-        <div id="reviewArea" style="margin-top:16px;"></div>
-      </section>
-
-      <!-- Chat -->
-      <section id="chat" class="section d-none">
-        <h5>Chatbot</h5>
-        <div id="chatBox" style="background:#fff; border-radius:10px; padding:12px; height:320px; overflow:auto;"></div>
-        <div class="d-flex mt-2 gap-2"><input id="chatInput" class="form-control" placeholder="Type a message..."><button class="btn btn-primary" onclick="sendChat()">Send</button></div>
-      </section>
-    </main>
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="brand">
+    <i class="fas fa-user"></i><h4>Coordinator Hub</h4>
   </div>
+  <div class="nav-item active" onclick="showSection('overview',this)">
+    <i class="fas fa-home"></i> Overview
+  </div>
+  <div class="nav-item" onclick="showSection('announce',this)">
+    <i class="fas fa-bullhorn"></i> Announcements
+  </div>
+  <div class="nav-item" onclick="showSection('chat',this)">
+    <i class="fas fa-comments"></i> Chatbot
+  </div>
+</aside>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    function showSection(id, el){
-      document.querySelectorAll('.section').forEach(s=>s.classList.add('d-none'));
-      document.getElementById(id).classList.remove('d-none');
-      document.querySelectorAll('.sidebar .nav-item').forEach(n=>n.classList.remove('active'));
-      if(el) el.classList.add('active');
-    }
+<!-- MAIN -->
+<main class="main-content">
 
-    // Clock
-    setInterval(()=>{ document.getElementById('clock').innerText=new Date().toLocaleTimeString(); },1000);
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="left-top">
+    <div class="avatar">
+      {{ coordinator.name|default:"C"|slice:":1" }}
+    </div>
+    <div>
+      <div style="font-weight:700">
+        Welcome, {{ coordinator.name|default:"Coordinator" }}
+      </div>
+      <div style="font-size:.85rem">KGISL Institute</div>
+    </div>
+    <div id="clock" style="margin-left:12px;font-weight:600"></div>
+  </div>
+</div>
 
-    function openReview(name){
-      document.getElementById('reviewArea').innerHTML=`
-        <h6>${name} Review Submissions</h6>
-        <table class="table table-sm table-bordered mt-2">
-          <thead><tr><th>Team</th><th>PPT</th><th>Remarks</th><th>Action</th></tr></thead>
-          <tbody>
-            <tr><td>Team Alpha</td><td><a href="#">Download</a></td><td><textarea class="form-control"></textarea></td><td><button class="btn btn-success btn-sm">Save</button></td></tr>
-            <tr><td>Team Beta</td><td><a href="#">Download</a></td><td><textarea class="form-control"></textarea></td><td><button class="btn btn-success btn-sm">Save</button></td></tr>
-          </tbody>
-        </table>`;
-    }
+<!-- OVERVIEW -->
+<section id="overview" class="section">
+<h5>Overview</h5>
+<div class="content-grid">
 
-    function sendChat(){
-      let val=document.getElementById('chatInput').value.trim();
-      if(!val) return;
-      let box=document.getElementById('chatBox');
-      box.insertAdjacentHTML('beforeend', <div><b>You:</b> ${val}</div>);
-      document.getElementById('chatInput').value='';
-      setTimeout(()=>{box.insertAdjacentHTML('beforeend', <div><b>Bot:</b> Got it!</div>);box.scrollTop=box.scrollHeight;},500);
-    }
+<div class="card-lg">
+<i class="fas fa-bullhorn"></i>
+<h6>Post Announcement</h6>
+<p>Deadlines, schedules & instructions</p>
+<a class="card-action" onclick="showSection('announce')">Create</a>
+</div>
 
-    document.getElementById('logoutBtn').addEventListener('click',(e)=>{e.preventDefault();alert("Logout clicked! Connect backend.");});
-  </script>
+<div class="card-lg alt">
+<i class="fas fa-user-graduate"></i>
+<h6>Mentor List</h6>
+<a class="card-action" href="{% url 'men_list' %}">Open</a>
+</div>
+
+<div class="card-lg">
+<i class="fas fa-users"></i>
+<h6>Team List</h6>
+<a class="card-action" href="{% url 'team_list' %}">View</a>
+</div>
+
+<div class="card-lg alt">
+<i class="fas fa-user-tie"></i>
+<h6>Allocate Mentor</h6>
+<a class="card-action" href="{% url 'run_allocation' %}">Allocate</a>
+</div>
+
+<div class="card-lg">
+<i class="fas fa-book"></i>
+<h6>Circulate Rubrics</h6>
+<a class="card-action" href="#">Share</a>
+</div>
+
+</div>
+</section>
+
+<!-- ANNOUNCEMENTS -->
+<section id="announce" class="section d-none">
+<h5>📢 Create Announcement</h5>
+
+<form method="post">
+{% csrf_token %}
+
+<div class="mb-2">
+  <input class="form-control" name="title" placeholder="Announcement Title">
+</div>
+
+<div class="mb-2">
+  <select class="form-select" name="ann_type" id="annType" onchange="toggleFields()">
+    <option value="">Select Announcement Type</option>
+    <option value="deadline">Deadline</option>
+    <option value="schedule">Schedule</option>
+    <option value="instruction">Instruction</option>
+  </select>
+</div>
+
+<div class="mb-2">
+  <select class="form-select" name="target">
+    <option value="student">Students</option>
+    <option value="mentor">Mentors</option>
+    <option value="both">Students & Mentors</option>
+  </select>
+</div>
+
+<div id="deadlineFields" class="d-none">
+  <input type="date" name="deadline_date" class="form-control mb-2">
+  <input type="time" name="deadline_time" class="form-control mb-2">
+</div>
+
+<div id="scheduleFields" class="d-none">
+  <input type="date" name="schedule_date" class="form-control mb-2">
+  <input class="form-control mb-2" name="schedule_time" placeholder="Time Slot">
+  <input class="form-control mb-2" name="venue" placeholder="Venue / Mode">
+</div>
+
+<div id="instructionFields" class="d-none">
+  <textarea class="form-control mb-2" name="message" placeholder="Detailed Instructions"></textarea>
+</div>
+
+<button class="btn btn-primary">Send Announcement</button>
+</form>
+</section>
+
+<!-- CHAT -->
+<section id="chat" class="section d-none">
+<h5>Chatbot</h5>
+<div id="chatBox" style="background:#fff;height:300px;padding:10px;overflow:auto;border-radius:10px"></div>
+<div class="d-flex mt-2 gap-2">
+<input id="chatInput" class="form-control">
+<button class="btn btn-primary" onclick="sendChat()">Send</button>
+</div>
+</section>
+
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+function showSection(id,el){
+  document.querySelectorAll('.section').forEach(s=>s.classList.add('d-none'));
+  document.getElementById(id).classList.remove('d-none');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el) el.classList.add('active');
+}
+
+setInterval(()=>clock.innerText=new Date().toLocaleTimeString(),1000);
+
+function toggleFields(){
+  deadlineFields.classList.add('d-none');
+  scheduleFields.classList.add('d-none');
+  instructionFields.classList.add('d-none');
+  if(annType.value==='deadline') deadlineFields.classList.remove('d-none');
+  if(annType.value==='schedule') scheduleFields.classList.remove('d-none');
+  if(annType.value==='instruction') instructionFields.classList.remove('d-none');
+}
+
+function sendChat(){
+  let v=chatInput.value.trim();
+  if(!v) return;
+  chatBox.insertAdjacentHTML('beforeend',`<div><b>You:</b> ${v}</div>`);
+  chatInput.value='';
+}
+</script>
+
 </body>
 </html>

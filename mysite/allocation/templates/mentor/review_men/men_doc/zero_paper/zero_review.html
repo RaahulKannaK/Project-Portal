@@ -65,8 +65,6 @@ body{
   font-weight:600;
   cursor:pointer;
 }
-.approval-select{display:none;}
-.approval-select.active{display:block;}
 .split-view{
   display:none;
   grid-template-columns:70% 30%;
@@ -74,6 +72,7 @@ body{
   margin-top:20px;
 }
 .split-view.active{display:grid;}
+
 .color-btn{
   width:26px;
   height:26px;
@@ -82,31 +81,27 @@ body{
   margin-right:6px;
   cursor:pointer;
 }
-.color-btn.active{
-  outline:3px solid #000;
-}
-.heading-tag{
+.color-btn.active{outline:3px solid #000;}
+
+.highlighted{
+  padding:2px;
   cursor:pointer;
-  margin:3px;
 }
+
+.pdf-toolbar{
+  position:absolute;
+  top:8px;
+  right:8px;
+  z-index:1000;
+}
+.pdf-toolbar button{margin-left:4px;}
+
 .tag-item{
   background:#f9ddeb;
   padding:8px;
   border-radius:8px;
   margin-bottom:8px;
   font-size:13px;
-}
-.locked-highlight{
-  cursor:pointer;
-}
-.pdf-toolbar{
-  position:absolute;
-  top:5px;
-  right:5px;
-  z-index:1000;
-}
-.pdf-toolbar button{
-  margin-left:5px;
 }
 </style>
 </head>
@@ -133,38 +128,17 @@ body{
 <i class="fa fa-eye"></i> View Review Paper
 </button>
 {% endif %}
-
-<!-- APPROVE -->
-<div class="mt-3">
-<button class="glass-btn approve-btn">
-<i class="fa fa-check"></i> Approve
-</button>
-<div class="approval-select">
-<select class="form-select mt-2">
-<option disabled selected>Select Status</option>
-<option>Approved</option>
-<option>Not Approved</option>
-</select>
-</div>
-</div>
-
-<!-- REMARK -->
-<div class="mt-3">
-<button class="glass-btn remark-btn">
-<i class="fa fa-comment"></i> Add Remark
-</button>
-</div>
 </div>
 
 <!-- SPLIT VIEW -->
 <div id="splitView" class="split-view">
 
-<!-- PDF VIEWER -->
+<!-- PDF VIEW -->
 <div class="bg-white rounded p-2 position-relative" style="height:75vh;">
 <div class="pdf-toolbar">
-  <button class="btn btn-secondary btn-sm" onclick="zoomIn()">Zoom +</button>
-  <button class="btn btn-secondary btn-sm" onclick="zoomOut()">Zoom -</button>
-  <button class="btn btn-warning btn-sm" onclick="eraserMode()">Eraser</button>
+  <button class="btn btn-secondary btn-sm" onclick="zoomIn()">+</button>
+  <button class="btn btn-secondary btn-sm" onclick="zoomOut()">−</button>
+  <button class="btn btn-warning btn-sm" onclick="toggleEraser()">Eraser</button>
   <button class="btn btn-danger btn-sm" onclick="closeViewer()">Close</button>
 </div>
 <iframe id="pdfFrame" style="width:100%;height:100%;border:none;"></iframe>
@@ -172,176 +146,297 @@ body{
 
 <!-- ANNOTATION PANEL -->
 <div class="bg-light p-3 rounded">
-<h6>Annotation Helper</h6>
+<h6>Annotation Panel</h6>
+
+<label>Selected Text</label>
+<textarea id="selectedText" class="form-control mb-2" rows="2" readonly></textarea>
 
 <label>Highlight Color</label>
 <div class="mb-2">
-  <button class="color-btn active" data-color="yellow" style="background:#ffe066;"></button>
-  <button class="color-btn" data-color="red" style="background:#ff6b6b;"></button>
-  <button class="color-btn" data-color="green" style="background:#69db7c;"></button>
+  <button class="color-btn active" data-color="#ffe066" style="background:#ffe066"></button>
+  <button class="color-btn" data-color="#ff6b6b" style="background:#ff6b6b"></button>
+  <button class="color-btn" data-color="#69db7c" style="background:#69db7c"></button>
 </div>
+
+<button class="glass-btn w-100 mb-2" onclick="applyHighlight()">
+<i class="fa fa-highlighter"></i> Highlight
+</button>
 
 <label>Detected Heading</label>
 <input id="detectedHeading" class="form-control mb-2" readonly>
 
 <div class="mb-2">
 {% for h in sub_headings %}
-<button class="badge bg-secondary heading-tag" data-heading="{{ h }}">{{ h }}</button>
+<button class="badge bg-secondary heading-tag" onclick="detectedHeading.value='{{ h }}'">{{ h }}</button>
 {% endfor %}
 </div>
 
 <label>Remark</label>
-<textarea id="remarkText" class="form-control mb-2" rows="3"></textarea>
+<textarea id="remarkText" class="form-control mb-2"></textarea>
 
-<button id="saveTagBtn" class="glass-btn w-100">
-<i class="fa fa-tag"></i> Save Tag
-</button>
+<button class="glass-btn w-100" onclick="saveTag()">Save Tag</button>
 
 <hr>
-<h6>Saved Tags</h6>
+<h6>Saved Remarks</h6>
 <div id="savedTags"></div>
-<small id="noTags" class="text-muted">No tags yet</small>
+
+<!-- ✅ UPDATED REMARKS BUTTON -->
+<hr>
+<button class="glass-btn w-100 mt-2" onclick="sendRemarksToStudent()">
+<i class="fa fa-paper-plane"></i> Send Remarks to Student
+</button>
+
 </div>
 </div>
 </div>
 </div>
 
 <script>
-let savedTags=[];
-let selectedColor="yellow";
-let zoomLevel=1;
-let eraser=false;
-const iframe=document.getElementById("pdfFrame");
-const detectedHeading=document.getElementById("detectedHeading");
-const remarkBox=document.getElementById("remarkText");
-const savedTagsDiv=document.getElementById("savedTags");
-const noTags=document.getElementById("noTags");
+/* =========================================================
+   GLOBAL STATE
+   ========================================================= */
+let selectedRange = null;
+let selectedColor = "#ffe066";
+let zoom = 1;
+let eraser = false;
+let tags = [];
+let sending = false; // 🔒 prevents double send
 
-// Zoom functions
-function zoomIn(){ zoomLevel+=0.1; iframe.contentWindow.document.body.style.zoom=zoomLevel; }
-function zoomOut(){ zoomLevel=Math.max(0.2, zoomLevel-0.1); iframe.contentWindow.document.body.style.zoom=zoomLevel; }
+const STORAGE_KEY = "review_annotations_v1";
 
-// Color selection
-document.querySelectorAll(".color-btn").forEach(btn=>{
-  btn.onclick=()=>{
-    document.querySelectorAll(".color-btn").forEach(b=>b.classList.remove("active"));
+const iframe = document.getElementById("pdfFrame");
+const selectedTextBox = document.getElementById("selectedText");
+
+/* =========================================================
+   COLOR PICKER
+   ========================================================= */
+document.querySelectorAll(".color-btn").forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll(".color-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
-    selectedColor=btn.dataset.color;
+    selectedColor = btn.dataset.color;
   };
 });
 
-// Select heading manually
-document.querySelectorAll(".heading-tag").forEach(tag=>{
-  tag.onclick=()=>detectedHeading.value=tag.dataset.heading;
-});
+/* =========================================================
+   VIEW PDF
+   ========================================================= */
+document.querySelector(".view-btn").onclick = e => {
+  iframe.src = e.target.closest("button").dataset.file;
+  document.getElementById("splitView").classList.add("active");
 
-// View PDF
-document.querySelectorAll(".view-btn").forEach(btn=>{
-  btn.onclick=e=>{
-    e.preventDefault();
-    iframe.src=btn.dataset.file;
-    document.getElementById("splitView").classList.add("active");
+  iframe.onload = () => {
+    restoreData();       // ✅ restore highlights + tags
+    bindSelection();
+    bindEraser();
   };
-});
+};
 
-// Close PDF
-function closeViewer(){
+function closeViewer() {
+  persistData();         // ✅ save before closing
+  iframe.src = "";
   document.getElementById("splitView").classList.remove("active");
-  iframe.src="";
 }
 
-// Eraser mode
-function eraserMode(){
-  eraser=!eraser;
-  alert(eraser?"Eraser enabled: Click a highlight to remove":"Eraser disabled");
+/* =========================================================
+   ZOOM
+   ========================================================= */
+function zoomIn() {
+  zoom += 0.1;
+  iframe.contentDocument.body.style.zoom = zoom;
 }
 
-// Normalize
-function normalize(t){ return t.replace(/\s+/g," ").trim().toLowerCase(); }
+function zoomOut() {
+  zoom = Math.max(0.3, zoom - 0.1);
+  iframe.contentDocument.body.style.zoom = zoom;
+}
 
-// Find heading
-function findHeading(text){
-  if(typeof DOCUMENT_MAP==="undefined") return "Unknown";
-  const words=normalize(text).split(" ").slice(0,6).join(" ");
-  for(let i=DOCUMENT_MAP.length-1;i>=0;i--){
-    if(normalize(DOCUMENT_MAP[i].heading).includes(words)){
-      return DOCUMENT_MAP[i].heading;
+/* =========================================================
+   ERASER
+   ========================================================= */
+function toggleEraser() {
+  eraser = !eraser;
+  alert(eraser ? "🧽 Eraser ON" : "✏️ Eraser OFF");
+}
+
+/* =========================================================
+   TEXT SELECTION
+   ========================================================= */
+function bindSelection() {
+  iframe.contentDocument.addEventListener("mouseup", () => {
+    const sel = iframe.contentWindow.getSelection();
+    if (sel && !sel.isCollapsed) {
+      selectedRange = sel.getRangeAt(0);
+      selectedTextBox.value = sel.toString();
+      detectHeading(sel.toString());
+    }
+  });
+}
+
+/* =========================================================
+   HEADING DETECTION
+   ========================================================= */
+function detectHeading(text) {
+  if (typeof DOCUMENT_MAP === "undefined") {
+    detectedHeading.value = "Unknown";
+    return;
+  }
+
+  const key = text.toLowerCase().split(" ").slice(0, 6).join(" ");
+  for (let i = DOCUMENT_MAP.length - 1; i >= 0; i--) {
+    if (DOCUMENT_MAP[i].heading.toLowerCase().includes(key)) {
+      detectedHeading.value = DOCUMENT_MAP[i].heading;
+      return;
     }
   }
-  return "Unknown";
+  detectedHeading.value = "Unknown";
 }
 
-// PDF text selection & highlight
-iframe.onload=()=>{
-  try{
-    const win=iframe.contentWindow;
-    const doc=win.document;
+/* =========================================================
+   APPLY HIGHLIGHT
+   ========================================================= */
+function applyHighlight() {
+  if (!selectedRange) {
+    alert("Select text first");
+    return;
+  }
 
-    doc.addEventListener("mouseup",()=>{
-      if(eraser) return;
-      const sel=win.getSelection();
-      if(!sel||sel.isCollapsed) return;
+  const span = iframe.contentDocument.createElement("span");
+  span.className = "pdf-highlight";
+  span.style.backgroundColor = selectedColor;
 
-      const text=sel.toString().trim();
-      if(!text) return;
+  selectedRange.surroundContents(span);
+  iframe.contentWindow.getSelection().removeAllRanges();
 
-      detectedHeading.value=findHeading(text);
+  persistData(); // ✅ save highlighted HTML
+}
 
-      const range=sel.getRangeAt(0);
-      const span=doc.createElement("span");
-      span.className="locked-highlight";
-      span.style.background=
-        selectedColor==="yellow"?"#ffe066":
-        selectedColor==="red"?"#ff6b6b":"#69db7c";
-      span.style.padding="2px";
+/* =========================================================
+   ERASER HANDLER
+   ========================================================= */
+function bindEraser() {
+  iframe.contentDocument.addEventListener("click", e => {
+    if (!eraser) return;
 
-      // Remove on click if eraser enabled
-      span.onclick=()=>{
-        if(eraser){
-          span.remove();
-        }
-      };
-
-      try{ range.surroundContents(span); }catch(err){ console.warn(err); }
-      sel.removeAllRanges();
-    });
-  }catch(err){ console.warn(err); }
-};
-
-// Save tag (only heading + remark)
-document.getElementById("saveTagBtn").onclick=()=>{
-  if(!detectedHeading.value){ alert("Detect or select a heading first"); return;}
-  savedTags.push({
-    heading:detectedHeading.value,
-    remark:remarkBox.value,
-    color:selectedColor
-  });
-  remarkBox.value="";
-  renderTags();
-};
-
-// Render saved tags
-function renderTags(){
-  savedTagsDiv.innerHTML="";
-  noTags.style.display=savedTags.length?"none":"block";
-  savedTags.forEach((t,idx)=>{
-    const d=document.createElement("div");
-    d.className="tag-item";
-    d.style.borderLeft=`5px solid ${t.color==="yellow"?"#ffe066":t.color==="red"?"#ff6b6b":"#69db7c"}`;
-    d.innerHTML=`<strong>${t.heading}</strong>
-                 <em>${t.remark}</em>
-                 <button class="btn btn-sm btn-danger float-end" onclick="deleteTag(${idx})">X</button>`;
-    savedTagsDiv.appendChild(d);
+    const target = e.target;
+    if (target.classList.contains("pdf-highlight")) {
+      target.replaceWith(...target.childNodes);
+      persistData();
+      e.stopPropagation();
+    }
   });
 }
 
-// Delete tag
-function deleteTag(idx){
-  savedTags.splice(idx,1);
+/* =========================================================
+   SAVE TAG
+   ========================================================= */
+function saveTag() {
+  if (!detectedHeading.value) {
+    alert("Heading required");
+    return;
+  }
+
+  tags.push({
+    heading: detectedHeading.value,
+    remark: remarkText.value,
+    color: selectedColor
+  });
+
+  remarkText.value = "";
   renderTags();
+  persistData();
+}
+
+/* =========================================================
+   RENDER TAGS
+   ========================================================= */
+function renderTags() {
+  const box = document.getElementById("savedTags");
+  box.innerHTML = "";
+
+  tags.forEach((t, i) => {
+    box.innerHTML += `
+      <div class="tag-item" style="border-left:5px solid ${t.color}">
+        <strong>${t.heading}</strong><br>${t.remark}
+        <button class="btn btn-sm btn-danger float-end"
+          onclick="tags.splice(${i},1);renderTags();persistData()">X</button>
+      </div>
+    `;
+  });
+}
+
+/* =========================================================
+   LOCAL STORAGE (HIGHLIGHTS + TAGS)
+   ========================================================= */
+function persistData() {
+  if (!iframe.contentDocument) return;
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    html: iframe.contentDocument.body.innerHTML, // ✅ highlighted HTML
+    tags: tags
+  }));
+}
+
+function restoreData() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw || !iframe.contentDocument) return;
+
+  const data = JSON.parse(raw);
+
+  if (data.html) {
+    iframe.contentDocument.body.innerHTML = data.html;
+  }
+
+  tags = data.tags || [];
+  renderTags();
+}
+
+/* =========================================================
+   SEND REMARKS — NO DOUBLE SEND, NO DATA LOSS
+   ========================================================= */
+function sendRemarksToStudent() {
+  if (tags.length === 0) {
+    alert("No remarks to send");
+    return;
+  }
+
+  if (sending) return; // 🔒 block duplicate click
+
+  sending = true;
+
+  const payload = {
+    remarks: tags,
+    sent_at: new Date().toISOString()
+  };
+
+  fetch("{% url 'save_zeroth_remark' %}", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": "{{ csrf_token }}"
+    },
+    body: JSON.stringify(payload)
+  })
+  .then(res => res.json())
+  .then(data => {
+    sending = false;
+
+    if (data.status === "success") {
+      alert("Remarks sent successfully ✅");
+      // ❌ DO NOT clear tags or highlights (as you requested)
+    } else {
+      alert("Failed to send remarks ❌");
+    }
+  })
+  .catch(err => {
+    sending = false;
+    console.error(err);
+    alert("Error sending remarks");
+  });
 }
 </script>
 
+
+
 </body>
 </html>
-

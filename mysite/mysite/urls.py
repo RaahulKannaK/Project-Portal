@@ -13,7 +13,7 @@ from allocation.views import (
     zero_review, zero_base, zero_ppt, zero_form, men_ppt, hod_dashboard, coordinator_dashboard,
     team_list, save_evaluation, clean_text, zero_stu, one_stu, two_stu, three_stu,
     approve_team, modify_team, zero_ma1, download_docx, download_pdf, one_ma,
-    save_evaluation_review1,serve_pdf
+    save_evaluation_review1,serve_pdf,save_zeroth_remark,acknowledge_announcement
 )
 
 # ✅ Import for serving files from project_docs/
@@ -49,6 +49,7 @@ urlpatterns = [
     path('save-evaluation/', save_evaluation, name='save_evaluation'),
     path('clean-text/', clean_text, name='clean_text'),
     path("student/zero-review/", zero_stu, name="zero_stu"),
+    path("student/zero-review/File Upload/zeroth_remark", save_zeroth_remark, name="save_zeroth_remark"),
     path("student/one-review/", one_stu, name="one_stu"),
     path("student/two-review/", two_stu, name="two_stu"),
     path("student/three-review/", three_stu, name="three_stu"),
@@ -62,6 +63,9 @@ urlpatterns = [
     path('coordinator/team-list/approve/<str:project_title>/', approve_team, name='approve_team'),
     path('coordinator/team-list/modify/<str:project_title>/', modify_team, name='modify_team'),
     path('mentor/pdf/<str:team_name>/<str:pdf_type>/', serve_pdf, name='serve_pdf'),
+    path("student/ack/<int:status_id>/", acknowledge_announcement, name="ack_announcement"),
+
+    
 ]
 
 if settings.DEBUG:
