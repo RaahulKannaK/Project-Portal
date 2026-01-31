@@ -256,19 +256,32 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    const totalInputs = 20; // total criteria
-    const autoFillLimit = 16; // first 16 criteria
+    const MAX_MARK = 5;
+    const MIN_MARK = 0;
+    const totalInputs = 20; 
+    const autoFillLimit = 16; 
     const inputs = document.querySelectorAll("input[type='number']");
     const memberCount = {{ team_members|length }};
 
-    // Initialize data attributes
+    /* ---------- INITIALIZE DATA ATTRIBUTES ---------- */
     inputs.forEach((inp, idx) => {
-        inp.dataset.manual = "false"; // track manual edits
-        inp.dataset.memberIndex = idx % memberCount; // 0-based member index
+        inp.dataset.manual = "false";
+        inp.dataset.memberIndex = idx % memberCount;
         inp.dataset.criteriaIndex = Math.floor(idx / memberCount);
     });
 
-    // Function to calculate totals independently
+    /* ---------- FORCE VALUE BETWEEN 0 AND 5 ---------- */
+    function sanitizeInput(input) {
+        let value = parseInt(input.value);
+
+        if (isNaN(value)) value = 0;
+        if (value > MAX_MARK) value = MAX_MARK;
+        if (value < MIN_MARK) value = MIN_MARK;
+
+        input.value = value;
+    }
+
+    /* ---------- CALCULATE TOTAL ---------- */
     function calculateTotal() {
         for (let m = 0; m < memberCount; m++) {
             let sum = 0;
@@ -277,59 +290,68 @@ document.addEventListener("DOMContentLoaded", function() {
                     sum += parseInt(inp.value) || 0;
                 }
             });
-            const totalCell = document.getElementById(`total-${m}`);
-            if (totalCell) totalCell.textContent = sum;
+            document.getElementById(`total-${m}`).textContent = sum;
         }
     }
 
-    // Input event delegation for autofill and manual tracking
+    /* ---------- INPUT HANDLING ---------- */
     inputs.forEach(inp => {
+
+        // Prevent typing > 5
         inp.addEventListener("input", function() {
+            sanitizeInput(this);
+
             const memberIndex = parseInt(this.dataset.memberIndex);
             const criteriaIndex = parseInt(this.dataset.criteriaIndex);
 
-            // Autofill first member to others if not manually changed
+            // Autofill logic
             if (memberIndex === 0 && criteriaIndex < autoFillLimit) {
                 inputs.forEach(other => {
-                    const otherMember = parseInt(other.dataset.memberIndex);
-                    const otherCriteria = parseInt(other.dataset.criteriaIndex);
-                    if (otherMember > 0 && otherCriteria === criteriaIndex && other.dataset.manual === "false") {
-                        other.value = this.value; // autofill
+                    if (
+                        parseInt(other.dataset.memberIndex) > 0 &&
+                        parseInt(other.dataset.criteriaIndex) === criteriaIndex &&
+                        other.dataset.manual === "false"
+                    ) {
+                        other.value = this.value;
                     }
                 });
             }
 
-            // Mark as manual if not first member
             if (memberIndex > 0) {
                 this.dataset.manual = "true";
             }
 
             calculateTotal();
         });
+
+        // Prevent pasting large numbers
+        inp.addEventListener("paste", function(e) {
+            e.preventDefault();
+            let pasted = parseInt((e.clipboardData || window.clipboardData).getData("text"));
+            if (isNaN(pasted)) pasted = 0;
+            if (pasted > MAX_MARK) pasted = MAX_MARK;
+            this.value = pasted;
+            this.dispatchEvent(new Event("input"));
+        });
     });
 
-    // Initial total
     calculateTotal();
 
-    // Form submission
+    /* ---------- FORM SUBMIT ---------- */
     document.getElementById('evaluation-form').addEventListener('submit', function(e){
         e.preventDefault();
 
         const savedEvaluations = {};
 
-        // Collect each member's marks independently using data-member-index
         {% for member in team_members %}
-            savedEvaluations["team_member-{{ member }}"] = [];
-            for (let i = 0; i < totalInputs; i++) {
-                const inp = document.querySelector(`input[data-member-index="{{ forloop.counter0 }}"][data-criteria-index="${i}"]`);
-                savedEvaluations["team_member-{{ member }}"].push(inp ? inp.value : 0);
-            }
+        savedEvaluations["team_member-{{ member }}"] = [];
+        for (let i = 0; i < totalInputs; i++) {
+            const inp = document.querySelector(
+                `input[data-member-index="{{ forloop.counter0 }}"][data-criteria-index="${i}"]`
+            );
+            savedEvaluations["team_member-{{ member }}"].push(inp ? inp.value : 0);
+        }
         {% endfor %}
-
-        const dataToSend = {
-            team_name: "{{ team_name }}",
-            evaluations: savedEvaluations
-        };
 
         fetch("{% url 'save_evaluation_review1' %}", {
             method: "POST",
@@ -337,21 +359,24 @@ document.addEventListener("DOMContentLoaded", function() {
                 "Content-Type": "application/json",
                 "X-CSRFToken": "{{ csrf_token }}"
             },
-            body: JSON.stringify(dataToSend)
+            body: JSON.stringify({
+                team_name: "{{ team_name }}",
+                evaluations: savedEvaluations
+            })
         })
         .then(res => res.json())
         .then(data => {
             if (data.status === "success") {
                 alert(`✅ Report generated successfully!\nFile: ${data.file_path}`);
-                calculateTotal();
             } else {
                 alert(`❌ Error: ${data.message}`);
             }
         })
-        .catch(err => console.error("Fetch error:", err));
+        .catch(err => console.error(err));
     });
 });
 </script>
+
 
 
 </body>

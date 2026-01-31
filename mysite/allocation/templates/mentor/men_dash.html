@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,10 +13,10 @@
 
   <style>
     :root {
-      --primary: #6A0DAD;        /* Deep Purple */
-      --secondary: #C7A4E0;      /* Soft Violet */
-      --accent: #F9DDEB;         /* Blush Pink */
-      --background: #F8F9FC;     /* Clean Light Background */
+      --primary: #6A0DAD;
+      --secondary: #C7A4E0;
+      --accent: #F9DDEB;
+      --background: #F8F9FC;
       --text-dark: #2E2E2E;
       --text-light: #ffffff;
     }
@@ -31,7 +32,6 @@
       align-items: center;
     }
 
-    /* Dashboard Container */
     .dashboard-wrapper {
       display: flex;
       width: 95%;
@@ -52,109 +52,35 @@
       display: flex;
       flex-direction: column;
     }
-
-    .sidebar-header {
-      text-align: center;
-      margin-bottom: 25px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    }
-
-    .sidebar-header h4 {
-      font-weight: 600;
-      color: var(--accent);
-    }
-
-    .sidebar-nav {
-      flex-grow: 1;
-    }
-
+    .sidebar-header { text-align: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.2); }
+    .sidebar-header h4 { font-weight: 600; color: var(--accent); }
+    .sidebar-nav { flex-grow: 1; }
     .sidebar-nav .nav-item {
-      display: flex;
-      align-items: center;
-      padding: 14px 18px;
-      margin-bottom: 12px;
-      text-decoration: none;
-      font-weight: 500;
-      color: var(--text-light);
-      border-radius: 12px;
-      transition: 0.3s;
+      display: flex; align-items: center; padding: 14px 18px; margin-bottom: 12px;
+      text-decoration: none; font-weight: 500; color: var(--text-light);
+      border-radius: 12px; transition: 0.3s; cursor: pointer;
     }
-
-    .sidebar-nav .nav-item i {
-      margin-right: 14px;
-      font-size: 1.2rem;
-    }
-
-    .sidebar-nav .nav-item:hover {
-      background: rgba(255, 255, 255, 0.15);
-      transform: translateX(6px);
-    }
-
-    .sidebar-nav .nav-item.active {
-      background: linear-gradient(90deg, var(--accent), var(--secondary));
-      color: var(--text-dark);
-      font-weight: 600;
-    }
+    .sidebar-nav .nav-item i { margin-right: 14px; font-size: 1.2rem; }
+    .sidebar-nav .nav-item:hover { background: rgba(255,255,255,0.15); transform: translateX(6px); }
+    .sidebar-nav .nav-item.active { background: linear-gradient(90deg, var(--accent), var(--secondary)); color: var(--text-dark); font-weight: 600; }
 
     /* Main Content */
-    .main-content {
-      flex-grow: 1;
-      background: var(--background);
-      padding: 30px;
-      display: flex;
-      flex-direction: column;
-    }
+    .main-content { flex-grow: 1; background: var(--background); padding: 30px; display: flex; flex-direction: column; overflow-y: auto; }
 
-    .top-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 35px;
-    }
-
-    .user-greeting {
-      display: flex;
-      align-items: center;
-    }
-
+    .top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 35px; }
+    .user-greeting { display: flex; align-items: center; }
     .profile-avatar {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background: var(--secondary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.4rem;
-      font-weight: 700;
-      color: var(--text-dark);
-      margin-right: 15px;
+      width: 50px; height: 50px; border-radius: 50%; background: var(--secondary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem; font-weight: 700; color: var(--text-dark); margin-right: 15px;
     }
-
-    .welcome-text {
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: var(--text-dark);
-    }
-
+    .welcome-text { font-size: 1.5rem; font-weight: 600; color: var(--text-dark); }
     .more-options-btn {
-      background: var(--primary);
-      color: var(--text-light);
-      border: none;
-      width: 45px;
-      height: 45px;
-      border-radius: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      cursor: pointer;
-      transition: 0.3s;
+      background: var(--primary); color: var(--text-light); border: none;
+      width: 45px; height: 45px; border-radius: 50%; display: flex;
+      justify-content: center; align-items: center; cursor: pointer; transition: 0.3s;
     }
-
-    .more-options-btn:hover {
-      background: var(--secondary);
-    }
+    .more-options-btn:hover { background: var(--secondary); }
 
     /* Content Grid */
     .content-grid {
@@ -167,112 +93,26 @@
 
     /* Cards */
     .main-card {
-      padding: 25px;
-      border-radius: 16px;
-      position: relative;
-      color: var(--text-light);
-      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-      transition: 0.3s ease;
-      overflow: hidden;
+      padding: 25px; border-radius: 16px; position: relative;
+      color: var(--text-light); box-shadow: 0 8px 25px rgba(0,0,0,0.2); transition: 0.3s ease; overflow: hidden;
     }
-
-    .main-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 12px 35px rgba(0,0,0,0.3);
-    }
-
-    .main-card h6 {
-      font-size: 1.4rem;
-      font-weight: 600;
-      margin-bottom: 10px;
-    }
-
-    .main-card p {
-      font-size: 0.95rem;
-    }
-
-    .main-card i {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      font-size: 2rem;
-      opacity: 0.15;
-    }
+    .main-card:hover { transform: translateY(-5px); box-shadow: 0 12px 35px rgba(0,0,0,0.3); }
+    .main-card h6 { font-size: 1.4rem; font-weight: 600; margin-bottom: 10px; }
+    .main-card p { font-size: 0.95rem; }
+    .main-card i { position: absolute; top: 20px; right: 20px; font-size: 2rem; opacity: 0.15; }
 
     .gradient-purple { background: linear-gradient(135deg, var(--primary), var(--secondary)); }
     .gradient-pink { background: linear-gradient(135deg, var(--accent), var(--secondary)); color: var(--text-dark); }
     .gradient-mixed { background: linear-gradient(135deg, var(--secondary), var(--primary)); }
 
     .glass-button {
-      background: var(--accent);
-      border: none;
-      padding: 10px 18px;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      text-decoration: none;
-      color: var(--text-dark);
-      transition: 0.3s;
-      display: inline-block;
+      background: var(--accent); border: none; padding: 10px 18px; border-radius: 8px;
+      font-weight: 600; cursor: pointer; text-decoration: none; color: var(--text-dark); transition: 0.3s; display: inline-block;
     }
-
-    .glass-button:hover {
-      background: var(--primary);
-      color: var(--text-light);
-    }
-
-    /* Widgets */
-    .widget {
-      padding: 20px;
-      border-radius: 16px;
-      background: var(--secondary);
-      color: var(--text-dark);
-      text-align: center;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-    }
-
-    .progress-circle {
-      width: 80px;
-      height: 80px;
-      margin: auto;
-      position: relative;
-    }
-
-    .circle-bg {
-      fill: none;
-      stroke: rgba(255, 255, 255, 0.3);
-      stroke-width: 3.8;
-    }
-
-    .circle {
-      fill: none;
-      stroke: var(--primary);
-      stroke-width: 2.8;
-      stroke-linecap: round;
-      transform: rotate(-90deg);
-      transform-origin: 50% 50%;
-    }
-
-    .percentage {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-weight: 600;
-      font-size: 1.1rem;
-    }
-
-    /* Footer */
-    .footer {
-      margin-top: 20px;
-      text-align: center;
-      font-size: 0.9rem;
-      color: var(--text-dark);
-      border-top: 1px solid #ddd;
-      padding-top: 12px;
-    }
+    .glass-button:hover { background: var(--primary); color: var(--text-light); }
   </style>
 </head>
+
 <body>
   <div class="dashboard-wrapper">
     <!-- Sidebar -->
@@ -281,10 +121,10 @@
         <h4><i class="fas fa-graduation-cap me-2"></i> Mentor Hub</h4>
       </div>
       <nav class="sidebar-nav">
-        <a href="{% url 'run_allocation' %}" class="nav-item active"><i class="fas fa-file-alt"></i> Overview</a>
-        <a href="{% url 'zero_men' %}" class="nav-item"><i class="fas fa-trophy"></i> Review</a>
-        <a href="#" class="nav-item"><i class="fas fa-chart-line"></i> Reports</a>
-        <a href="#" class="nav-item"><i class="fas fa-cog"></i> Settings</a>
+        <a class="nav-item active" id="overview-btn"><i class="fas fa-file-alt"></i> Overview</a>
+        <a class="nav-item" id="review-btn"><i class="fas fa-trophy"></i> Review</a>
+        <a class="nav-item" id="team-btn"><i class="fas fa-chart-line"></i> Team Details</a>
+        <a class="nav-item"><i class="fas fa-cog"></i> Settings</a>
       </nav>
     </div>
 
@@ -307,63 +147,154 @@
         </div>
       </div>
 
-      <!-- Content Grid -->
-      <div class="content-grid">
-        <!-- Cards -->
-        <div class="main-card gradient-purple">
-          <i class="fas fa-users-cog"></i>
-          <h6>Mentor Registration</h6>
-          <p>Add a mentor’s expertise and experience.</p>
-          <a href="{% url 'add_men' %}" class="glass-button">Register</a>
-        </div>
-
-        <div class="main-card gradient-pink">
-          <i class="fas fa-globe"></i>
-          <h6>Circular Center</h6>
-          <p>View all circulars shared for your projects.</p>
-          <a href="{% url 'login' %}" class="glass-button">View Circulars</a>
-        </div>
-
-        <div class="main-card gradient-mixed">
-          <i class="fas fa-chalkboard-teacher"></i>
-          <h6>Assigned Teams</h6>
-          <p>Check your allocated project teams.</p>
-          <a href="{% url 'login' %}" class="glass-button">View Teams</a>
-        </div>
-
-        <!-- Widgets -->
-        <div class="widget">
-          <div class="progress-circle">
-            <svg viewBox="0 0 36 36" class="circular-chart">
-              <path class="circle-bg"
-                d="M18 2.0845
-                   a 15.9155 15.9155 0 0 1 0 31.831
-                   a 15.9155 15.9155 0 0 1 0 -31.831"/>
-              <path class="circle"
-                stroke-dasharray="75, 100"
-                d="M18 2.0845
-                   a 15.9155 15.9155 0 0 1 0 31.831
-                   a 15.9155 15.9155 0 0 1 0 -31.831"/>
-            </svg>
-            <span class="percentage">75%</span>
+      <!-- Overview Section -->
+      <div id="overview-section">
+        <div class="content-grid">
+          <div class="main-card gradient-purple">
+            <i class="fas fa-users-cog"></i>
+            <h6>Mentor Registration</h6>
+            <p>Add a mentor’s expertise and experience.</p>
+            <a href="{% url 'add_men' %}" class="glass-button">Register</a>
           </div>
-          <p>Overall Progress: 75% Complete</p>
-        </div>
 
-        <div class="widget">
-          <i class="fas fa-calendar-alt fa-2x mb-2"></i>
-          <p class="mb-0">Submission Deadline:</p>
-          <h6>Oct 26</h6>
+          <div class="main-card gradient-pink">
+            <i class="fas fa-globe"></i>
+            <h6>Circular Center</h6>
+            <p>View all circulars shared for your projects.</p>
+            <a href="{% url 'login' %}" class="glass-button">View Circulars</a>
+          </div>
+
+          <div class="main-card gradient-mixed">
+            <i class="fas fa-chalkboard-teacher"></i>
+            <h6>Assigned Teams</h6>
+            <p>Check your allocated project teams.</p>
+            <a href="#" class="glass-button">View Teams</a>
+          </div>
+        </div>
+      </div>
+      <!-- Review Section -->
+      <div id="review-section" style="display:none;">
+        <div class="main-card gradient-purple text-center">
+          <i class="fas fa-trophy"></i>
+          <h6>Review Portal</h6>
+          <p>Go to the review page to manage all student submissions and remarks.</p>
+          <a href="{% url 'zero_men' %}" class="glass-button">Go to Reviews</a>
         </div>
       </div>
 
+      <!-- Team Details Section -->
+      <div id="team-section" style="display:none;">
+
+      {% for team in team_details %}
+      <div class="team-card">
+
+        <h5>Team Information</h5>
+        <p><b>Project Title:</b> {{ team.project_title }}</p>
+        <p><b>Domain:</b> {{ team.domain }}</p>
+
+        <p><b>Team Members:</b></p>
+        <ul>
+          {% for name, reg in team.members %}
+            <li>{{ name }} – {{ reg }}</li>
+          {% endfor %}
+        </ul>
+
+      </div>
+
+      <div class="team-card">
+      <table class="table table-striped table-bordered">
+      <thead>
+      <tr>
+        <th>Document</th>
+        <th>Submitted</th>
+        <th>View</th>
+        <th>Mentor Remarks</th>
+        <th>Seen</th>
+        <th>Re-upload Status</th>
+        <th>Final PPT</th>
+      </tr>
+      </thead>
+
+      <tbody>
+      {% for stage, docs in team.documents.items %}
+        {% for dtype, doc in docs.items %}
+        <tr class="team-review-{{ stage }}">
+          <td>{{ dtype }}</td>
+          <td>✔</td>
+          <td><a href="{{ doc.file.url }}" target="_blank" class="glass-btn">View</a></td>
+          <td>
+            <select class="form-select">
+              <option>No</option>
+              <option>Yes</option>
+            </select>
+          </td>
+          <td>✔</td>
+          <td>—</td>
+          <td>—</td>
+        </tr>
+        {% endfor %}
+      {% endfor %}
+      </tbody>
+      </table>
+      </div>
+      {% endfor %}
       <!-- Footer -->
-      <div class="footer">
-        © 2025 Your College Name. All Rights Reserved.
-      </div>
+    </div>
+    <div class="footer mt-4">
+      © 2025 Your College Name. All Rights Reserved.
     </div>
   </div>
 
+  <!-- JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Section toggle buttons
+    const overviewBtn = document.getElementById("overview-btn");
+    const reviewBtn = document.getElementById("review-btn");
+    const teamBtn = document.getElementById("team-btn");
+
+    const overviewSection = document.getElementById("overview-section");
+    const reviewSection = document.getElementById("review-section");
+    const teamSection = document.getElementById("team-section");
+
+    overviewBtn.addEventListener("click", () => {
+      overviewSection.style.display = "block";
+      reviewSection.style.display = "none";
+      teamSection.style.display = "none";
+      overviewBtn.classList.add("active");
+      reviewBtn.classList.remove("active");
+      teamBtn.classList.remove("active");
+    });
+
+    reviewBtn.addEventListener("click", () => {
+      overviewSection.style.display = "none";
+      reviewSection.style.display = "block";
+      teamSection.style.display = "none";
+      overviewBtn.classList.remove("active");
+      reviewBtn.classList.add("active");
+      teamBtn.classList.remove("active");
+    });
+
+    teamBtn.addEventListener("click", () => {
+      overviewSection.style.display = "none";
+      reviewSection.style.display = "none";
+      teamSection.style.display = "block";
+      overviewBtn.classList.remove("active");
+      reviewBtn.classList.remove("active");
+      teamBtn.classList.add("active");
+    });
+
+    // Team review toggle (for dropdown inside Team Details)
+    function changeTeamReview() {
+      const review = document.getElementById("reviewSelectTeam").value;
+      const review0Rows = document.querySelectorAll(".team-review-0");
+      if (review === "0") review0Rows.forEach(r => r.style.display = "");
+      else review0Rows.forEach(r => r.style.display = "none");
+    }
+
+    window.onload = () => {
+      changeTeamReview();
+    };
+  </script>
 </body>
 </html>

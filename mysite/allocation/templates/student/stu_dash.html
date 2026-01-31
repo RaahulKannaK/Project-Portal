@@ -73,6 +73,7 @@ body{
   text-decoration:none;
   color:var(--text-light);
   transition:.25s;
+  cursor:pointer;
 }
 
 .sidebar-nav .nav-item i{
@@ -98,6 +99,7 @@ body{
   overflow:auto;
 }
 
+/* TOP HEADER */
 .top-header{
   display:flex;
   justify-content:space-between;
@@ -126,6 +128,25 @@ body{
 .welcome-text{
   font-size:1.5rem;
   font-weight:600;
+}
+
+/* DROPDOWN BUTTON */
+.more-options-btn{
+  background:var(--primary);
+  color:var(--text-light);
+  border:none;
+  width:45px;
+  height:45px;
+  border-radius:50%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  cursor:pointer;
+  transition:.3s;
+}
+
+.more-options-btn:hover{
+  background:var(--secondary);
 }
 
 /* GRID */
@@ -186,6 +207,16 @@ body{
   margin-bottom:10px;
 }
 
+/* SETTINGS */
+.settings-card{
+  max-width:500px;
+  margin:auto;
+  background:#fff;
+  padding:30px;
+  border-radius:16px;
+  box-shadow:0 10px 25px rgba(0,0,0,.2);
+}
+
 .footer{
   margin-top:25px;
   text-align:center;
@@ -202,159 +233,162 @@ body{
 <!-- SIDEBAR -->
 <aside class="sidebar">
   <div class="sidebar-header">
-    <h4><i class="fas fa-graduation-cap me-2"></i>Student Dashboard</h4>
+    <h4><i class="fas fa-graduation-cap me-2"></i>Student Hub</h4>
   </div>
 
   <nav class="sidebar-nav">
     <a class="nav-item active"><i class="fas fa-home"></i>Overview</a>
     <a href="{% url 'zero_stu' %}" class="nav-item"><i class="fas fa-trophy"></i>Reviews</a>
-    <a href="#" class="nav-item"><i class="fas fa-chart-line"></i>Dashboard Info</a>
-    <a href="#" class="nav-item"><i class="fas fa-cog"></i>Settings</a>
+    <a href="#" class="nav-item"><i class="fas fa-chart-line"></i>Reports</a>
+    <a href="#" id="settingsLink" class="nav-item"><i class="fas fa-cog"></i>Settings</a>
   </nav>
 </aside>
 
 <!-- MAIN -->
 <main class="main-content">
 
-<!-- TOP -->
-<div class="top-header">
-  <div class="user-greeting">
-    <div class="profile-avatar">
-      {{ request.session.student_name|slice:":1" }}
+<!-- DASHBOARD VIEW -->
+<div id="dashboardView">
+
+  <!-- TOP HEADER -->
+  <div class="top-header">
+    <div class="user-greeting">
+      <div class="profile-avatar">{{ student_name|slice:":1" }}</div>
+      <div class="welcome-text">Welcome, {{ student_name }}!</div>
     </div>
-    <div class="welcome-text">
-      Welcome, {{ request.session.student_name }}!
+
+    <div class="dropdown">
+      <button class="more-options-btn dropdown-toggle" data-bs-toggle="dropdown">
+        <i class="fas fa-ellipsis-h"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li class="dropdown-item text-center fw-bold">
+          {{ student_id }} – {{ student_name }}
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}">
+            <i class="fas fa-sign-out-alt me-2"></i>Logout
+          </a>
+        </li>
+      </ul>
     </div>
   </div>
 
-  <div class="dropdown">
-    <button class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown">
-      <i class="fas fa-user"></i>
-    </button>
-    <ul class="dropdown-menu dropdown-menu-end">
-      <li class="dropdown-item text-center fw-bold">
-        {{ request.session.student_id }} – {{ request.session.student_name }}
-      </li>
-      <li><hr class="dropdown-divider"></li>
-      <li>
-        <a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}">
-          <i class="fas fa-sign-out-alt me-2"></i>Logout
-        </a>
-      </li>
-    </ul>
-  </div>
-</div>
+  <!-- GRID -->
+  <div class="content-grid">
 
-<!-- GRID -->
-<div class="content-grid">
-
-<!-- ORIGINAL CARDS (UNCHANGED) -->
-<div class="main-card gradient-purple">
-  <i class="fas fa-users-cog"></i>
-  <h6>Create Team</h6>
-  <p>Build your idea by chosing your team here.</p>
-  <a href="{% url 'create_team' %}" class="glass-button">Team Up</a>
-</div>
-
-<div class="main-card gradient-pink">
-  <i class="fas fa-globe"></i>
-  <h6>Modify Domains</h6>
-  <p>Update your project domain here for a particular time.</p>
-  <a href="{% url 'create_team' %}" class="glass-button">Update</a>
-</div>
-
-<div class="main-card gradient-mixed">
-  <i class="fas fa-chalkboard-teacher"></i>
-  <h6>Mentor Connect</h6>
-  <p>View mentor allocated to you.</p>
-  <a href="{% url 'run_allocation' %}" class="glass-button">View</a>
-</div>
-
-<!-- 🔔 ANNOUNCEMENTS (UPGRADED, NOT REPLACED) -->
-<div class="main-card gradient-purple">
-  <i class="fas fa-bell"></i>
-  <h6>Announcements</h6>
-
-  <!-- 🔹 Latest Announcement pinned -->
-  {% if latest_announcement %}
-    <div class="announcement-box">
-      <strong>{{ latest_announcement.announcement.title }}</strong><br>
-      <small>{{ latest_announcement.announcement.ann_type|title }}</small>
-
-      {% if latest_announcement.announcement.deadline_date %}
-        <div class="small">
-          ⏰ {{ latest_announcement.announcement.deadline_date }}
-          {{ latest_announcement.announcement.deadline_time }}
-        </div>
-      {% endif %}
+    <div class="main-card gradient-purple">
+      <i class="fas fa-users-cog"></i>
+      <h6>Create Team</h6>
+      <p>Launch your project setup.</p>
+      <a href="{% url 'create_team' %}" class="glass-button">Start</a>
     </div>
-  {% endif %}
 
-  <!-- 🔹 OLD CODE LOOP (UNCHANGED) -->
-  <div style="max-height:200px; overflow:auto;">
-    {% for status in announcements %}
-      <div class="announcement-box">
-        <strong>{{ status.announcement.title }}</strong><br>
-        <small>{{ status.announcement.ann_type|title }}</small>
+    <div class="main-card gradient-pink">
+      <i class="fas fa-globe"></i>
+      <h6>Modify Domains</h6>
+      <p>Update your project domain.</p>
+      <a href="{% url 'create_team' %}" class="glass-button">Update</a>
+    </div>
 
-        {% if status.announcement.deadline_date %}
-          <div class="small">
-            ⏰ {{ status.announcement.deadline_date }}
-            {{ status.announcement.deadline_time }}
+    <div class="main-card gradient-mixed">
+      <i class="fas fa-chalkboard-teacher"></i>
+      <h6>Mentor Connect</h6>
+      <p>View mentor allocation.</p>
+      <a href="{% url 'run_allocation' %}" class="glass-button">View</a>
+    </div>
+
+    <div class="main-card gradient-purple">
+      <i class="fas fa-bell"></i>
+      <h6>Announcements</h6>
+      <div style="max-height:200px; overflow:auto;">
+        {% for status in announcements %}
+          <div class="announcement-box">
+            <strong>{{ status.announcement.title }}</strong><br>
+            <small>{{ status.announcement.ann_type|title }}</small>
+
+            {% if status.announcement.deadline_date %}
+              <div class="small">⏰ {{ status.announcement.deadline_date }} {{ status.announcement.deadline_time }}</div>
+            {% endif %}
+
+            <div class="text-end mt-1">
+              {% if status.acknowledged_at %}
+                <i class="fas fa-check-double text-info"></i>
+              {% else %}
+                <form method="post" action="{% url 'ack_announcement' status.id %}">
+                  {% csrf_token %}
+                  <button class="btn btn-sm btn-light">✔</button>
+                </form>
+              {% endif %}
+            </div>
           </div>
-        {% endif %}
-
-        <div class="text-end mt-1">
-          {% if status.acknowledged_at %}
-            <i class="fas fa-check-double text-info"></i>
-          {% else %}
-            <form method="post" action="{% url 'ack_announcement' status.id %}">
-              {% csrf_token %}
-              <button class="btn btn-sm btn-light">✔</button>
-            </form>
-          {% endif %}
-        </div>
+        {% empty %}
+          <p class="text-light">No announcements</p>
+        {% endfor %}
       </div>
-    {% empty %}
-      <p class="text-light">No announcements</p>
-    {% endfor %}
+    </div>
+
   </div>
 
-  <!-- 🔹 NEW BUTTON -->
-  <button class="glass-button mt-2" data-bs-toggle="modal" data-bs-target="#allAnnouncementsModal">
-    View All Announcements
-  </button>
+  <div class="footer">
+    © 2025 Project Portal. All Rights Reserved.
+  </div>
 </div>
 
-</div>
+<!-- SETTINGS VIEW -->
+<div id="settingsView" style="display:none;">
+  <div class="top-header">
+    <h3>Settings</h3>
+  </div>
 
-<div class="footer">
-  © 2025 Project Portal. All Rights Reserved.
+  <div class="settings-card">
+    <h5 class="fw-bold mb-3"><i class="fas fa-user-cog me-2"></i> Profile & Security</h5>
+
+    <p><strong>Student ID:</strong> {{ student_id }}</p>
+    <p><strong>Name:</strong> {{ student_name }}</p>
+
+    <!-- PASSWORD RESET FORM -->
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="reset_password">
+      <div class="mb-3">
+        <input type="password" class="form-control" name="new_password" placeholder="New Password" required>
+      </div>
+      <div class="mb-3">
+        <input type="password" class="form-control" name="confirm_password" placeholder="Confirm Password" required>
+      </div>
+      <button type="submit" class="btn btn-primary w-100">Update Password</button>
+    </form>
+
+    {% if password_updated %}
+      <div class="alert alert-success mt-3">Password updated successfully!</div>
+    {% endif %}
+
+    <button id="backBtn" class="btn btn-secondary mt-3 w-100">Back to Dashboard</button>
+  </div>
 </div>
 
 </main>
 </div>
 
-<!-- 🔔 MODAL (ADDITION ONLY) -->
-<div class="modal fade" id="allAnnouncementsModal" tabindex="-1">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">All Announcements</h5>
-        <button class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        {% for status in all_announcements %}
-          <div class="announcement-box">
-            <strong>{{ status.announcement.title }}</strong><br>
-            <small>{{ status.announcement.ann_type|title }}</small>
-          </div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const dashboard = document.getElementById('dashboardView');
+const settings = document.getElementById('settingsView');
+const settingsLink = document.getElementById('settingsLink');
+const backBtn = document.getElementById('backBtn');
+
+settingsLink.addEventListener('click', (e)=>{
+  e.preventDefault();
+  dashboard.style.display='none';
+  settings.style.display='block';
+});
+
+backBtn.addEventListener('click', ()=>{
+  settings.style.display='none';
+  dashboard.style.display='block';
+});
+</script>
 </body>
 </html>

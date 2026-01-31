@@ -134,14 +134,12 @@ def login_view(request):
 
 from django.shortcuts import render, redirect
 from django.utils import timezone
-from .models import AnnouncementStatus
-
-from django.db.models import Prefetch
+from .models import AnnouncementStatus, Stu_Login
 
 def student_dashboard(request):
-    # =====================================================
-    # 🔐 SESSION CHECK (ORIGINAL - UNCHANGED)
-    # =====================================================
+    # ===============================
+    # SESSION CHECK
+    # ===============================
     student_id = request.session.get("student_id")
     username = request.session.get("username")
     student_name = request.session.get("student_name")
@@ -149,59 +147,54 @@ def student_dashboard(request):
     if not student_id:
         return redirect("login")
 
-    print(f"[DEBUG] Student: {student_name}, Username: {username}")
+    password_updated = False
+    password_error = None
 
-    # =====================================================
-    # 🔹 FETCH ANNOUNCEMENTS FOR STUDENT
-    # =====================================================
-    announcement_qs = AnnouncementStatus.objects.filter(
+    # ===============================
+    # PASSWORD RESET HANDLER
+    # ===============================
+    if request.method == "POST" and request.POST.get("action") == "reset_password":
+        new_password = request.POST.get("new_password")
+        confirm_password = request.POST.get("confirm_password")
+
+        if not new_password or not confirm_password:
+            password_error = "Both fields are required."
+        elif new_password != confirm_password:
+            password_error = "Passwords do not match."
+        else:
+            try:
+                user = Stu_Login.objects.get(username=username)
+                user.password = new_password  # ⚠️ plain text as per your current setup
+                user.save()
+                password_updated = True
+            except Stu_Login.DoesNotExist:
+                password_error = "User not found."
+
+    # ===============================
+    # FETCH ANNOUNCEMENTS FOR STUDENT
+    # ===============================
+    announcements = AnnouncementStatus.objects.filter(
         receiver_role="student",
         receiver_id=student_id
-    ).select_related("announcement").order_by(
-        "-announcement__created_at"
+    ).select_related("announcement").order_by("-announcement__created_at")
+
+    # AUTO MARK AS SEEN
+    announcements.filter(seen_at__isnull=True).update(
+        seen_at=timezone.now()
     )
 
-    # =====================================================
-    # 🆕 LATEST ANNOUNCEMENT (OLD LOGIC - PRESERVED)
-    # =====================================================
-    latest_announcement = announcement_qs.first()
-
-    # =====================================================
-    # 🆕 ALL ANNOUNCEMENTS (UPGRADE – NEW FEATURE)
-    # =====================================================
-    all_announcements = announcement_qs
-
-    print(
-        f"[DEBUG] Latest announcement:",
-        latest_announcement.announcement.title if latest_announcement else "None"
-    )
-    print(f"[DEBUG] Total announcements:", all_announcements.count())
-
-    # =====================================================
-    # 🔁 OTHER EXISTING DASHBOARD LOGIC
-    # (KEEP EVERYTHING YOU ALREADY HAVE BELOW)
-    # =====================================================
-    # example placeholders – DO NOT REMOVE YOUR OWN CODE
-    notifications = []
-    profile_data = {}
-
-    # =====================================================
-    # 🎯 FINAL CONTEXT
-    # =====================================================
-    context = {
+    # ===============================
+    # RENDER DASHBOARD
+    # ===============================
+    return render(request, "student/stu_dash.html", {
         "student_name": student_name,
         "username": username,
+        "student_id": student_id,
+        "announcements": announcements,
+        "password_updated": password_updated,
+        "password_error": password_error,
+    })
 
-        # 🔔 ANNOUNCEMENTS
-        "latest_announcement": latest_announcement,   # OUTSIDE BOX
-        "all_announcements": all_announcements,       # BUTTON VIEW
-
-        # 🔁 KEEP OLD DATA
-        "notifications": notifications,
-        "profile_data": profile_data,
-    }
-
-    return render(request, "student/stu_dash.html", context)
 
 from django.views.decorators.http import require_POST
 
@@ -219,13 +212,59 @@ def acknowledge_announcement(request, status_id):
 
     return redirect("student_dashboard")
 
+from django.shortcuts import render
+from allocation.models import AllocationResult, Team, ProjectDocument, ZerothReviewRemark
+
 def mentor_dashboard(request):
     mentor_name = request.session.get("mentor_name")
     username = request.session.get("username")
+
+    if not mentor_name:
+        return redirect("mentor_login")
+
+    allocations = AllocationResult.objects.filter(mentor_name=mentor_name)
+
+    team_details = []
+
+    for alloc in allocations:
+        team = Team.objects.filter(project_title__iexact=alloc.team_name).first()
+        if not team:
+            continue
+
+        # ---- Documents ----
+        documents = ProjectDocument.objects.filter(team_name=team.project_title)
+
+        doc_map = {}
+        for d in documents:
+            doc_map.setdefault(d.review_stage, {})
+            doc_map[d.review_stage][d.doc_type] = d
+
+        # ---- Zeroth Review Remarks ----
+        remarks = ZerothReviewRemark.objects.filter(
+            team_name=team.project_title,
+            mentor_name=mentor_name
+        )
+        remark_map = {r.heading: r for r in remarks}
+
+        members = list(zip(
+            team.member_names.split(","),
+            team.members.split(",")
+        ))
+
+        team_details.append({
+            "project_title": team.project_title,
+            "domain": team.domain,
+            "members": members,
+            "documents": doc_map,
+            "remarks": remark_map,
+        })
+
     return render(request, "mentor/men_dash.html", {
         "mentor_name": mentor_name,
         "username": username,
+        "team_details": team_details,
     })
+
 
 def hod_dashboard(request):
     return render(request, "accounts/hod_dash.html")
@@ -718,18 +757,50 @@ def one_men(request):
 def two_men(request):
     mentor_name = request.session.get("mentor_name")
     username = request.session.get("username")
-    return render(request,  "mentor/review_men/2_men.html", {
+    team_members = []
+    team_name = None
+
+    # Get the latest allocation for this mentor
+    allocation = AllocationResult.objects.filter(mentor_name=mentor_name).order_by('-allocated_at').first()
+    if allocation:
+        team_name = allocation.team_name
+
+        # Fetch team using project_title instead of team_name
+        team = Team.objects.filter(project_title=team_name).first()
+        if team and team.member_names:
+            team_members = team.member_names.split(",")
+
+    return render(request, "mentor/review_men/2_men.html", {
         "mentor_name": mentor_name,
         "username": username,
+        "team_name": team_name,
+        "team_members": team_members,
     })
+
 
 def three_men(request):
     mentor_name = request.session.get("mentor_name")
     username = request.session.get("username")
-    return render(request,  "mentor/review_men/3_men.html", {
+    team_members = []
+    team_name = None
+
+    # Get the latest allocation for this mentor
+    allocation = AllocationResult.objects.filter(mentor_name=mentor_name).order_by('-allocated_at').first()
+    if allocation:
+        team_name = allocation.team_name
+
+        # Fetch team using project_title instead of team_name
+        team = Team.objects.filter(project_title=team_name).first()
+        if team and team.member_names:
+            team_members = team.member_names.split(",")
+
+    return render(request, "mentor/review_men/3_men.html", {
         "mentor_name": mentor_name,
         "username": username,
+        "team_name": team_name,
+        "team_members": team_members,
     })
+
 
 def zero_doc(request):
     mentor_name = request.session.get("mentor_name")
@@ -741,19 +812,20 @@ def zero_doc(request):
 
 def serve_pdf(request, team_name, pdf_type):
     """
-    Serve the requested PDF in iframe.
-    pdf_type: 'Abstract', 'FullPaper', 'Review', etc.
+    Serve PDF from Cloudinary via direct URL (iframe-safe)
     """
-    team_folder = team_name.replace(" ", "_")
-    pdf_file = f"{team_folder}_{pdf_type}.pdf"
-    pdf_full_path = os.path.join(settings.MEDIA_ROOT, team_folder, pdf_file)
+    from allocation.models import TeamDocument  # nee create panna model (next step)
 
-    if not os.path.exists(pdf_full_path):
+    doc = TeamDocument.objects.filter(
+        team_name=team_name,
+        doc_type=pdf_type
+    ).first()
+
+    if not doc or not doc.file_url:
         raise Http404("PDF not found")
 
-    response = FileResponse(open(pdf_full_path, 'rb'), content_type='application/pdf')
-    response['X-Frame-Options'] = 'ALLOWALL'  # allow iframe embedding
-    return response
+    return redirect(doc.file_url)
+
 
 import os
 import re
@@ -765,268 +837,319 @@ from django.shortcuts import render
 from .models import AllocationResult
 
 
+import os
+import re
+import json
+import tempfile
+import subprocess
+import requests
+import pdfplumber
+
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.db import transaction, IntegrityError
+
+from .models import AllocationResult, ZerothReviewRemark, ProjectFile
+
 # --------------------------------------------------
 # 🔍 HEADING VALIDATION (STRICT)
 # --------------------------------------------------
 def is_valid_heading(text):
     text = text.strip()
-
-    # Reject bullets
-    if text.startswith(("-", "•")):
-        return False
-
-    # Reject numbered lists
-    if re.match(r"^\d+[\.\)]", text):
-        return False
-
-    # Reject long sentences
-    if len(text) > 70:
-        return False
-
-    # ❌ Reject sentence-like endings
-    if text.endswith("."):
-        return False
-
-    # ❌ Reject colon-ended sub-points
-    if text.endswith(":"):
-        return False
-
-    # ❌ Reject mid-sentence lowercase patterns
-    if any(word.islower() for word in text.split()[1:]):
-        return False
-
-    # Must contain at least ONE capitalized word
+    if text.startswith(("-", "•")): return False
+    if re.match(r"^\d+[\.\)]", text): return False
+    if len(text) > 70: return False
+    if text.endswith(".") or text.endswith(":"): return False
+    if any(word.islower() for word in text.split()[1:]): return False
     return any(word[0].isupper() for word in text.split() if word)
-
 
 # --------------------------------------------------
 # 🧠 EARLY PAGE HEADING DETECTOR
-# (Abstract / Introduction / Problem Statement)
 # --------------------------------------------------
 def looks_like_early_heading(text, top, page_no):
     text = text.strip()
-
-    early_keywords = {
-        "abstract",
-        "introduction",
-        "problem statement",
-        "background",
-        "motivation"
-    }
-
-    if text.lower() in early_keywords:
+    early_keywords = {"abstract", "introduction", "problem statement", "background", "motivation"}
+    if text.lower() in early_keywords: return True
+    if text.endswith(":"): return False
+    if page_no <= 2 and len(text.split()) <= 4 and text[0].isupper() and not text.endswith("."):
         return True
-
-    # Reject colon endings here too
-    if text.endswith(":"):
-        return False
-
-    if (
-        page_no <= 2
-        and len(text.split()) <= 4
-        and text[0].isupper()
-        and not text.endswith(".")
-    ):
-        return True
-
     return False
 
-# --------------------------------------------------
-# 🎯 MAIN VIEW
-# --------------------------------------------------
 import os
+import re
 import subprocess
 import json
-import pdfplumber
+import requests
+from bs4 import BeautifulSoup
 
+from django.conf import settings
+from django.db import transaction, IntegrityError
 from django.shortcuts import render
 from django.http import JsonResponse
-from django.conf import settings
-from django.views.decorators.csrf import csrf_exempt
-from django.db import IntegrityError, transaction
-from allocation.models import AllocationResult
-from allocation.models import ZerothReviewRemark
+
+from .models import AllocationResult, ProjectFile, ZerothReviewRemark  # your existing functions
 
 
+import os
+import re
 import json
-from django.http import JsonResponse
+import shutil
+import subprocess
+import requests
 
+from django.conf import settings
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.db import transaction, IntegrityError
+
+from .models import AllocationResult, ZerothReviewRemark, ProjectFile
+
+# -----------------------------
+# Heading validators
+# -----------------------------
+def is_valid_heading(text):
+    text = text.strip()
+    if text.startswith(("-", "•")): return False
+    if re.match(r"^\d+[\.\)]", text): return False
+    if len(text) > 70: return False
+    if text.endswith(".") or text.endswith(":"): return False
+    if any(word.islower() for word in text.split()[1:]): return False
+    return any(word[0].isupper() for word in text.split() if word)
+
+def looks_like_early_heading(text, top=0, page_no=1):
+    text = text.strip()
+    early_keywords = {"abstract", "introduction", "problem statement", "background", "motivation"}
+    if text.lower() in early_keywords: return True
+    if page_no <= 2 and len(text.split()) <= 4 and text[0].isupper() and not text.endswith("."):
+        return True
+    return False
+
+# -----------------------------
+# Zero Review View
+# -----------------------------
 def zero_review(request):
+    print("\n🟢 zero_review CALLED")
+
     mentor_name = request.session.get("mentor_name")
     username = request.session.get("username")
 
+    print("mentor_name:", mentor_name)
+    print("username:", username)
+    print("method:", request.method)
+
     # =====================================================
-    # POST → SAVE ZEROTH REVIEW (NO DUPLICATES - FINAL FIX)
+    # POST → SAVE ZEROTH REVIEW REMARKS
     # =====================================================
     if request.method == "POST":
         try:
             data = json.loads(request.body)
             remarks = data.get("remarks", [])
+            print("Incoming remarks:", len(remarks))
 
             allocation = AllocationResult.objects.filter(
                 mentor_name=mentor_name
             ).first()
 
             if not allocation:
-                return JsonResponse(
-                    {"status": "fail", "message": "Team not found"},
-                    status=404
-                )
+                return JsonResponse({"status": "fail", "message": "Team not found"}, status=404)
 
             team_name = allocation.team_name
             inserted = 0
-            skipped = 0
+            updated = 0
 
             for r in remarks:
-                heading = r.get("heading", "").strip()
-                remark = r.get("remark", "").strip()
-                color = r.get("color", "").strip()
+                heading = (r.get("heading") or "").strip()
+                remark = (r.get("remark") or "").strip()
+                color = r.get("color") or "#ffe066"
 
-                try:
-                    with transaction.atomic():
-                        _, created = ZerothReviewRemark.objects.get_or_create(
-                            team_name=team_name,
-                            mentor_name=mentor_name,
-                            heading=heading,
-                            remark=remark,
-                            color=color
-                        )
+                if not heading or not remark:
+                    continue
 
-                        if created:
-                            inserted += 1
-                        else:
-                            skipped += 1
+                obj, created = ZerothReviewRemark.objects.update_or_create(
+                    team_name=team_name,
+                    mentor_name=mentor_name,
+                    heading=heading,
+                    defaults={
+                        "remark": remark,
+                        "color": color
+                    }
+                )
 
-                except IntegrityError:
-                    # DB-level duplicate protection
-                    skipped += 1
+                if created:
+                    inserted += 1
+                else:
+                    updated += 1
 
             return JsonResponse({
                 "status": "success",
                 "inserted": inserted,
-                "skipped": skipped
+                "updated": updated
             })
 
         except Exception as e:
-            print("❌ Zeroth review save error:", e)
-            return JsonResponse(
-                {"status": "fail", "message": str(e)},
-                status=500
-            )
+            print("❌ POST ERROR:", e)
+            return JsonResponse({"status": "fail", "message": str(e)}, status=500)
 
     # =====================================================
-    # ---------------- EXISTING GET LOGIC -----------------
-    # (UNCHANGED — DO NOT TOUCH)
+    # GET → DISPLAY PAGE
     # =====================================================
-    html_path = None
     allocation = AllocationResult.objects.filter(
         mentor_name=mentor_name
     ).first()
 
     if not allocation:
-        return render(
-            request,
-            "mentor/review_men/men_doc/zero_paper/zero_review.html"
-        )
+        return render(request, "mentor/review_men/men_doc/zero_paper/zero_review.html")
 
     team_name = allocation.team_name
     folder_name = team_name.replace(" ", "_")
 
-    pdf_file = f"{folder_name}_Abstract.pdf"
-    pdf_dir = os.path.join(settings.BASE_DIR, "project_docs", folder_name)
-    html_dir = os.path.join(pdf_dir, "html")
-    pdf_fs_path = os.path.join(pdf_dir, pdf_file)
+    print("Team:", team_name)
 
-    os.makedirs(html_dir, exist_ok=True)
+    # =====================================================
+    # 🔥 LOAD SAVED REMARKS
+    # =====================================================
+    saved_remarks = ZerothReviewRemark.objects.filter(
+        team_name=team_name,
+        mentor_name=mentor_name
+    ).order_by("id")
 
-    html_files = (
-        [f for f in os.listdir(html_dir) if f.lower().endswith(".html")]
-        if os.path.exists(html_dir) else []
-    )
+    print("🔥 Loaded remarks:", saved_remarks.count())
+    for r in saved_remarks:
+        print(" ->", r.heading)
 
-    if os.path.exists(pdf_fs_path) and not html_files:
+    # =====================================================
+    # ABSTRACT FILE FROM CLOUDINARY
+    # =====================================================
+    project_file = ProjectFile.objects.filter(
+        team_name=team_name,
+        file_type="abstract"
+    ).first()
+
+    if not project_file:
+        return render(request, "mentor/review_men/men_doc/zero_paper/zero_review.html", {
+            "zero_review": False
+        })
+
+    cloud_url = project_file.cloudinary_url
+
+    temp_dir = os.path.join(settings.MEDIA_ROOT, "temp_html", folder_name)
+    os.makedirs(temp_dir, exist_ok=True)
+
+    pdf_name = f"{folder_name}_Abstract.pdf"
+    html_name = f"{folder_name}_Abstract.html"
+
+    pdf_path = os.path.join(temp_dir, pdf_name)
+    html_path = os.path.join(temp_dir, html_name)
+
+    # =====================================================
+    # DOWNLOAD PDF
+    # =====================================================
+    if not os.path.exists(pdf_path):
+        try:
+            r = requests.get(cloud_url, timeout=20)
+            r.raise_for_status()
+            with open(pdf_path, "wb") as f:
+                f.write(r.content)
+            print("✔ PDF downloaded")
+        except Exception as e:
+            print("❌ PDF DOWNLOAD ERROR:", e)
+            return render(request, "mentor/review_men/men_doc/zero_paper/zero_review.html")
+
+    # =====================================================
+    # PDF → HTML
+    # =====================================================
+    if not os.path.exists(html_path):
         try:
             subprocess.run(
                 [
                     "docker", "run", "--rm",
-                    "-v", f"{pdf_dir}:/pdf",
+                    "-v", f"{temp_dir}:/pdf",
                     "pdf2html_local",
-                    pdf_file,
-                    "--dest-dir", "html"
+                    pdf_name,
+                    "--dest-dir", "/pdf"
                 ],
                 check=True
             )
-        except subprocess.CalledProcessError as e:
-            print("[ERROR] PDF → HTML failed:", e)
+            print("✔ PDF converted to HTML")
+        except Exception as e:
+            print("❌ PDF→HTML ERROR:", e)
 
-    if os.path.exists(html_dir):
-        for f in os.listdir(html_dir):
-            if f.lower().endswith(".html"):
-                html_path = f"/project_docs/{folder_name}/html/{f}"
-                break
+    # =====================================================
+    # READ HTML CONTENT
+    # =====================================================
+    html_content = ""
+    try:
+        with open(html_path, "r", encoding="utf-8") as f:
+            html_content = f.read()
+    except Exception as e:
+        print("❌ HTML READ ERROR:", e)
 
+    # =====================================================
+    # HEADING EXTRACTION
+    # =====================================================
     main_heading_lines = []
     sub_headings = []
 
-    try:
-        with pdfplumber.open(pdf_fs_path) as pdf:
-            for page_no, page in enumerate(pdf.pages, start=1):
-                chars = page.chars
-                if not chars:
-                    continue
+    lines = re.findall(r'>([^<]{2,120})<', html_content)
 
-                lines = {}
-                for ch in chars:
-                    top = round(ch["top"], 1)
-                    lines.setdefault(top, []).append(ch)
+    for line in lines:
+        text = line.strip()
+        if not text:
+            continue
 
-                merged_lines = []
-                for top, chs in lines.items():
-                    text = "".join(
-                        c["text"] for c in sorted(chs, key=lambda x: x["x0"])
-                    ).strip()
-                    size = round(
-                        sum(c["size"] for c in chs) / len(chs),
-                        1
-                    )
-                    merged_lines.append((top, size, text))
+        if is_valid_heading(text):
+            if not main_heading_lines:
+                main_heading_lines.append(text)
+            elif text not in sub_headings:
+                sub_headings.append(text)
+        elif looks_like_early_heading(text):
+            if text not in sub_headings:
+                sub_headings.append(text)
 
-                sizes = [s for _, s, t in merged_lines if t]
-                if not sizes:
-                    continue
+    main_heading = " ".join(main_heading_lines)
 
-                max_size = max(sizes)
-
-                for top, size, text in merged_lines:
-                    if not text:
-                        continue
-
-                    if page_no == 1 and abs(size - max_size) < 0.5:
-                        main_heading_lines.append(text)
-
-                    elif (
-                        size >= max_size * 0.8 and is_valid_heading(text)
-                    ) or looks_like_early_heading(text, top, page_no):
-                        if text not in sub_headings:
-                            sub_headings.append(text)
-
-    except Exception as e:
-        print("[ERROR] Heading detection failed:", e)
-
-    main_heading = " ".join(main_heading_lines).strip()
-
+    # =====================================================
+    # FINAL RENDER
+    # =====================================================
     return render(
         request,
         "mentor/review_men/men_doc/zero_paper/zero_review.html",
         {
             "mentor_name": mentor_name,
             "username": username,
-            "html_path": html_path,
             "team_name": team_name,
             "main_heading": main_heading,
             "sub_headings": sub_headings,
+            "html_content": html_content,
+            "saved_remarks": saved_remarks,   # 🔥 IMPORTANT
+            "zero_review": True
         }
     )
+
+
+from django.http import FileResponse, Http404
+
+def serve_temp_html(request, team, filename):
+    print(f"[DEBUG] serve_temp_html → team={team}, file={filename}")
+
+    html_path = os.path.join(
+        settings.MEDIA_ROOT,
+        "temp_html",
+        team,
+        filename
+    )
+
+    print(f"[DEBUG] Absolute HTML path: {html_path}")
+
+    if not os.path.exists(html_path):
+        print("[ERROR] HTML file not found")
+        raise Http404("HTML file not found")
+
+    return FileResponse(
+        open(html_path, "rb"),
+        content_type="text/html"
+    )
+
 
 def zero_base(request):
     mentor_name = request.session.get("mentor_name")
@@ -1061,30 +1184,40 @@ def zero_form(request):
 def zero_ppt(request):
     mentor_name = request.session.get("mentor_name")
     username = request.session.get("username")
-    ppt_path = None
 
-    allocation = AllocationResult.objects.filter(mentor_name=mentor_name).first()
+    ppt_path = None
+    team_name = None
+
+    allocation = AllocationResult.objects.filter(
+        mentor_name=mentor_name
+    ).first()
 
     if allocation:
         team_name = allocation.team_name
-        team_folder = team_name.replace(" ", "_")
-        ppt_file = f"{team_folder}_PPT.pptx"  # <- corrected file name
-        ppt_full_path = os.path.join(settings.MEDIA_ROOT, team_folder, ppt_file)
 
-        if os.path.exists(ppt_full_path):
-            ppt_path = f"{settings.MEDIA_URL}{team_folder}/{ppt_file}"
-            print(f"[DEBUG] PPT found at: {ppt_full_path}")
+        # ✅ CLOUDINARY PPT URL (NO LOCAL STORAGE)
+        ppt_path = allocation.zeroth_ppt_url
+
+        if ppt_path:
+            print(f"[DEBUG] Cloudinary PPT URL found: {ppt_path}")
         else:
-            print(f"[DEBUG] PPT NOT found at: {ppt_full_path}")
-    else:
-        print(f"[DEBUG] No allocated team found for mentor '{mentor_name}'")
+            print("[DEBUG] PPT URL not available in Cloudinary")
 
-    return render(request, "mentor/review_men/men_doc/zero_paper/zero_ppt.html", {
-        "mentor_name": mentor_name,
-        "username": username,
-        "ppt_path": ppt_path,
-        "team_name": allocation.team_name if allocation else None
-    })
+    else:
+        print(
+            f"[DEBUG] No allocated team found for mentor '{mentor_name}'"
+        )
+
+    return render(
+        request,
+        "mentor/review_men/men_doc/zero_paper/zero_ppt.html",
+        {
+            "mentor_name": mentor_name,
+            "username": username,
+            "ppt_path": ppt_path,   # 👈 Cloudinary URL
+            "team_name": team_name,
+        }
+    )
 
 
 def zero_ma(request, team_name):
@@ -1117,6 +1250,36 @@ def one_ma(request, team_name):
         'team_members': team_members
     })
 
+def two_ma(request, team_name):
+    team_members = []
+    
+    # Fetch team object using project_title
+    team = Team.objects.filter(project_title=team_name).first()
+    if team and team.member_names:
+        # Convert comma-separated string to list
+        team_members = team.member_names.split(",")
+
+    # Render the Review 1 (mentor assessment) page for a specific team
+    return render(request, 'mentor/review_men/men_ma/two_ma.html', {
+        'team_name': team_name,
+        'team_members': team_members
+    })
+
+def three_ma(request, team_name):
+    team_members = []
+    
+    # Fetch team object using project_title
+    team = Team.objects.filter(project_title=team_name).first()
+    if team and team.member_names:
+        # Convert comma-separated string to list
+        team_members = team.member_names.split(",")
+
+    # Render the Review 3 mentor assessment page
+    return render(request, 'mentor/review_men/men_ma/three_ma.html', {
+        'team_name': team_name,
+        'team_members': team_members
+    })
+
 
 def men_ppt(request):
     return render(request, "mentor/review_men/men_doc/first_paper/ppt.html")
@@ -1136,14 +1299,174 @@ def zero_stu(request):
         "username": username,
         "team_name": project_title,
     })
+import cloudinary.uploader
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from .models import ProjectFile
+
+
+
+# ======================================================
+# 🔹 REVIEW 1 — STUDENT
+# ======================================================
 def one_stu(request):
-    return render(request, "student/review/1_stu.html")
+    student_name = request.session.get("student_name")
+    username = request.session.get("username")
 
+    if not student_name:
+        return redirect("login")
+
+    team = Team.objects.filter(
+        member_names__icontains=student_name
+    ).first()
+
+    if not team:
+        return render(request, "student/review/1_stu.html", {
+            "error": "Team not found"
+        })
+
+    # 🔁 Already uploaded file
+    existing = ReviewFile.objects.filter(
+        team_name=team.project_title,
+        review_type=1
+    ).first()
+
+    if request.method == "POST":
+        ppt_file = request.FILES.get("pptFile")
+
+        if not ppt_file:
+            return JsonResponse({"status": "fail", "message": "No PPT uploaded"})
+
+        upload = cloudinary.uploader.upload(
+            ppt_file,
+            resource_type="raw",
+            folder="review1_ppt"
+        )
+
+        ReviewFile.objects.update_or_create(
+            team_name=team.project_title,
+            review_type=1,
+            defaults={"ppt_url": upload["secure_url"]}
+        )
+
+        return JsonResponse({
+            "status": "success",
+            "ppt_url": upload["secure_url"]
+        })
+
+    return render(request, "student/review/1_stu.html", {
+        "student_name": student_name,
+        "username": username,
+        "ppt_url": existing.ppt_url if existing else None
+    })
+
+
+# ======================================================
+# 🔹 REVIEW 2 — STUDENT
+# ======================================================
 def two_stu(request):
-    return render(request, "student/review/2_stu.html")
+    student_name = request.session.get("student_name")
+    username = request.session.get("username")
 
+    if not student_name:
+        return redirect("login")
+
+    team = Team.objects.filter(
+        member_names__icontains=student_name
+    ).first()
+
+    if not team:
+        return render(request, "student/review/2_stu.html", {
+            "error": "Team not found"
+        })
+
+    existing = ReviewFile.objects.filter(
+        team_name=team.project_title,
+        review_type=2
+    ).first()
+
+    if request.method == "POST":
+        ppt_file = request.FILES.get("pptFile")
+
+        if not ppt_file:
+            return JsonResponse({"status": "fail", "message": "No PPT uploaded"})
+
+        upload = cloudinary.uploader.upload(
+            ppt_file,
+            resource_type="raw",
+            folder="review2_ppt"
+        )
+
+        ReviewFile.objects.update_or_create(
+            team_name=team.project_title,
+            review_type=2,
+            defaults={"ppt_url": upload["secure_url"]}
+        )
+
+        return JsonResponse({
+            "status": "success",
+            "ppt_url": upload["secure_url"]
+        })
+
+    return render(request, "student/review/2_stu.html", {
+        "student_name": student_name,
+        "username": username,
+        "ppt_url": existing.ppt_url if existing else None
+    })
+
+
+# ======================================================
+# 🔹 REVIEW 3 — STUDENT
+# ======================================================
 def three_stu(request):
-    return render(request, "student/review/3_stu.html")
+    student_name = request.session.get("student_name")
+    username = request.session.get("username")
+
+    if not student_name:
+        return redirect("login")
+
+    team = Team.objects.filter(
+        member_names__icontains=student_name
+    ).first()
+
+    if not team:
+        return render(request, "student/review/3_stu.html", {
+            "error": "Team not found"
+        })
+
+    existing = ReviewFile.objects.filter(
+        team_name=team.project_title,
+        review_type=3
+    ).first()
+
+    if request.method == "POST":
+        ppt_file = request.FILES.get("pptFile")
+
+        if not ppt_file:
+            return JsonResponse({"status": "fail", "message": "No PPT uploaded"})
+
+        upload = cloudinary.uploader.upload(
+            ppt_file,
+            resource_type="raw",
+            folder="review3_ppt"
+        )
+
+        ReviewFile.objects.update_or_create(
+            team_name=team.project_title,
+            review_type=3,
+            defaults={"ppt_url": upload["secure_url"]}
+        )
+
+        return JsonResponse({
+            "status": "success",
+            "ppt_url": upload["secure_url"]
+        })
+
+    return render(request, "student/review/3_stu.html", {
+        "student_name": student_name,
+        "username": username,
+        "ppt_url": existing.ppt_url if existing else None
+    })
 
 
 def mentor_list(request):
@@ -1256,132 +1579,136 @@ def modify_team(request, project_title):
         messages.success(request, f"Modification request for '{team.project_title}' ({change_type}) added successfully!")
         return redirect("team_list")
 
-from django.shortcuts import render
+
+
+import io
+import json
+import cloudinary.uploader
+
+from django.shortcuts import render, redirect
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.conf import settings
-import os
+from django.db import transaction
 
 from allocation.models import ZerothReviewRemark
-from allocation.models import Team
+from allocation.models import ProjectFile, Team
 
 
-@csrf_exempt
+# ============================================
+# 🔹 Helper Function: Upload to Cloudinary
+# ============================================
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from allocation.models import Team, ProjectFile, ZerothReviewRemark
+import cloudinary
+import json
+
+# -----------------------------
+# Helper: Upload to Cloudinary
+# -----------------------------
+def upload_to_cloudinary(file_obj, file_type, folder_name):
+    try:
+        print(f"DEBUG: Uploading {file_type} to Cloudinary...")
+        result = cloudinary.uploader.upload(
+            file_obj,
+            resource_type="auto",       # Supports PDF, PPT, etc.
+            folder=f"project_portal/{folder_name}",
+            public_id=f"{folder_name}_{file_type}",
+            overwrite=True,
+            use_filename=True,
+            unique_filename=False,
+            access_mode="public"        # Ensure public access
+        )
+        file_url = result.get("secure_url")
+        print(f"DEBUG: Uploaded {file_type} URL → {file_url}")
+        return file_url
+    except Exception as e:
+        print(f"❌ Cloudinary upload failed for {file_type}: {e}")
+        return None
+
+
+# -----------------------------
+# View: Student Upload (Zero Review)
+# -----------------------------
 def zero_ma1(request):
-    # =================================================
-    # 👤 Student session details
-    # =================================================
+    # ---------------------------
+    # 1️⃣ Get Student Session
+    # ---------------------------
     student_name = request.session.get("student_name")
     username = request.session.get("username")
+    print("DEBUG: Student session →", student_name, username)
 
-    print(f"[DEBUG] Student: {student_name}, Username: {username}")
+    if not student_name:
+        return redirect("login")
 
-    # =================================================
-    # 🔍 Find student's team
-    # =================================================
-    team = Team.objects.filter(
-        member_names__icontains=student_name
-    ).first()
-
+    # ---------------------------
+    # 2️⃣ Find Student Team
+    # ---------------------------
+    team = Team.objects.filter(member_names__icontains=student_name).first()
     if not team:
-        print("[DEBUG] Team not found for student")
-        return JsonResponse(
-            {"status": "fail", "message": "Team not found"},
-            status=404
-        )
+        return render(request, "student/review/zero_ma.html", {
+            "student_name": student_name,
+            "username": username,
+            "error": "Team not found"
+        })
 
-    # -------------------------------------------------
-    # DB uses original title (with spaces)
-    # File system uses underscore version
-    # -------------------------------------------------
-    team_title_db = team.project_title                  # DB
-    project_title_fs = team.project_title.replace(" ", "_")  # Folder
+    team_title = team.project_title
+    folder_name = team_title.replace(" ", "_")
+    print("DEBUG: Found team →", team_title)
 
-    print("[DEBUG] Team title (DB):", team_title_db)
-    print("[DEBUG] Project title (FS):", project_title_fs)
-
-    # =================================================
-    # 📁 Project folder path
-    # =================================================
-    output_dir = os.path.join(
-        settings.BASE_DIR,
-        "project_docs",
-        project_title_fs
-    )
-    os.makedirs(output_dir, exist_ok=True)
-
-    print(f"[DEBUG] Output directory: {output_dir}")
-
-    # =================================================
-    # 📄 Expected files
-    # =================================================
-    expected_files = {
-        "ppt": f"{project_title_fs}_PPT",
-        "pdf": f"{project_title_fs}_Report",
-        "abstract": f"{project_title_fs}_Abstract"
-    }
-
-    uploaded_files = {}
-
-    # =================================================
-    # 🔎 Detect already uploaded files
-    # =================================================
-    for key, base_name in expected_files.items():
-        for ext in [".ppt", ".pptx", ".pdf"]:
-            file_path = os.path.join(output_dir, base_name + ext)
-            if os.path.exists(file_path):
-                uploaded_files[key] = {
-                    "name": os.path.basename(file_path),
-                    "path": file_path
-                }
-                print(f"[DEBUG] Found uploaded file: {file_path}")
-
-    # =================================================
-    # 📩 POST → Upload missing files
-    # =================================================
+    # ---------------------------
+    # 3️⃣ Handle POST → Upload Files
+    # ---------------------------
     if request.method == "POST":
         ppt_file = request.FILES.get("pptFile")
         pdf_file = request.FILES.get("pdfFile")
         abstract_file = request.FILES.get("abstractFile")
+        print("DEBUG: Files received →", ppt_file, pdf_file, abstract_file)
 
-        saved_files = {}
-
-        def save_file(file_obj, prefix):
-            ext = os.path.splitext(file_obj.name)[1]
-            filename = prefix + ext
-            file_path = os.path.join(output_dir, filename)
-            with open(file_path, "wb+") as dest:
-                for chunk in file_obj.chunks():
-                    dest.write(chunk)
-            print(f"[DEBUG] Saved file: {file_path}")
-            return file_path
+        uploaded = {}
 
         if ppt_file:
-            saved_files["ppt"] = save_file(ppt_file, expected_files["ppt"])
+            uploaded["ppt"] = upload_to_cloudinary(ppt_file, "PPT", folder_name)
+
         if pdf_file:
-            saved_files["pdf"] = save_file(pdf_file, expected_files["pdf"])
+            uploaded["pdf"] = upload_to_cloudinary(pdf_file, "Report", folder_name)
+
         if abstract_file:
-            saved_files["abstract"] = save_file(abstract_file, expected_files["abstract"])
+            uploaded["abstract"] = upload_to_cloudinary(abstract_file, "Abstract", folder_name)
+
+        print("DEBUG: Uploaded files dict →", uploaded)
+
+        # ---------------------------
+        # 4️⃣ Update ProjectFile Table (use team_name instead of ForeignKey)
+        # ---------------------------
+        for ftype, url in uploaded.items():
+            if url:
+                obj, created = ProjectFile.objects.update_or_create(
+                    team_name=team_title,   # <-- store team_name as string
+                    review_type="zero",
+                    file_type=ftype,
+                    defaults={"cloudinary_url": url}
+                )
+                print(f"DEBUG: ProjectFile {'created' if created else 'updated'} → {ftype}: {url}")
 
         return JsonResponse({
             "status": "success",
-            "message": "Files uploaded successfully",
-            "files": saved_files
+            "message": "Files uploaded to Cloudinary",
+            "files": uploaded
         })
 
-    # =================================================
-    # 📝 GET → Fetch mentor zeroth review remarks
-    # =================================================
-    print("🔍 Fetching Zeroth Review remarks for student")
+    # ---------------------------
+    # 5️⃣ GET → Fetch already uploaded files
+    # ---------------------------
+    uploaded_files = {}
+    files_qs = ProjectFile.objects.filter(team_name=team_title, review_type="zero")
+    for f in files_qs:
+        uploaded_files[f.file_type] = f.cloudinary_url
+    print("DEBUG: Uploaded files fetched →", uploaded_files)
 
-    remarks_qs = ZerothReviewRemark.objects.filter(
-        team_name=team_title_db
-    ).order_by("created_at")
-
-    print("📝 Remarks found:", remarks_qs.count())
-    for r in remarks_qs:
-        print(" -", r.heading, "|", r.remark[:40], "| color:", r.color)
-
+    # ---------------------------
+    # 6️⃣ Get Zeroth Review Remarks
+    # ---------------------------
+    remarks_qs = ZerothReviewRemark.objects.filter(team_name=team_title).order_by("created_at")
     remarks_data = [
         {
             "heading": r.heading,
@@ -1391,36 +1718,22 @@ def zero_ma1(request):
         }
         for r in remarks_qs
     ]
+    print("DEBUG: Remarks fetched →", len(remarks_data))
 
-    # =================================================
-    # 🌐 Highlighted Abstract HTML
-    # =================================================
-# Determine highlighted HTML file (mentor highlighted)
-    html_dir = os.path.join(output_dir, "html")
-    highlighted_html_file = None
+    # ---------------------------
+    # 7️⃣ Final Render
+    # ---------------------------
+    return render(request, "student/review/zero_ma.html", {
+        "student_name": student_name,
+        "username": username,
+        "team_name": team_title,
+        "uploaded_files": uploaded_files,
+        "remarks": remarks_data,
+    })
 
-    if os.path.exists(html_dir):
-        html_files = [f for f in os.listdir(html_dir) if f.lower().endswith(".html")]
-        if html_files:
-            highlighted_html_file = html_files[0]
-
-    highlighted_html_url = (
-        f"/project_docs/{project_title_fs}/html/{highlighted_html_file}"
-        if highlighted_html_file else None
-    )
-
-
-    return render(
-        request,
-        "student/review/zero_ma.html",
-        {
-            "student_name": student_name,
-            "username": username,
-            "uploaded_files": uploaded_files,
-            "remarks": remarks_data,
-            "highlighted_html_url": highlighted_html_url,
-        }
-    )
+# ============================================
+# 🔹 Student Zero Review File Upload View
+# ============================================
 
 
 from django.http import JsonResponse
@@ -1497,60 +1810,111 @@ def clean_text(text):
 
 @csrf_exempt
 def save_evaluation(request):
+    """
+    📝 Save Zeroth Review Evaluation Marks into DOCX
+    """
+
     if request.method != "POST":
-        return JsonResponse({"status": "fail", "message": "Invalid request method"}, status=400)
+        return JsonResponse(
+            {"status": "fail", "message": "Invalid request method"},
+            status=400
+        )
 
     try:
         data = json.loads(request.body)
         team_name = data.get("team_name")
-        evaluations = data.get("evaluations")  # {"team_member-Name": ["Criteria-Mark", ...]}
+        evaluations = data.get("evaluations")  # dict
 
         if not team_name or not evaluations:
-            return JsonResponse({"status": "fail", "message": "Missing team name or evaluations"}, status=400)
+            return JsonResponse(
+                {"status": "fail", "message": "Missing team name or evaluations"},
+                status=400
+            )
 
-        # --- File paths ---
-        template_path = os.path.join(settings.BASE_DIR, 'allocation', 'static', 'zeroth_review_mark.docx')
+        # -------------------------------------------------
+        # Safe team name (filesystem)
+        # -------------------------------------------------
+        team_name_fs = team_name.replace(" ", "_")
+
+        # -------------------------------------------------
+        # Paths
+        # -------------------------------------------------
+        template_path = os.path.join(
+            settings.BASE_DIR,
+            "allocation",
+            "static",
+            "zeroth_review_mark.docx"
+        )
+
         output_dir = os.path.join(settings.BASE_DIR, "generated_docs")
         os.makedirs(output_dir, exist_ok=True)
-        output_path = os.path.join(output_dir, f"{team_name}_ZerothReview.docx")
 
-        # --- Load existing doc ---
+        output_path = os.path.join(
+            output_dir,
+            f"{team_name_fs}_ZerothReview.docx"
+        )
+
+        print("[DEBUG] Output DOCX:", output_path)
+
+        # -------------------------------------------------
+        # Load existing doc OR template
+        # -------------------------------------------------
         if os.path.exists(output_path):
             doc = Document(output_path)
         else:
             if not os.path.exists(template_path):
-                return JsonResponse({"status": "error", "message": f"Template not found: {template_path}"}, status=500)
+                return JsonResponse(
+                    {
+                        "status": "error",
+                        "message": f"Template not found: {template_path}"
+                    },
+                    status=500
+                )
             doc = Document(template_path)
 
-        # --- Insert team name ---
+        # -------------------------------------------------
+        # Insert project title
+        # -------------------------------------------------
         for para in doc.paragraphs:
             if "project title" in para.text.lower():
                 para.text = f"Project Title: {team_name}"
                 break
 
-        # --- Locate team members table ---
+        # -------------------------------------------------
+        # Locate Team Members table
+        # -------------------------------------------------
         members_table = None
         for t in doc.tables:
             if "team members" in clean_text(t.cell(0, 0).text):
                 members_table = t
                 break
-        if not members_table:
-            return JsonResponse({"status": "error", "message": "Team Members table not found"}, status=500)
 
-        # --- Add new members if not existing ---
+        if not members_table:
+            return JsonResponse(
+                {"status": "error", "message": "Team Members table not found"},
+                status=500
+            )
+
+        # -------------------------------------------------
+        # Existing members
+        # -------------------------------------------------
         existing_names = []
         for r in members_table.rows[1:]:
             if len(r.cells) > 3 and r.cells[3].text.strip():
                 existing_names.append(r.cells[3].text.strip())
 
-        # 🟢 FIXED: start numbering from 1, not 0
-        current_index = len(existing_names)
-        for member_name in evaluations.keys():
-            clean_name = member_name.replace("team_member-", "").strip()
+        current_index = len(existing_names) + 1  # ✅ start from next S.No
+
+        for member_key in evaluations.keys():
+            clean_name = member_key.replace("team_member-", "").strip()
             if clean_name in existing_names:
                 continue
 
-            empty_row = next((r for r in members_table.rows[1:] if not r.cells[3].text.strip()), None)
+            empty_row = next(
+                (r for r in members_table.rows[1:] if not r.cells[3].text.strip()),
+                None
+            )
+
             if not empty_row:
                 empty_row = members_table.add_row()
                 for c in empty_row.cells:
@@ -1560,106 +1924,151 @@ def save_evaluation(request):
             empty_row.cells[1].text = "-"
             empty_row.cells[2].text = "-"
             empty_row.cells[3].text = clean_name
-            existing_names.append(clean_name)
-            current_index += 1  # ✅ ensures new member gets next S.No
 
-        # --- Locate marks table ---
+            existing_names.append(clean_name)
+            current_index += 1
+
+        # -------------------------------------------------
+        # Locate Marks table
+        # -------------------------------------------------
         marks_table = None
         for t in doc.tables:
             for row in t.rows:
-                if any(k in clean_text(row.cells[0].text) for k in
-                       ["project concept", "literature review", "relevance", "project planning", "methodology", "presentation"]):
+                if any(
+                    k in clean_text(row.cells[0].text)
+                    for k in [
+                        "project concept",
+                        "literature review",
+                        "relevance",
+                        "project planning",
+                        "methodology",
+                        "presentation"
+                    ]
+                ):
                     marks_table = t
                     break
             if marks_table:
                 break
-        if not marks_table:
-            return JsonResponse({"status": "error", "message": "Marks table not found"}, status=500)
 
-        # --- Build criteria row map ---
+        if not marks_table:
+            return JsonResponse(
+                {"status": "error", "message": "Marks table not found"},
+                status=500
+            )
+
+        # -------------------------------------------------
+        # Criteria map + total row
+        # -------------------------------------------------
         criteria_map = {}
         total_row = None
+
         for i, row in enumerate(marks_table.rows):
             t0 = clean_text(row.cells[0].text)
+
             if "total" in t0:
                 total_row = i
-            for key in ["project concept", "literature review", "relevance",
-                        "project planning", "methodology", "presentation"]:
+
+            for key in [
+                "project concept",
+                "literature review",
+                "relevance",
+                "project planning",
+                "methodology",
+                "presentation"
+            ]:
                 if key in t0:
                     criteria_map[key] = i
 
         if total_row is None:
-            return JsonResponse({"status": "error", "message": "Total row not found"}, status=500)
+            return JsonResponse(
+                {"status": "error", "message": "Total row not found"},
+                status=500
+            )
 
-        # --- Map team member names → S.No from members_table ---
+        # -------------------------------------------------
+        # Member → S.No map
+        # -------------------------------------------------
         member_to_sno = {}
         for r in members_table.rows[1:]:
             if len(r.cells) > 3 and r.cells[3].text.strip():
-                name = r.cells[3].text.strip()
+                name = r.cells[3].text.strip().lower()
                 sno = r.cells[0].text.strip()
-                member_to_sno[name.lower()] = sno
+                member_to_sno[name] = sno
 
-        print("[DEBUG] Member → S.No map:", member_to_sno)
+        print("[DEBUG] Member → S.No:", member_to_sno)
 
-        # --- Insert marks ---
-        for member_name, marks_list in evaluations.items():
-            name = member_name.replace("team_member-", "").strip().lower()
+        # -------------------------------------------------
+        # Insert marks
+        # -------------------------------------------------
+        for member_key, marks_list in evaluations.items():
+            name = member_key.replace("team_member-", "").strip().lower()
             sno = member_to_sno.get(name)
+
             if not sno:
-                print(f"[DEBUG] No S.No for {name}")
                 continue
 
-            # 🟢 FIXED: ensures data goes into correct “1/2/3/4” column
-            print(sno)
-            col = 3 + int(sno)
+            col = 3 + int(sno)  # ✅ correct column mapping
 
             if col >= len(marks_table.rows[0].cells):
-                print(f"[DEBUG] Column out of range for {name}")
                 continue
 
             marks_dict = {}
             for item in marks_list:
-                if '-' in item:
-                    crit, val = item.rsplit('-', 1)
+                if "-" in item:
+                    crit, val = item.rsplit("-", 1)
                     try:
-                        marks_dict[crit.strip()] = int(val.lstrip('0') or '0')
+                        marks_dict[crit.strip()] = int(val.lstrip("0") or "0")
                     except:
                         pass
 
             total = 0
-            print(f"[DEBUG] Filling marks for {name} (S.No {sno}) → column {col}")
 
             for crit, mark in marks_dict.items():
                 ckey = clean_text(crit)
-                row_index = next((criteria_map[k] for k in criteria_map if k in ckey or ckey in k), None)
+                row_index = next(
+                    (
+                        criteria_map[k]
+                        for k in criteria_map
+                        if k in ckey or ckey in k
+                    ),
+                    None
+                )
+
                 if row_index is not None:
                     marks_table.rows[row_index].cells[col].text = str(mark)
                     total += mark
-                    print(f"[DEBUG] {crit}: {mark} in row {row_index}, col {col}")
 
             marks_table.rows[total_row].cells[col].text = str(total)
-            print(f"[DEBUG] TOTAL {total} for {name}")
 
-        # --- Safe save ---
+        # -------------------------------------------------
+        # Safe save
+        # -------------------------------------------------
         try:
             doc.save(output_path)
         except PermissionError:
-            timestamp = time.strftime("%Y%m%d_%H%M%S")
-            alt = os.path.join(output_dir, f"{team_name}_ZerothReview_{timestamp}.docx")
-            doc.save(alt)
-            output_path = alt
+            ts = time.strftime("%Y%m%d_%H%M%S")
+            alt_path = os.path.join(
+                output_dir,
+                f"{team_name_fs}_ZerothReview_{ts}.docx"
+            )
+            doc.save(alt_path)
+            output_path = alt_path
 
-        return JsonResponse({
-            "status": "success",
-            "message": "Marks inserted successfully",
-            "file_path": output_path
-        })
+        return JsonResponse(
+            {
+                "status": "success",
+                "message": "Marks inserted successfully",
+                "file_path": output_path
+            }
+        )
 
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return JsonResponse({"status": "error", "message": str(e)}, status=500)
-
+        return JsonResponse(
+            {"status": "error", "message": str(e)},
+            status=500
+        )
 
 
 from django.http import FileResponse, JsonResponse # type: ignore
@@ -1667,15 +2076,53 @@ import os
 from django.conf import settings
 from docx2pdf import convert
 
-def download_docx(request, team_name):
-    """Download existing DOCX file."""
-    file_path = os.path.join(settings.BASE_DIR, "generated_docs", f"{team_name}_ZerothReview.docx")
-    
-    if not os.path.exists(file_path):
-        return JsonResponse({"error": "DOCX file not found"}, status=404)
-    
-    return FileResponse(open(file_path, "rb"), as_attachment=True, filename=f"{team_name}_ZerothReview.docx")
+from django.shortcuts import redirect
+from django.http import JsonResponse
 
+def download_docx(request, team_name):
+    """
+    📥 Download Zeroth Review DOCX (CLOUDINARY ONLY)
+    """
+
+    if not team_name:
+        return JsonResponse(
+            {"status": "fail", "message": "Invalid team name"},
+            status=400
+        )
+
+    # -------------------------------------------------
+    # Get allocation by team name
+    # -------------------------------------------------
+    allocation = AllocationResult.objects.filter(
+        team_name=team_name
+    ).first()
+
+    if not allocation:
+        return JsonResponse(
+            {"status": "fail", "message": "Team not found"},
+            status=404
+        )
+
+    # -------------------------------------------------
+    # Cloudinary DOCX URL
+    # -------------------------------------------------
+    docx_url = allocation.zeroth_review_docx_url
+
+    if not docx_url:
+        return JsonResponse(
+            {
+                "status": "fail",
+                "message": "DOCX not uploaded to Cloudinary"
+            },
+            status=404
+        )
+
+    print(f"[DEBUG] Redirecting to Cloudinary DOCX: {docx_url}")
+
+    # -------------------------------------------------
+    # Redirect to Cloudinary (download handled by Cloudinary)
+    # -------------------------------------------------
+    return redirect(docx_url)
 
 import os
 import pdfkit
@@ -1685,27 +2132,49 @@ from docx import Document
 from tempfile import NamedTemporaryFile
 
 def download_pdf(request, team_name):
-    docx_path = os.path.join(settings.BASE_DIR, "generated_docs", f"{team_name}_ZerothReview.docx")
-    pdf_path = os.path.join(settings.BASE_DIR, "generated_docs", f"{team_name}_ZerothReview.pdf")
+    """
+    📥 Download Zeroth Review PDF (CLOUDINARY ONLY)
+    """
 
-    if not os.path.exists(docx_path):
-        return JsonResponse({"error": "DOCX file not found"}, status=404)
+    if not team_name:
+        return JsonResponse(
+            {"status": "fail", "message": "Invalid team name"},
+            status=400
+        )
 
-    # Convert DOCX text → HTML → PDF
-    document = Document(docx_path)
-    html_content = "<h2>{}</h2>".format(team_name)
-    for para in document.paragraphs:
-        html_content += f"<p>{para.text}</p>"
+    # -------------------------------------------------
+    # Fetch allocation
+    # -------------------------------------------------
+    allocation = AllocationResult.objects.filter(
+        team_name=team_name
+    ).first()
 
-    # Save temporary HTML
-    with NamedTemporaryFile(delete=False, suffix=".html") as tmp_html:
-        tmp_html.write(html_content.encode("utf-8"))
-        tmp_html_path = tmp_html.name
+    if not allocation:
+        return JsonResponse(
+            {"status": "fail", "message": "Team not found"},
+            status=404
+        )
 
-    pdfkit.from_file(tmp_html_path, pdf_path)
+    # -------------------------------------------------
+    # Cloudinary PDF URL
+    # -------------------------------------------------
+    pdf_url = allocation.zeroth_review_pdf_url
 
-    return FileResponse(open(pdf_path, "rb"), as_attachment=True, filename=f"{team_name}_ZerothReview.pdf")
+    if not pdf_url:
+        return JsonResponse(
+            {
+                "status": "fail",
+                "message": "PDF not uploaded to Cloudinary"
+            },
+            status=404
+        )
 
+    print(f"[DEBUG] Redirecting to Cloudinary PDF: {pdf_url}")
+
+    # -------------------------------------------------
+    # Redirect (Cloudinary handles download)
+    # -------------------------------------------------
+    return redirect(pdf_url)
 
 import os, json, time
 from django.http import JsonResponse
@@ -1716,47 +2185,121 @@ from docx import Document
 def clean_text(text):
     return text.strip().lower()
 
+
+import json
+import os
+import time
+from django.http import JsonResponse
+from django.conf import settings
+from docx import Document
+from django.views.decorators.csrf import csrf_exempt
+
+
 @csrf_exempt
 def save_evaluation_review1(request):
+    """
+    📝 Save FIRST REVIEW Evaluation Marks into DOCX
+    """
+
     if request.method != "POST":
-        return JsonResponse({"status": "fail", "message": "Invalid request method"}, status=400)
+        return JsonResponse(
+            {"status": "fail", "message": "Invalid request method"},
+            status=400
+        )
 
     try:
         data = json.loads(request.body)
         team_name = data.get("team_name")
         evaluations = data.get("evaluations")  # {"member_name": [marks list]}
-        print(evaluations)
-        if not team_name or not evaluations:
-            return JsonResponse({"status": "fail", "message": "Missing team name or evaluations"}, status=400)
 
-        # --- File paths ---
-        template_path = os.path.join(settings.BASE_DIR, 'allocation', 'static', 'first_review_mark.docx')
+        if not team_name or not evaluations:
+            return JsonResponse(
+                {"status": "fail", "message": "Missing team name or evaluations"},
+                status=400
+            )
+
+        # -------------------------------------------------
+        # Safe team name (filesystem)
+        # -------------------------------------------------
+        team_name_fs = team_name.replace(" ", "_")
+
+        # -------------------------------------------------
+        # Paths
+        # -------------------------------------------------
+        template_path = os.path.join(
+            settings.BASE_DIR,
+            "allocation",
+            "static",
+            "first_review_mark.docx"
+        )
+
         output_dir = os.path.join(settings.BASE_DIR, "generated_docs")
         os.makedirs(output_dir, exist_ok=True)
-        output_path = os.path.join(output_dir, f"{team_name}_Review1.docx")
 
-        # --- Load or create doc ---
-        doc = Document(output_path) if os.path.exists(output_path) else Document(template_path)
+        output_path = os.path.join(
+            output_dir,
+            f"{team_name_fs}_Review1.docx"
+        )
 
-        # --- Update title ---
+        print("[DEBUG] Review1 output:", output_path)
+
+        # -------------------------------------------------
+        # Load existing doc OR template
+        # -------------------------------------------------
+        if os.path.exists(output_path):
+            doc = Document(output_path)
+        else:
+            if not os.path.exists(template_path):
+                return JsonResponse(
+                    {
+                        "status": "error",
+                        "message": f"Template not found: {template_path}"
+                    },
+                    status=500
+                )
+            doc = Document(template_path)
+
+        # -------------------------------------------------
+        # Update title
+        # -------------------------------------------------
         for para in doc.paragraphs:
-            if "review 1 evaluation" in para.text.lower():
+            if "review 1" in para.text.lower():
                 para.text = f"Review 1 Evaluation - {team_name}"
                 break
 
-        # --- Locate members table ---
-        members_table = doc.tables[0]  # first table assumed for TEAM MEMBERS
+        # -------------------------------------------------
+        # TEAM MEMBERS table (assumed first table)
+        # -------------------------------------------------
+        members_table = doc.tables[0]
 
-        # --- Add/update members ---
-        start_row = 2  # 0-indexed: row 0=S.NO header, row1=Student Name header
-        for idx, member_name in enumerate(evaluations.keys()):
-            clean_name = member_name.replace("team_member-", "").strip()
-            row_index = start_row + idx
+        start_row = 2  # after headers
+        existing_names = []
+
+        for r in members_table.rows[start_row:]:
+            if len(r.cells) >= 4 and r.cells[3].text.strip():
+                existing_names.append(r.cells[3].text.strip())
+
+        current_index = len(existing_names) + 1
+
+        for member_key in evaluations.keys():
+            clean_name = member_key.replace("team_member-", "").strip()
+
+            if clean_name in existing_names:
+                continue
+
+            row_index = start_row + (current_index - 1)
             if row_index >= len(members_table.rows):
                 members_table.add_row()
+
+            members_table.rows[row_index].cells[0].text = str(current_index)
             members_table.rows[row_index].cells[3].text = clean_name
 
-        # --- Map member name → S.NO ---
+            existing_names.append(clean_name)
+            current_index += 1
+
+        # -------------------------------------------------
+        # Map member → S.NO
+        # -------------------------------------------------
         member_to_sno = {}
         for r in members_table.rows[start_row:]:
             if len(r.cells) >= 4 and r.cells[3].text.strip():
@@ -1764,21 +2307,31 @@ def save_evaluation_review1(request):
                 sno = r.cells[0].text.strip()
                 member_to_sno[name] = sno
 
-        # --- Locate marks table ---
+        print("[DEBUG] Member → S.NO:", member_to_sno)
+
+        # -------------------------------------------------
+        # MARKS table (assumed second table)
+        # -------------------------------------------------
         marks_table = doc.tables[1]
 
-        # --- Detect TOTAL row ---
+        # -------------------------------------------------
+        # Detect TOTAL row
+        # -------------------------------------------------
         total_row = None
         for i, row in enumerate(marks_table.rows):
             if "total" in row.cells[0].text.lower():
                 total_row = i
                 break
-        if total_row is None:
-            total_row = len(marks_table.rows) - 1  # fallback
 
-        # --- Locate S.NO row to detect columns ---
-        sno_row_idx = None
+        if total_row is None:
+            total_row = len(marks_table.rows) - 1
+
+        # -------------------------------------------------
+        # Detect S.NO → column mapping
+        # -------------------------------------------------
         sno_col_map = {}
+        sno_row_idx = None
+
         for i, row in enumerate(marks_table.rows):
             for idx, cell in enumerate(row.cells):
                 if cell.text.strip().isdigit():
@@ -1787,18 +2340,25 @@ def save_evaluation_review1(request):
             if sno_col_map:
                 break
 
-        # --- Insert marks using S.NO mapping ---
-        for member_name, marks_list in evaluations.items():
-            clean_name = member_name.replace("team_member-", "").strip().lower()
+        print("[DEBUG] S.NO → Column:", sno_col_map)
+
+        # -------------------------------------------------
+        # Insert marks
+        # -------------------------------------------------
+        for member_key, marks_list in evaluations.items():
+            clean_name = member_key.replace("team_member-", "").strip().lower()
             sno = member_to_sno.get(clean_name)
+
             if not sno:
                 continue
+
             col_idx = sno_col_map.get(sno)
             if col_idx is None:
                 continue
 
             total = 0
-            row_idx = sno_row_idx + 1  # start filling just below S.NO row
+            row_idx = sno_row_idx + 1
+
             for mark in marks_list:
                 if row_idx >= total_row:
                     break
@@ -1809,26 +2369,444 @@ def save_evaluation_review1(request):
                     pass
                 row_idx += 1
 
-            # update TOTAL
             marks_table.rows[total_row].cells[col_idx].text = str(total)
 
-        # --- Save document ---
+        # -------------------------------------------------
+        # Safe save
+        # -------------------------------------------------
         try:
             doc.save(output_path)
         except PermissionError:
-            timestamp = time.strftime("%Y%m%d_%H%M%S")
-            alt = os.path.join(output_dir, f"{team_name}_Review1_{timestamp}.docx")
+            ts = time.strftime("%Y%m%d_%H%M%S")
+            alt = os.path.join(
+                output_dir,
+                f"{team_name_fs}_Review1_{ts}.docx"
+            )
             doc.save(alt)
             output_path = alt
 
-        return JsonResponse({
-            "status": "success",
-            "message": "Marks inserted successfully",
-            "file_path": output_path
-        })
+        return JsonResponse(
+            {
+                "status": "success",
+                "message": "Review 1 marks saved successfully",
+                "file_path": output_path
+            }
+        )
 
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+        return JsonResponse(
+            {"status": "error", "message": str(e)},
+            status=500
+        )
 
+def save_evaluation_review2(request):
+    """
+    📝 Save Second REVIEW Evaluation Marks into DOCX
+    """
+
+    if request.method != "POST":
+        return JsonResponse(
+            {"status": "fail", "message": "Invalid request method"},
+            status=400
+        )
+
+    try:
+        data = json.loads(request.body)
+        team_name = data.get("team_name")
+        evaluations = data.get("evaluations")  # {"member_name": [marks list]}
+
+        if not team_name or not evaluations:
+            return JsonResponse(
+                {"status": "fail", "message": "Missing team name or evaluations"},
+                status=400
+            )
+
+        # -------------------------------------------------
+        # Safe team name (filesystem)
+        # -------------------------------------------------
+        team_name_fs = team_name.replace(" ", "_")
+
+        # -------------------------------------------------
+        # Paths
+        # -------------------------------------------------
+        template_path = os.path.join(
+            settings.BASE_DIR,
+            "allocation",
+            "static",
+            "second_review_mark.docx"
+        )
+
+        output_dir = os.path.join(settings.BASE_DIR, "generated_docs")
+        os.makedirs(output_dir, exist_ok=True)
+
+        output_path = os.path.join(
+            output_dir,
+            f"{team_name_fs}_Review2.docx"
+        )
+
+        print("[DEBUG] Review2 output:", output_path)
+
+        # -------------------------------------------------
+        # Load existing doc OR template
+        # -------------------------------------------------
+        if os.path.exists(output_path):
+            doc = Document(output_path)
+        else:
+            if not os.path.exists(template_path):
+                return JsonResponse(
+                    {
+                        "status": "error",
+                        "message": f"Template not found: {template_path}"
+                    },
+                    status=500
+                )
+            doc = Document(template_path)
+
+        # -------------------------------------------------
+        # Update title
+        # -------------------------------------------------
+        for para in doc.paragraphs:
+            if "review 2" in para.text.lower():
+                para.text = f"Review 2 Evaluation - {team_name}"
+                break
+
+        # -------------------------------------------------
+        # TEAM MEMBERS table (assumed first table)
+        # -------------------------------------------------
+        members_table = doc.tables[0]
+
+        start_row = 2  # after headers
+        existing_names = []
+
+        for r in members_table.rows[start_row:]:
+            if len(r.cells) >= 4 and r.cells[3].text.strip():
+                existing_names.append(r.cells[3].text.strip())
+
+        current_index = len(existing_names) + 1
+
+        for member_key in evaluations.keys():
+            clean_name = member_key.replace("team_member-", "").strip()
+
+            if clean_name in existing_names:
+                continue
+
+            row_index = start_row + (current_index - 1)
+            if row_index >= len(members_table.rows):
+                members_table.add_row()
+
+            members_table.rows[row_index].cells[0].text = str(current_index)
+            members_table.rows[row_index].cells[3].text = clean_name
+
+            existing_names.append(clean_name)
+            current_index += 1
+
+        # -------------------------------------------------
+        # Map member → S.NO
+        # -------------------------------------------------
+        member_to_sno = {}
+        for r in members_table.rows[start_row:]:
+            if len(r.cells) >= 4 and r.cells[3].text.strip():
+                name = r.cells[3].text.strip().lower()
+                sno = r.cells[0].text.strip()
+                member_to_sno[name] = sno
+
+        print("[DEBUG] Member → S.NO:", member_to_sno)
+
+        # -------------------------------------------------
+        # MARKS table (assumed second table)
+        # -------------------------------------------------
+        marks_table = doc.tables[1]
+
+        # -------------------------------------------------
+        # Detect TOTAL row
+        # -------------------------------------------------
+        total_row = None
+        for i, row in enumerate(marks_table.rows):
+            if "total" in row.cells[0].text.lower():
+                total_row = i
+                break
+
+        if total_row is None:
+            total_row = len(marks_table.rows) - 1
+
+        # -------------------------------------------------
+        # Detect S.NO → column mapping
+        # -------------------------------------------------
+        sno_col_map = {}
+        sno_row_idx = None
+
+        for i, row in enumerate(marks_table.rows):
+            for idx, cell in enumerate(row.cells):
+                if cell.text.strip().isdigit():
+                    sno_col_map[cell.text.strip()] = idx
+                    sno_row_idx = i
+            if sno_col_map:
+                break
+
+        print("[DEBUG] S.NO → Column:", sno_col_map)
+
+        # -------------------------------------------------
+        # Insert marks
+        # -------------------------------------------------
+        for member_key, marks_list in evaluations.items():
+            clean_name = member_key.replace("team_member-", "").strip().lower()
+            sno = member_to_sno.get(clean_name)
+
+            if not sno:
+                continue
+
+            col_idx = sno_col_map.get(sno)
+            if col_idx is None:
+                continue
+
+            total = 0
+            row_idx = sno_row_idx + 1
+
+            for mark in marks_list:
+                if row_idx >= total_row:
+                    break
+                try:
+                    marks_table.rows[row_idx].cells[col_idx].text = str(mark)
+                    total += int(mark)
+                except:
+                    pass
+                row_idx += 1
+
+            marks_table.rows[total_row].cells[col_idx].text = str(total)
+
+        # -------------------------------------------------
+        # Safe save
+        # -------------------------------------------------
+        try:
+            doc.save(output_path)
+        except PermissionError:
+            ts = time.strftime("%Y%m%d_%H%M%S")
+            alt = os.path.join(
+                output_dir,
+                f"{team_name_fs}_Review2_{ts}.docx"
+            )
+            doc.save(alt)
+            output_path = alt
+
+        return JsonResponse(
+            {
+                "status": "success",
+                "message": "Review 2 marks saved successfully",
+                "file_path": output_path
+            }
+        )
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse(
+            {"status": "error", "message": str(e)},
+            status=500
+        )
+
+def save_evaluation_review3(request):
+    """
+    📝 Save THIRD REVIEW Evaluation Marks into DOCX
+    """
+    print("hello")
+    if request.method != "POST":
+        return JsonResponse(
+            {"status": "fail", "message": "Invalid request method"},
+            status=400
+        )
+
+    try:
+        data = json.loads(request.body)
+        team_name = data.get("team_name")
+        evaluations = data.get("evaluations")  # {"member_name": [marks list]}
+
+        if not team_name or not evaluations:
+            return JsonResponse(
+                {"status": "fail", "message": "Missing team name or evaluations"},
+                status=400
+            )
+
+        # -------------------------------------------------
+        # Safe team name (filesystem)
+        # -------------------------------------------------
+        team_name_fs = team_name.replace(" ", "_")
+
+        # -------------------------------------------------
+        # Paths
+        # -------------------------------------------------
+        template_path = os.path.join(
+            settings.BASE_DIR,
+            "allocation",
+            "static",
+            "third_review_mark.docx"
+        )
+
+        output_dir = os.path.join(settings.BASE_DIR, "generated_docs")
+        os.makedirs(output_dir, exist_ok=True)
+
+        output_path = os.path.join(
+            output_dir,
+            f"{team_name_fs}_Review3.docx"
+        )
+
+        print("[DEBUG] Review3 output:", output_path)
+
+        # -------------------------------------------------
+        # Load existing doc OR template
+        # -------------------------------------------------
+        if os.path.exists(output_path):
+            doc = Document(output_path)
+        else:
+            if not os.path.exists(template_path):
+                return JsonResponse(
+                    {
+                        "status": "error",
+                        "message": f"Template not found: {template_path}"
+                    },
+                    status=500
+                )
+            doc = Document(template_path)
+
+        # -------------------------------------------------
+        # Update title
+        # -------------------------------------------------
+        for para in doc.paragraphs:
+            if "review 3" in para.text.lower():
+                para.text = f"Review 3 Evaluation - {team_name}"
+                break
+
+        # -------------------------------------------------
+        # TEAM MEMBERS table (assumed first table)
+        # -------------------------------------------------
+        members_table = doc.tables[0]
+
+        start_row = 2  # after headers
+        existing_names = []
+
+        for r in members_table.rows[start_row:]:
+            if len(r.cells) >= 4 and r.cells[3].text.strip():
+                existing_names.append(r.cells[3].text.strip())
+
+        current_index = len(existing_names) + 1
+
+        for member_key in evaluations.keys():
+            clean_name = member_key.replace("team_member-", "").strip()
+
+            if clean_name in existing_names:
+                continue
+
+            row_index = start_row + (current_index - 1)
+            if row_index >= len(members_table.rows):
+                members_table.add_row()
+
+            members_table.rows[row_index].cells[0].text = str(current_index)
+            members_table.rows[row_index].cells[3].text = clean_name
+
+            existing_names.append(clean_name)
+            current_index += 1
+
+        # -------------------------------------------------
+        # Map member → S.NO
+        # -------------------------------------------------
+        member_to_sno = {}
+        for r in members_table.rows[start_row:]:
+            if len(r.cells) >= 4 and r.cells[3].text.strip():
+                name = r.cells[3].text.strip().lower()
+                sno = r.cells[0].text.strip()
+                member_to_sno[name] = sno
+
+        print("[DEBUG] Member → S.NO:", member_to_sno)
+
+        # -------------------------------------------------
+        # MARKS table (assumed second table)
+        # -------------------------------------------------
+        marks_table = doc.tables[1]
+
+        # -------------------------------------------------
+        # Detect TOTAL row
+        # -------------------------------------------------
+        total_row = None
+        for i, row in enumerate(marks_table.rows):
+            if "total" in row.cells[0].text.lower():
+                total_row = i
+                break
+
+        if total_row is None:
+            total_row = len(marks_table.rows) - 1
+
+        # -------------------------------------------------
+        # Detect S.NO → column mapping
+        # -------------------------------------------------
+        sno_col_map = {}
+        sno_row_idx = None
+
+        for i, row in enumerate(marks_table.rows):
+            for idx, cell in enumerate(row.cells):
+                if cell.text.strip().isdigit():
+                    sno_col_map[cell.text.strip()] = idx
+                    sno_row_idx = i
+            if sno_col_map:
+                break
+
+        print("[DEBUG] S.NO → Column:", sno_col_map)
+
+        # -------------------------------------------------
+        # Insert marks
+        # -------------------------------------------------
+        for member_key, marks_list in evaluations.items():
+            clean_name = member_key.replace("team_member-", "").strip().lower()
+            sno = member_to_sno.get(clean_name)
+
+            if not sno:
+                continue
+
+            col_idx = sno_col_map.get(sno)
+            if col_idx is None:
+                continue
+
+            total = 0
+            row_idx = sno_row_idx + 1
+
+            for mark in marks_list:
+                if row_idx >= total_row:
+                    break
+                try:
+                    marks_table.rows[row_idx].cells[col_idx].text = str(mark)
+                    total += int(mark)
+                except:
+                    pass
+                row_idx += 1
+
+            marks_table.rows[total_row].cells[col_idx].text = str(total)
+
+        # -------------------------------------------------
+        # Safe save
+        # -------------------------------------------------
+        try:
+            doc.save(output_path)
+        except PermissionError:
+            ts = time.strftime("%Y%m%d_%H%M%S")
+            alt = os.path.join(
+                output_dir,
+                f"{team_name_fs}_Review3_{ts}.docx"
+            )
+            doc.save(alt)
+            output_path = alt
+
+        return JsonResponse(
+            {
+                "status": "success",
+                "message": "Review 2 marks saved successfully",
+                "file_path": output_path
+            }
+        )
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse(
+            {"status": "error", "message": str(e)},
+            status=500
+        )

@@ -72,7 +72,6 @@ body{
   margin-top:20px;
 }
 .split-view.active{display:grid;}
-
 .color-btn{
   width:26px;
   height:26px;
@@ -82,12 +81,6 @@ body{
   cursor:pointer;
 }
 .color-btn.active{outline:3px solid #000;}
-
-.highlighted{
-  padding:2px;
-  cursor:pointer;
-}
-
 .pdf-toolbar{
   position:absolute;
   top:8px;
@@ -95,7 +88,6 @@ body{
   z-index:1000;
 }
 .pdf-toolbar button{margin-left:4px;}
-
 .tag-item{
   background:#f9ddeb;
   padding:8px;
@@ -103,6 +95,8 @@ body{
   margin-bottom:8px;
   font-size:13px;
 }
+.highlighted{cursor:pointer;}
+#reviewWrapper{transform-origin: top left;}
 </style>
 </head>
 
@@ -120,32 +114,40 @@ body{
 
 <!-- MAIN -->
 <div class="main-content">
-<div class="main-card">
+
+<div class="main-card mb-3">
 <h5>Review Paper</h5>
 
-{% if html_path %}
-<button class="glass-btn view-btn" data-file="{{ html_path }}">
-<i class="fa fa-eye"></i> View Review Paper
+{% if html_content %}
+<button class="glass-btn" id="openReviewBtn">
+  <i class="fa fa-eye"></i> View Review Paper
 </button>
+{% else %}
+<p class="mb-0">⚠️ Abstract PDF not uploaded yet</p>
 {% endif %}
 </div>
 
 <!-- SPLIT VIEW -->
 <div id="splitView" class="split-view">
 
-<!-- PDF VIEW -->
-<div class="bg-white rounded p-2 position-relative" style="height:75vh;">
-<div class="pdf-toolbar">
-  <button class="btn btn-secondary btn-sm" onclick="zoomIn()">+</button>
-  <button class="btn btn-secondary btn-sm" onclick="zoomOut()">−</button>
-  <button class="btn btn-warning btn-sm" onclick="toggleEraser()">Eraser</button>
-  <button class="btn btn-danger btn-sm" onclick="closeViewer()">Close</button>
-</div>
-<iframe id="pdfFrame" style="width:100%;height:100%;border:none;"></iframe>
+<!-- REVIEW PANEL -->
+<div class="bg-white rounded p-2 position-relative" style="height:75vh; overflow:auto;">
+  <div class="pdf-toolbar">
+    <button class="btn btn-secondary btn-sm" onclick="zoomIn()">+</button>
+    <button class="btn btn-secondary btn-sm" onclick="zoomOut()">−</button>
+    <button class="btn btn-warning btn-sm" onclick="toggleEraser()">Eraser</button>
+    <button class="btn btn-danger btn-sm" onclick="closeViewer()">Close</button>
+  </div>
+
+  <div id="reviewWrapper">
+    <div id="reviewContent">
+      {{ html_content|safe }}
+    </div>
+  </div>
 </div>
 
-<!-- ANNOTATION PANEL -->
-<div class="bg-light p-3 rounded">
+<!-- REMARK PANEL -->
+<div class="bg-light p-3 rounded" style="height:75vh; overflow-y:auto;">
 <h6>Annotation Panel</h6>
 
 <label>Selected Text</label>
@@ -159,7 +161,7 @@ body{
 </div>
 
 <button class="glass-btn w-100 mb-2" onclick="applyHighlight()">
-<i class="fa fa-highlighter"></i> Highlight
+  <i class="fa fa-highlighter"></i> Highlight
 </button>
 
 <label>Detected Heading</label>
@@ -167,20 +169,22 @@ body{
 
 <div class="mb-2">
 {% for h in sub_headings %}
-<button class="badge bg-secondary heading-tag" onclick="detectedHeading.value='{{ h }}'">{{ h }}</button>
+<button type="button" class="badge bg-secondary me-1 mb-1"
+onclick="document.getElementById('detectedHeading').value='{{ h|escapejs }}'">
+{{ h }}
+</button>
 {% endfor %}
 </div>
 
 <label>Remark</label>
 <textarea id="remarkText" class="form-control mb-2"></textarea>
 
-<button class="glass-btn w-100" onclick="saveTag()">Save Tag</button>
+<button class="glass-btn w-100" onclick="saveTag()">Save Remark</button>
 
 <hr>
 <h6>Saved Remarks</h6>
 <div id="savedTags"></div>
 
-<!-- ✅ UPDATED REMARKS BUTTON -->
 <hr>
 <button class="glass-btn w-100 mt-2" onclick="sendRemarksToStudent()">
 <i class="fa fa-paper-plane"></i> Send Remarks to Student
@@ -191,252 +195,214 @@ body{
 </div>
 </div>
 
+<!-- ✅ DB SAVED REMARKS JSON -->
 <script>
-/* =========================================================
-   GLOBAL STATE
-   ========================================================= */
-let selectedRange = null;
-let selectedColor = "#ffe066";
-let zoom = 1;
-let eraser = false;
-let tags = [];
-let sending = false; // 🔒 prevents double send
+const DB_SAVED_REMARKS = [
+{% for r in saved_remarks %}
+  {
+    heading: "{{ r.heading|escapejs }}",
+    remark: "{{ r.remark|escapejs }}",
+    color: "{{ r.color }}"
+  },
+{% endfor %}
+];
+</script>
 
-const STORAGE_KEY = "review_annotations_v1";
+<script>
+document.addEventListener("DOMContentLoaded",()=>{
 
-const iframe = document.getElementById("pdfFrame");
-const selectedTextBox = document.getElementById("selectedText");
+let selectedRange=null;
+let selectedColor="#ffe066";
+let tags=[];
+let zoom=1;
+let eraser=false;
+let sending=false;
 
-/* =========================================================
-   COLOR PICKER
-   ========================================================= */
-document.querySelectorAll(".color-btn").forEach(btn => {
-  btn.onclick = () => {
-    document.querySelectorAll(".color-btn").forEach(b => b.classList.remove("active"));
+const STORAGE_KEY="zero_review_annotations";
+
+const splitView=document.getElementById("splitView");
+const openBtn=document.getElementById("openReviewBtn");
+const reviewContent=document.getElementById("reviewContent");
+const reviewWrapper=document.getElementById("reviewWrapper");
+const selectedTextBox=document.getElementById("selectedText");
+const detectedHeading=document.getElementById("detectedHeading");
+const remarkText=document.getElementById("remarkText");
+
+/* OPEN */
+openBtn?.addEventListener("click",()=>{
+  splitView.classList.add("active");
+  restoreData();
+  applyDBHighlights();   // 🔥 APPLY DB HIGHLIGHTS
+});
+
+/* CLOSE */
+window.closeViewer=()=>{
+  splitView.classList.remove("active");
+};
+
+/* COLOR PICK */
+document.querySelectorAll(".color-btn").forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll(".color-btn").forEach(b=>b.classList.remove("active"));
     btn.classList.add("active");
-    selectedColor = btn.dataset.color;
+    selectedColor=btn.dataset.color;
   };
 });
 
-/* =========================================================
-   VIEW PDF
-   ========================================================= */
-document.querySelector(".view-btn").onclick = e => {
-  iframe.src = e.target.closest("button").dataset.file;
-  document.getElementById("splitView").classList.add("active");
+/* TEXT SELECT */
+reviewContent.addEventListener("mouseup",()=>{
+  if(eraser) return;
+  const sel=window.getSelection();
+  if(sel && !sel.isCollapsed){
+    selectedRange=sel.getRangeAt(0);
+    selectedTextBox.value=sel.toString();
+  }
+});
 
-  iframe.onload = () => {
-    restoreData();       // ✅ restore highlights + tags
-    bindSelection();
-    bindEraser();
-  };
+/* HIGHLIGHT */
+window.applyHighlight=()=>{
+  if(!selectedRange) return alert("Select text first");
+  try{
+    const span=document.createElement("span");
+    span.className="highlighted";
+    span.style.backgroundColor=selectedColor;
+    span.appendChild(selectedRange.extractContents());
+    selectedRange.insertNode(span);
+    window.getSelection().removeAllRanges();
+    selectedRange=null;
+    persistData();
+  }catch{
+    alert("Select smaller text");
+  }
 };
 
-function closeViewer() {
-  persistData();         // ✅ save before closing
-  iframe.src = "";
-  document.getElementById("splitView").classList.remove("active");
+/* ERASER */
+window.toggleEraser=()=>{
+  eraser=!eraser;
+  alert(eraser?"Eraser ON":"Eraser OFF");
+};
+
+reviewContent.addEventListener("click",e=>{
+  if(eraser && e.target.classList.contains("highlighted")){
+    e.target.replaceWith(...e.target.childNodes);
+    persistData();
+  }
+});
+
+/* ZOOM */
+window.zoomIn=()=>{zoom+=0.1;applyZoom();};
+window.zoomOut=()=>{zoom=Math.max(0.4,zoom-0.1);applyZoom();};
+function applyZoom(){
+  reviewWrapper.style.transform=`scale(${zoom})`;
 }
 
-/* =========================================================
-   ZOOM
-   ========================================================= */
-function zoomIn() {
-  zoom += 0.1;
-  iframe.contentDocument.body.style.zoom = zoom;
-}
-
-function zoomOut() {
-  zoom = Math.max(0.3, zoom - 0.1);
-  iframe.contentDocument.body.style.zoom = zoom;
-}
-
-/* =========================================================
-   ERASER
-   ========================================================= */
-function toggleEraser() {
-  eraser = !eraser;
-  alert(eraser ? "🧽 Eraser ON" : "✏️ Eraser OFF");
-}
-
-/* =========================================================
-   TEXT SELECTION
-   ========================================================= */
-function bindSelection() {
-  iframe.contentDocument.addEventListener("mouseup", () => {
-    const sel = iframe.contentWindow.getSelection();
-    if (sel && !sel.isCollapsed) {
-      selectedRange = sel.getRangeAt(0);
-      selectedTextBox.value = sel.toString();
-      detectHeading(sel.toString());
-    }
-  });
-}
-
-/* =========================================================
-   HEADING DETECTION
-   ========================================================= */
-function detectHeading(text) {
-  if (typeof DOCUMENT_MAP === "undefined") {
-    detectedHeading.value = "Unknown";
+/* TAG SAVE */
+window.saveTag=()=>{
+  if(!detectedHeading.value || !remarkText.value){
+    alert("Heading & remark required");
     return;
   }
-
-  const key = text.toLowerCase().split(" ").slice(0, 6).join(" ");
-  for (let i = DOCUMENT_MAP.length - 1; i >= 0; i--) {
-    if (DOCUMENT_MAP[i].heading.toLowerCase().includes(key)) {
-      detectedHeading.value = DOCUMENT_MAP[i].heading;
-      return;
-    }
-  }
-  detectedHeading.value = "Unknown";
-}
-
-/* =========================================================
-   APPLY HIGHLIGHT
-   ========================================================= */
-function applyHighlight() {
-  if (!selectedRange) {
-    alert("Select text first");
-    return;
-  }
-
-  const span = iframe.contentDocument.createElement("span");
-  span.className = "pdf-highlight";
-  span.style.backgroundColor = selectedColor;
-
-  selectedRange.surroundContents(span);
-  iframe.contentWindow.getSelection().removeAllRanges();
-
-  persistData(); // ✅ save highlighted HTML
-}
-
-/* =========================================================
-   ERASER HANDLER
-   ========================================================= */
-function bindEraser() {
-  iframe.contentDocument.addEventListener("click", e => {
-    if (!eraser) return;
-
-    const target = e.target;
-    if (target.classList.contains("pdf-highlight")) {
-      target.replaceWith(...target.childNodes);
-      persistData();
-      e.stopPropagation();
-    }
-  });
-}
-
-/* =========================================================
-   SAVE TAG
-   ========================================================= */
-function saveTag() {
-  if (!detectedHeading.value) {
-    alert("Heading required");
-    return;
-  }
-
   tags.push({
-    heading: detectedHeading.value,
-    remark: remarkText.value,
-    color: selectedColor
+    heading:detectedHeading.value,
+    remark:remarkText.value,
+    color:selectedColor
   });
-
-  remarkText.value = "";
+  detectedHeading.value="";
+  remarkText.value="";
+  selectedTextBox.value="";
   renderTags();
   persistData();
-}
+};
 
-/* =========================================================
-   RENDER TAGS
-   ========================================================= */
-function renderTags() {
-  const box = document.getElementById("savedTags");
-  box.innerHTML = "";
-
-  tags.forEach((t, i) => {
-    box.innerHTML += `
+function renderTags(){
+  const box=document.getElementById("savedTags");
+  box.innerHTML="";
+  tags.forEach((t,i)=>{
+    box.innerHTML+=`
       <div class="tag-item" style="border-left:5px solid ${t.color}">
-        <strong>${t.heading}</strong><br>${t.remark}
+        <b>${t.heading}</b><br>${t.remark}
         <button class="btn btn-sm btn-danger float-end"
-          onclick="tags.splice(${i},1);renderTags();persistData()">X</button>
-      </div>
-    `;
+        onclick="deleteTag(${i})">X</button>
+      </div>`;
   });
 }
 
-/* =========================================================
-   LOCAL STORAGE (HIGHLIGHTS + TAGS)
-   ========================================================= */
-function persistData() {
-  if (!iframe.contentDocument) return;
+window.deleteTag=(i)=>{
+  tags.splice(i,1);
+  renderTags();
+  persistData();
+};
 
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    html: iframe.contentDocument.body.innerHTML, // ✅ highlighted HTML
-    tags: tags
+/* STORAGE */
+function persistData(){
+  localStorage.setItem(STORAGE_KEY,JSON.stringify({
+    tags,
+    content:reviewContent.innerHTML
   }));
 }
-
-function restoreData() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw || !iframe.contentDocument) return;
-
-  const data = JSON.parse(raw);
-
-  if (data.html) {
-    iframe.contentDocument.body.innerHTML = data.html;
+function restoreData(){
+  const raw=localStorage.getItem(STORAGE_KEY);
+  if(raw){
+    const d=JSON.parse(raw);
+    tags=d.tags||[];
+    if(d.content) reviewContent.innerHTML=d.content;
+  }else{
+    tags=DB_SAVED_REMARKS; // 🔥 LOAD FROM DB
   }
-
-  tags = data.tags || [];
   renderTags();
 }
 
-/* =========================================================
-   SEND REMARKS — NO DOUBLE SEND, NO DATA LOSS
-   ========================================================= */
-function sendRemarksToStudent() {
-  if (tags.length === 0) {
-    alert("No remarks to send");
-    return;
-  }
+/* 🔥 AUTO APPLY DB HIGHLIGHTS */
+function applyDBHighlights(){
+  if(!DB_SAVED_REMARKS || DB_SAVED_REMARKS.length===0) return;
 
-  if (sending) return; // 🔒 block duplicate click
+  let html=reviewContent.innerHTML;
 
-  sending = true;
+  DB_SAVED_REMARKS.forEach(r=>{
+    if(!r.heading) return;
+    const safe=r.heading.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+    const regex=new RegExp(safe,"g");
+    html=html.replace(regex,match=>{
+      return `<span class="highlighted" style="background-color:${r.color};" title="${r.remark}">${match}</span>`;
+    });
+  });
 
-  const payload = {
-    remarks: tags,
-    sent_at: new Date().toISOString()
-  };
+  reviewContent.innerHTML=html;
+}
 
-  fetch("{% url 'save_zeroth_remark' %}", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": "{{ csrf_token }}"
+/* SEND TO BACKEND */
+window.sendRemarksToStudent=()=>{
+  if(sending || tags.length===0) return;
+  sending=true;
+
+  fetch("{% url 'save_zeroth_remark' %}",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "X-CSRFToken":"{{ csrf_token }}"
     },
-    body: JSON.stringify(payload)
+    body:JSON.stringify({remarks:tags})
   })
-  .then(res => res.json())
-  .then(data => {
-    sending = false;
-
-    if (data.status === "success") {
-      alert("Remarks sent successfully ✅");
-      // ❌ DO NOT clear tags or highlights (as you requested)
-    } else {
-      alert("Failed to send remarks ❌");
+  .then(r=>r.json())
+  .then(d=>{
+    sending=false;
+    if(d.status==="success"){
+      alert("Remarks sent ✅");
+      tags=[];
+      renderTags();
+      localStorage.removeItem(STORAGE_KEY);
+    }else{
+      alert("Failed ❌");
     }
   })
-  .catch(err => {
-    sending = false;
-    console.error(err);
-    alert("Error sending remarks");
+  .catch(()=>{
+    sending=false;
+    alert("Server error");
   });
-}
+};
+
+});
 </script>
-
-
 
 </body>
 </html>
