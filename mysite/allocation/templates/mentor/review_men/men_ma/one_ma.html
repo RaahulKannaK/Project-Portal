@@ -247,12 +247,35 @@
       </tbody>
     </table>
 
+    <!-- Confirm + Submit Buttons -->
     <div class="submit-container">
-      <button type="submit" class="submit-button">
+      <button type="button" class="submit-button" id="confirm-btn">
+        <i class="fas fa-check"></i> Confirm Marks
+      </button>
+
+      <button type="submit" class="submit-button" id="submit-btn" style="margin-left:15px;" disabled>
         <i class="fas fa-file-word"></i> Submit & Generate Report
       </button>
     </div>
   </form>
+
+  <!-- Summary Table Section -->
+  <div id="summary-section" style="display:none; margin-top:50px;">
+    <h2 class="title-box">First Review Summary - {{ team_name }}</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Team Member</th>
+          {% for i in 1|to:20 %}  
+            <th>{{ i }}</th>
+          {% endfor %}
+          <th>Total (100)</th>
+        </tr>
+      </thead>
+      <tbody id="summary-body"></tbody>
+    </table>
+  </div>
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
@@ -273,11 +296,9 @@ document.addEventListener("DOMContentLoaded", function() {
     /* ---------- FORCE VALUE BETWEEN 0 AND 5 ---------- */
     function sanitizeInput(input) {
         let value = parseInt(input.value);
-
         if (isNaN(value)) value = 0;
         if (value > MAX_MARK) value = MAX_MARK;
         if (value < MIN_MARK) value = MIN_MARK;
-
         input.value = value;
     }
 
@@ -296,8 +317,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
     /* ---------- INPUT HANDLING ---------- */
     inputs.forEach(inp => {
-
-        // Prevent typing > 5
         inp.addEventListener("input", function() {
             sanitizeInput(this);
 
@@ -324,7 +343,6 @@ document.addEventListener("DOMContentLoaded", function() {
             calculateTotal();
         });
 
-        // Prevent pasting large numbers
         inp.addEventListener("paste", function(e) {
             e.preventDefault();
             let pasted = parseInt((e.clipboardData || window.clipboardData).getData("text"));
@@ -337,12 +355,50 @@ document.addEventListener("DOMContentLoaded", function() {
 
     calculateTotal();
 
+    /* ---------- CONFIRM BUTTON ---------- */
+    document.getElementById("confirm-btn").addEventListener("click", function () {
+        const summaryBody = document.getElementById("summary-body");
+        summaryBody.innerHTML = "";
+        document.getElementById("summary-section").style.display = "block";
+
+        const members = [
+            {% for member in team_members %}
+            "{{ member }}",
+            {% endfor %}
+        ];
+
+        members.forEach((name, mIndex) => {
+            let total = 0;
+            let rowCells = "";
+
+            for (let i = 0; i < totalInputs; i++) {
+                const inp = document.querySelector(
+                    `input[data-member-index="${mIndex}"][data-criteria-index="${i}"]`
+                );
+                const val = parseInt(inp?.value) || 0;
+                total += val;
+                rowCells += `<td>${val}</td>`;
+            }
+
+            const row = `
+              <tr>
+                <td><b>${name}</b></td>
+                ${rowCells}
+                <td><b>${total}</b></td>
+              </tr>
+            `;
+            summaryBody.insertAdjacentHTML("beforeend", row);
+        });
+
+        document.getElementById("submit-btn").disabled = false;
+        window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    });
+
     /* ---------- FORM SUBMIT ---------- */
     document.getElementById('evaluation-form').addEventListener('submit', function(e){
         e.preventDefault();
 
         const savedEvaluations = {};
-
         {% for member in team_members %}
         savedEvaluations["team_member-{{ member }}"] = [];
         for (let i = 0; i < totalInputs; i++) {
@@ -376,8 +432,6 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 </script>
-
-
 
 </body>
 </html>
