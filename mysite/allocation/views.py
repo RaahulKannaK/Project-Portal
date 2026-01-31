@@ -1250,6 +1250,7 @@ def one_ma(request, team_name):
         'team_members': team_members
     })
 
+
 def two_ma(request, team_name):
     team_members = []
     
