@@ -168,6 +168,7 @@
 </head>
 
 <body>
+
   <div class="header">
     <h2><i class="fas fa-users"></i> Team Members Details</h2>
     <p>Review 1 Evaluation - {{ team_name }}</p>
@@ -196,95 +197,245 @@
     </tbody>
   </table>
 
-  <div class="title-box">Team Members Contribution and Performance Evaluation</div>
+  <div class="title-box">
+    Team Members Contribution and Performance Evaluation
+  </div>
 
   <form method="POST" id="evaluation-form">
     {% csrf_token %}
+
     <table>
       <thead>
         <tr>
           <th>Evaluation Component</th>
           <th>Max Marks</th>
-          {% for member in team_members %}<th>{{ forloop.counter }}</th>{% endfor %}
+          {% for member in team_members %}
+            <th>{{ forloop.counter }}</th>
+          {% endfor %}
         </tr>
       </thead>
+
       <tbody>
+
         <!-- Problem Formulation -->
-        <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Problem Formulation</td></tr>
-        <tr><td>Aim of the Project</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-0" min="0" max="5" value="0"></td>{% endfor %}</tr>
-        <tr><td>Justification for Carrying out the Project</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-1" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr class="subheader">
+          <td colspan="{{ team_members|length|add:'2' }}">Problem Formulation</td>
+        </tr>
+        <tr>
+          <td>Aim of the Project</td>
+          <td>5</td>
+          {% for member in team_members %}
+            <td><input type="number" min="0" max="5" value="0"></td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <td>Justification for Carrying out the Project</td>
+          <td>5</td>
+          {% for member in team_members %}
+            <td><input type="number" min="0" max="5" value="0"></td>
+          {% endfor %}
+        </tr>
 
-        <!-- Knowledge / Understanding -->
-        <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Knowledge / Understanding of the Project</td></tr>
-        <tr><td>Review of the Literature - Knowledge about Existing Method</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-2" min="0" max="5" value="0"></td>{% endfor %}</tr>
-        <tr><td>Review of literature is presented in a logical Manner</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-3" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <!-- Knowledge -->
+        <tr class="subheader">
+          <td colspan="{{ team_members|length|add:'2' }}">Knowledge / Understanding of the Project</td>
+        </tr>
+        <tr>
+          <td>Review of the Literature - Knowledge about Existing Method</td>
+          <td>5</td>
+          {% for member in team_members %}
+            <td><input type="number" min="0" max="5" value="0"></td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <td>Review of literature is presented in a logical Manner</td>
+          <td>5</td>
+          {% for member in team_members %}
+            <td><input type="number" min="0" max="5" value="0"></td>
+          {% endfor %}
+        </tr>
 
-        <!-- Objectives and Methodology -->
-        <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Objectives and Methodology of Proposed Work</td></tr>
-        <tr><td>Problem Identification</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-4" min="0" max="5" value="0"></td>{% endfor %}</tr>
-        <tr><td>Objective of the Project</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-5" min="0" max="5" value="0"></td>{% endfor %}</tr>
-        <tr><td>Selection of appropriate techniques and tools</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-6" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <!-- Objectives -->
+        <tr class="subheader">
+          <td colspan="{{ team_members|length|add:'2' }}">Objectives and Methodology of Proposed Work</td>
+        </tr>
+        <tr>
+          <td>Problem Identification</td>
+          <td>5</td>
+          {% for member in team_members %}
+            <td><input type="number" min="0" max="5" value="0"></td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <td>Objective of the Project</td>
+          <td>5</td>
+          {% for member in team_members %}
+            <td><input type="number" min="0" max="5" value="0"></td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <td>Selection of appropriate techniques and tools</td>
+          <td>5</td>
+          {% for member in team_members %}
+            <td><input type="number" min="0" max="5" value="0"></td>
+          {% endfor %}
+        </tr>
 
         <!-- Work Progress -->
-        <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Work Progress</td></tr>
-        <tr><td>Technical Design</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-7" min="0" max="5" value="0"></td>{% endfor %}</tr>
-        <tr><td>Test Results & Discussion of Individual Modules</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-8" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr class="subheader">
+          <td colspan="{{ team_members|length|add:'2' }}">Work Progress</td>
+        </tr>
+        <tr>
+          <td>Technical Design</td>
+          <td>5</td>
+          {% for member in team_members %}
+            <td><input type="number" min="0" max="5" value="0"></td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <td>Test Results & Discussion of Individual Modules</td>
+          <td>5</td>
+          {% for member in team_members %}
+            <td><input type="number" min="0" max="5" value="0"></td>
+          {% endfor %}
+        </tr>
 
-        <!-- Society and Environmental Relevance -->
-        <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Society and Environmental Relevance</td></tr>
-        <tr><td>Society and Environmental Relevance</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-9" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <!-- Society -->
+        <tr class="subheader">
+          <td colspan="{{ team_members|length|add:'2' }}">Society and Environmental Relevance</td>
+        </tr>
+        <tr>
+          <td>Society and Environmental Relevance</td>
+          <td>5</td>
+          {% for member in team_members %}
+            <td><input type="number" min="0" max="5" value="0"></td>
+          {% endfor %}
+        </tr>
 
         <!-- Presentation -->
-        <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Presentation</td></tr>
-        <tr><td>Organization of the Presentation</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-10" min="0" max="5" value="0"></td>{% endfor %}</tr>
-        <tr><td>Communication of Ideas</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-11" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr class="subheader">
+          <td colspan="{{ team_members|length|add:'2' }}">Presentation</td>
+        </tr>
+        <tr>
+          <td>Organization of the Presentation</td>
+          <td>5</td>
+          {% for member in team_members %}
+            <td><input type="number" min="0" max="5" value="0"></td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <td>Communication of Ideas</td>
+          <td>5</td>
+          {% for member in team_members %}
+            <td><input type="number" min="0" max="5" value="0"></td>
+          {% endfor %}
+        </tr>
 
         <!-- Team Work -->
-        <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Team Work</td></tr>
-        <tr><td>Team Work</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-12" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr class="subheader">
+          <td colspan="{{ team_members|length|add:'2' }}">Team Work</td>
+        </tr>
+        <tr>
+          <td>Team Work</td>
+          <td>5</td>
+          {% for member in team_members %}
+            <td><input type="number" min="0" max="5" value="0"></td>
+          {% endfor %}
+        </tr>
 
-        <!-- Planning for Future Work -->
-        <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Planning for Future Work</td></tr>
-        <tr><td>Estimate of the Proposed Work</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-13" min="0" max="5" value="0"></td>{% endfor %}</tr>
-        <tr><td>Originality of the Proposed Work</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-14" min="0" max="5" value="0"></td>{% endfor %}</tr>
-        <tr><td>Recognize the need for Lifelong Learning</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-15" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <!-- Future -->
+        <tr class="subheader">
+          <td colspan="{{ team_members|length|add:'2' }}">Planning for Future Work</td>
+        </tr>
+        <tr>
+          <td>Estimate of the Proposed Work</td>
+          <td>5</td>
+          {% for member in team_members %}
+            <td><input type="number" min="0" max="5" value="0"></td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <td>Originality of the Proposed Work</td>
+          <td>5</td>
+          {% for member in team_members %}
+            <td><input type="number" min="0" max="5" value="0"></td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <td>Recognize the need for Lifelong Learning</td>
+          <td>5</td>
+          {% for member in team_members %}
+            <td><input type="number" min="0" max="5" value="0"></td>
+          {% endfor %}
+        </tr>
 
-        <!-- Viva Voce -->
-        <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Viva Voce</td></tr>
-        <tr><td>Answering Questions</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-16" min="0" max="5" value="0"></td>{% endfor %}</tr>
-        <tr><td>Conceptual Understanding</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-17" min="0" max="5" value="0"></td>{% endfor %}</tr>
-        <tr><td>Relevance</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-18" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <!-- Viva -->
+        <tr class="subheader">
+          <td colspan="{{ team_members|length|add:'2' }}">Viva Voce</td>
+        </tr>
+        <tr>
+          <td>Answering Questions</td>
+          <td>5</td>
+          {% for member in team_members %}
+            <td><input type="number" min="0" max="5" value="0"></td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <td>Conceptual Understanding</td>
+          <td>5</td>
+          {% for member in team_members %}
+            <td><input type="number" min="0" max="5" value="0"></td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <td>Relevance</td>
+          <td>5</td>
+          {% for member in team_members %}
+            <td><input type="number" min="0" max="5" value="0"></td>
+          {% endfor %}
+        </tr>
 
-        <!-- Extra Evaluation -->
-        <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Extra Evaluation</td></tr>
-        <tr><td>Innovation / Creativity</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-19" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <!-- Extra -->
+        <tr class="subheader">
+          <td colspan="{{ team_members|length|add:'2' }}">Extra Evaluation</td>
+        </tr>
+        <tr>
+          <td>Innovation / Creativity</td>
+          <td>5</td>
+          {% for member in team_members %}
+            <td><input type="number" min="0" max="5" value="0"></td>
+          {% endfor %}
+        </tr>
 
-        <!-- Total Row -->
+        <!-- TOTAL -->
         <tr class="total-row">
           <td><b>Total</b></td>
           <td><b>100</b></td>
-          {% for member in team_members %}<td id="total-{{ forloop.counter0 }}">0</td>{% endfor %}
+          {% for member in team_members %}
+            <td id="total-{{ forloop.counter0 }}">0</td>
+          {% endfor %}
         </tr>
+
       </tbody>
     </table>
 
     <div class="submit-container">
-      <button type="button" id="confirm-btn" class="submit-button">
-        <i class="fas fa-check"></i> Confirm Marks
-      </button>
-      <button type="submit" id="submit-btn" class="submit-button" disabled>
-        <i class="fas fa-file-word"></i> Submit & Generate Report
-      </button>
+      <button type="button" id="confirm-btn">Confirm Marks</button>
+      <button type="submit" id="submit-btn" disabled>Submit & Generate Report</button>
     </div>
+
   </form>
 
-  <div id="final-summary">
+  <div id="final-summary" style="display:none">
     <h3>Final Evaluation Summary - {{ team_name }}</h3>
     <table>
       <thead>
         <tr>
           <th>Team Member</th>
-          {% for i in 1..20 %}<th>C{{ i }}</th>{% endfor %}
+          <th>C1</th><th>C2</th><th>C3</th><th>C4</th><th>C5</th>
+          <th>C6</th><th>C7</th><th>C8</th><th>C9</th><th>C10</th>
+          <th>C11</th><th>C12</th><th>C13</th><th>C14</th><th>C15</th>
+          <th>C16</th><th>C17</th><th>C18</th><th>C19</th><th>C20</th>
           <th>Total</th>
         </tr>
       </thead>
@@ -292,23 +443,33 @@
     </table>
   </div>
 
+
 <script>
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
+
     const MAX_MARK = 5;
     const MIN_MARK = 0;
-    const totalInputs = 20; 
-    const autoFillLimit = 16; 
+    const totalInputs = 20;
+    const autoFillLimit = 16;
+
     const inputs = document.querySelectorAll("input[type='number']");
     const memberCount = {{ team_members|length }};
 
-    // Initialize data attributes
+    /* ---------- TEAM MEMBERS ARRAY (DJANGO → JS SAFE) ---------- */
+    const teamMembers = [
+        {% for member in team_members %}
+            "{{ member }}",
+        {% endfor %}
+    ];
+
+    /* ---------- INITIALIZE DATA ATTRIBUTES ---------- */
     inputs.forEach((inp, idx) => {
         inp.dataset.manual = "false";
         inp.dataset.memberIndex = idx % memberCount;
         inp.dataset.criteriaIndex = Math.floor(idx / memberCount);
     });
 
-    // Sanitize input
+    /* ---------- FORCE VALUE BETWEEN 0 AND 5 ---------- */
     function sanitizeInput(input) {
         let value = parseInt(input.value);
         if (isNaN(value)) value = 0;
@@ -317,40 +478,50 @@ document.addEventListener("DOMContentLoaded", function() {
         input.value = value;
     }
 
-    // Calculate totals
+    /* ---------- CALCULATE TOTAL ---------- */
     function calculateTotal() {
         for (let m = 0; m < memberCount; m++) {
             let sum = 0;
             inputs.forEach(inp => {
-                if (parseInt(inp.dataset.memberIndex) === m) sum += parseInt(inp.value) || 0;
+                if (parseInt(inp.dataset.memberIndex) === m) {
+                    sum += parseInt(inp.value) || 0;
+                }
             });
             document.getElementById(`total-${m}`).textContent = sum;
         }
     }
 
-    // Input event
+    /* ---------- INPUT HANDLING ---------- */
     inputs.forEach(inp => {
-        inp.addEventListener("input", function() {
+
+        inp.addEventListener("input", function () {
             sanitizeInput(this);
+
             const memberIndex = parseInt(this.dataset.memberIndex);
             const criteriaIndex = parseInt(this.dataset.criteriaIndex);
 
+            /* ---- AUTO FILL LOGIC (OLD WORKING LOGIC) ---- */
             if (memberIndex === 0 && criteriaIndex < autoFillLimit) {
                 inputs.forEach(other => {
-                    if (parseInt(other.dataset.memberIndex) > 0 &&
+                    if (
+                        parseInt(other.dataset.memberIndex) > 0 &&
                         parseInt(other.dataset.criteriaIndex) === criteriaIndex &&
-                        other.dataset.manual === "false") {
+                        other.dataset.manual === "false"
+                    ) {
                         other.value = this.value;
                     }
                 });
             }
 
-            if (memberIndex > 0) this.dataset.manual = "true";
+            if (memberIndex > 0) {
+                this.dataset.manual = "true";
+            }
 
             calculateTotal();
         });
 
-        inp.addEventListener("paste", function(e) {
+        /* ---- PREVENT PASTE > 5 ---- */
+        inp.addEventListener("paste", function (e) {
             e.preventDefault();
             let pasted = parseInt((e.clipboardData || window.clipboardData).getData("text"));
             if (isNaN(pasted)) pasted = 0;
@@ -362,37 +533,58 @@ document.addEventListener("DOMContentLoaded", function() {
 
     calculateTotal();
 
-    // Confirm marks
-    document.getElementById('confirm-btn').addEventListener('click', () => {
-        const summaryBody = document.getElementById("summary-body");
-        summaryBody.innerHTML = "";
+    /* ---------- CONFIRM BUTTON ---------- */
+    const confirmBtn = document.getElementById("confirm-btn");
+    const submitBtn = document.getElementById("submit-btn");
+    const summaryBody = document.getElementById("summary-body");
+    const finalSummary = document.getElementById("final-summary");
 
-        {% for member in team_members %}
-        const memberRow = document.createElement("tr");
-        memberRow.innerHTML = `<td>{{ member }}</td>` +
-            Array.from({length: 20}, (_, i) => {
-                const inp = document.querySelector(`input[name='marks-{{ member.id }}-${i}']`);
-                return `<td>${inp.value}</td>`;
-            }).join('') +
-            `<td>${document.getElementById('total-{{ forloop.counter0 }}').textContent}</td>`;
-        summaryBody.appendChild(memberRow);
-        {% endfor %}
+    if (confirmBtn) {
+        confirmBtn.addEventListener("click", function () {
 
-        document.getElementById("final-summary").style.display = "block";
-        document.getElementById('submit-btn').disabled = false;
-        window.scrollTo({top: document.body.scrollHeight, behavior: "smooth"});
-    });
+            summaryBody.innerHTML = "";
 
-    // Form submit
-    document.getElementById('evaluation-form').addEventListener('submit', function(e){
+            for (let m = 0; m < memberCount; m++) {
+                const row = document.createElement("tr");
+                let rowHTML = `<td>${teamMembers[m]}</td>`;
+
+                for (let c = 0; c < totalInputs; c++) {
+                    const inp = Array.from(inputs).find(i =>
+                        parseInt(i.dataset.memberIndex) === m &&
+                        parseInt(i.dataset.criteriaIndex) === c
+                    );
+                    rowHTML += `<td>${inp ? inp.value : 0}</td>`;
+                }
+
+                const total = document.getElementById(`total-${m}`).textContent;
+                rowHTML += `<td>${total}</td>`;
+
+                row.innerHTML = rowHTML;
+                summaryBody.appendChild(row);
+            }
+
+            finalSummary.style.display = "block";
+            submitBtn.disabled = false;
+
+            window.scrollTo({
+                top: finalSummary.offsetTop,
+                behavior: "smooth"
+            });
+        });
+    }
+
+    /* ---------- FORM SUBMIT (OLD LOGIC – UNCHANGED) ---------- */
+    document.getElementById("evaluation-form").addEventListener("submit", function (e) {
         e.preventDefault();
 
         const savedEvaluations = {};
+
         {% for member in team_members %}
         savedEvaluations["team_member-{{ member }}"] = [];
         for (let i = 0; i < totalInputs; i++) {
-            const inp = document.querySelector(
-                `input[data-member-index="{{ forloop.counter0 }}"][data-criteria-index="${i}"]`
+            const inp = Array.from(inputs).find(input =>
+                parseInt(input.dataset.memberIndex) === {{ forloop.counter0 }} &&
+                parseInt(input.dataset.criteriaIndex) === i
             );
             savedEvaluations["team_member-{{ member }}"].push(inp ? inp.value : 0);
         }
@@ -422,6 +614,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 });
 </script>
+
 
 </body>
 </html>
