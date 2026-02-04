@@ -2075,7 +2075,7 @@ def save_evaluation(request):
 from django.http import FileResponse, JsonResponse # type: ignore
 import os
 from django.conf import settings
-from docx2pdf import convert
+
 
 from django.shortcuts import redirect
 from django.http import JsonResponse
