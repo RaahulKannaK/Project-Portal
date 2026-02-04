@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team & Mentor Allocation - Login</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+
+  <style>
+    :root {
+      --primary: #004D40;
+      --secondary: #FFB300;
+      --accent: #FFFFFF;
+      --gray-light: #B0BEC5;
+      --glass-bg: rgba(255, 255, 255, 0.08);
+      --glass-border: rgba(255, 255, 255, 0.15);
+      --shadow-medium: rgba(0, 0, 0, 0.4);
+    }
+
+    body, html {
+      height: 100%;
+      margin: 0;
+      font-family: 'Montserrat', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      overflow: hidden;
+      position: relative;
+      transition: background 2.5s ease;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+    }
+
+    /* Particle Canvas */
+    #particleCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Wrapper */
+    .login-wrapper {
+      width: 95%;
+      max-width: 1100px;
+      height: 550px;
+      display: flex;
+      flex-direction: row;
+      border-radius: 1.2rem;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 10px 40px var(--shadow-medium);
+      position: relative;
+      z-index: 1;
+      transition: background 2.5s ease, border-color 2.5s ease;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 1s forwards;
+    }
+
+    @keyframes fadeInUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Left side */
+    .login-left {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      padding: 2rem;
+      text-align: center;
+      transition: color 2.5s ease;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 1s forwards;
+      animation-delay: 0.2s;
+    }
+
+    /* Right side */
+    .login-right {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 1s forwards;
+      animation-delay: 0.5s;
+    }
+
+    .login-card {
+      width: 360px;
+      height: 430px;
+      background: var(--glass-bg);
+      border-radius: 1rem;
+      padding: 2rem;
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+      color: var(--accent);
+      backdrop-filter: blur(15px);
+      transition: background 2.5s ease, border-color 2.5s ease, color 2.5s ease;
+    }
+
+    .form-control {
+      border-radius: 0.6rem;
+      padding: 0.75rem;
+      background: rgb(0, 0, 0);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: var(--gray-light);
+      transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+      border-color: var(--secondary);
+      box-shadow: 0 0 8px rgba(255, 179, 0, 0.3);
+      background-color: rgba(255,255,255,0.1);
+      color: var(--accent);
+    }
+
+    .form-control::placeholder { color: var(--gray-light); }
+
+    .form-select {
+      background-color: rgba(255,255,255,0.9);
+      color: #000;
+    }
+    .form-select option {
+      color: #000;
+      background-color: #ffffff;
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 0.85rem;
+      border-radius: 0.6rem;
+      background: var(--secondary);
+      border: none;
+      color: var(--accent);
+      font-weight: 600;
+      margin-top: 1rem;
+      transition: all 0.3s ease, transform 0.2s ease;
+    }
+    .btn-login:hover {
+      transform: scale(1.05) rotate(-1deg);
+      box-shadow: 0 8px 20px rgba(255, 179, 0, 0.5);
+    }
+
+    /* Floating Lottie Animation */
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+    .login-left lottie-player { animation: float 3s ease-in-out infinite; }
+
+    /* Extra-links removed */
+    .extra-links { display: none; }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .login-wrapper { flex-direction: column; height: auto; }
+      .login-card { width: 100%; max-width: 360px; height: auto; }
+      lottie-player { width: 150px !important; height: 150px !important; }
+    }
+
+    /* Smooth transition for theme changes */
+    :root, body, .login-card, .btn-login { transition: all 1.5s ease; }
+  </style>
+</head>
+<body>
+
+  <!-- Particle Background -->
+  <canvas id="particleCanvas"></canvas>
+
+  <div class="login-wrapper">
+    <!-- Left Side -->
+    <div class="login-left">
+      <lottie-player 
+        src="https://assets10.lottiefiles.com/packages/lf20_jcikwtux.json"  
+        background="transparent"  
+        speed="1"  
+        style="width: 200px; height: 200px;"  
+        loop autoplay>
+      </lottie-player>
+      <h2 id="quoteText">“Collaboration is the key to innovation – Login and work together with your mentors & guides.”</h2>
+    </div>
+
+    <!-- Right Side -->
+    <div class="login-right">
+      <div class="login-card">
+        <h4><i class="fas fa-sign-in-alt me-2"></i> Welcome Back</h4>
+        <form id="loginForm" method="post">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="role" class="form-label">Login as</label>
+            <select class="form-select" id="role" name="role" required>
+              <option value="">-- Select Role --</option>
+              <option value="student">Student</option>
+              <option value="mentor">Guide</option>
+              <option value="coordinator">Coordinator</option>
+              <option value="hod">HOD</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <input type="text" class="form-control" id="username" name="username" placeholder="Username" required>
+          </div>
+          <div class="mb-3 position-relative">
+            <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+            <span onclick="togglePassword()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--gray-light);">👁</span>
+          </div>
+          <button type="submit" class="btn btn-login">Login</button>
+          <div class="extra-links"></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // Password Show/Hide
+  function togglePassword() {
+    const pwd = document.getElementById("password");
+    pwd.type = pwd.type === "password" ? "text" : "password";
+  }
+
+  // Random Quotes
+  const quotes = [
+    "“Collaboration is the key to innovation – Login and work together with your mentors & guides.”",
+    "“Teamwork divides the task and multiplies the success.”",
+    "“Great things are never done by one person. They're done by a team.”",
+    "“Together, we can achieve more than we ever could alone.”",
+    "“Innovation happens when diverse minds work together.”"
+  ];
+  document.getElementById("quoteText").innerText = quotes[Math.floor(Math.random() * quotes.length)];
+
+  // Color Combos
+  const colorCombos = {
+    student: {primary:"#60A5FA", secondary:"#1E40AF", accent:"#FBBF24", gray:"#F3F4F6", text:"#1E3A8A"},
+    mentor: {primary:"#34D399", secondary:"#065F46", accent:"#E5E7EB", gray:"#111827", text:"#047857"},
+    coordinator: {primary:"#A78BFA", secondary:"#3730A3", accent:"#D8DBFE", gray:"#E5E7EB", text:"#312E81"},
+    hod: {primary:"#64748B", secondary:"#0F172A", accent:"#22D3EE", gray:"#CBD5E1", text:"#0F172A"}
+  };
+  const roleAnimations = {
+    student: "https://assets10.lottiefiles.com/packages/lf20_Stt1Rr.json",        // Student animation
+    mentor: "https://assets10.lottiefiles.com/packages/lf20_ba3emw0r.json",         // Guide animation
+    coordinator: "https://assets10.lottiefiles.com/packages/lf20_V9t630.json",    // Coordinator animation
+    hod: "https://assets10.lottiefiles.com/packages/lf20_iwmd6pyr.json"           // HOD animation
+};
+
+
+  function applyTheme(role){
+    const combo = colorCombos[role];
+    const root = document.documentElement;
+    root.style.setProperty('--primary', combo.primary);
+    root.style.setProperty('--secondary', combo.secondary);
+    root.style.setProperty('--accent', combo.accent);
+    root.style.setProperty('--gray-light', combo.gray);
+
+    document.body.style.background = `linear-gradient(135deg, ${combo.primary}, ${combo.secondary})`;
+
+    const card = document.querySelector('.login-card');
+    card.style.background = 'rgba(255,255,255,0.08)';
+    card.style.borderColor = 'rgba(255,255,255,0.15)';
+
+    const btn = document.querySelector('.btn-login');
+    btn.style.background = combo.secondary;
+    btn.style.color = combo.accent;
+  }
+
+  window.addEventListener('load', () => {
+    const defaultRole = document.getElementById("role").value || "student";
+    applyTheme(defaultRole);
+  });
+
+  document.getElementById("role").addEventListener("change", function() {
+    applyTheme(this.value);
+  });
+
+  // Particle Background
+  const canvas = document.getElementById("particleCanvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  let particlesArray = [];
+  const colors = ["#ffffff","#FBBF24","#60A5FA","#34D399","#A78BFA"];
+  const maxParticles = 80;
+
+  class Particle {
+    constructor(){
+      this.x = Math.random() * canvas.width;
+      this.y = Math.random() * canvas.height;
+      this.size = Math.random() * 3 + 1;
+      this.speedX = (Math.random() - 0.5) * 0.5;
+      this.speedY = (Math.random() - 0.5) * 0.5;
+      this.color = colors[Math.floor(Math.random() * colors.length)];
+    }
+    update(){
+      this.x += this.speedX;
+      this.y += this.speedY;
+      if(this.x > canvas.width) this.x = 0;
+      if(this.x < 0) this.x = canvas.width;
+      if(this.y > canvas.height) this.y = 0;
+      if(this.y < 0) this.y = canvas.height;
+    }
+    draw(){
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fillStyle = this.color;
+      ctx.fill();
+    }
+  }
+
+  function initParticles(){
+    particlesArray = [];
+    for(let i = 0; i < maxParticles; i++){
+      particlesArray.push(new Particle());
+    }
+  }
+
+  function animateParticles(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particlesArray.forEach(p => { p.update(); p.draw(); });
+    requestAnimationFrame(animateParticles);
+  }
+
+  window.addEventListener("resize", ()=>{
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    initParticles();
+  });
+
+  initParticles();
+  animateParticles();
+</script>
+
+</body>
+</html>

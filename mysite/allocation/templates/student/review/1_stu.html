@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>First Review - Student Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+:root {
+    --primary: #1f2aa4;        /* Deep Indigo */
+    --secondary: #a1a7c9;      /* Soft Indigo */
+    --accent: #d1d9ff;         /* Light Indigo */
+    --background: #F8F9FC;
+    --text-dark: #2E2E2E;
+    --text-light: #ffffff;
+    --hover: #0f00e0;
+    --button-active: #2b2b2b;
+}
+
+/* Body */
+body {
+    margin: 0;
+    font-family: 'Montserrat', sans-serif;
+    background: linear-gradient(120deg, var(--background), #ffffff);
+    color: var(--text-dark);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.dashboard-wrapper {
+    display: flex;
+    width: 95%;
+    max-width: 1400px;
+    height: 90vh;
+    background: var(--primary);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+}
+
+/* Sidebar */
+.sidebar {
+    width: 280px;
+    padding: 30px 20px;
+    background: linear-gradient(180deg, var(--primary), var(--secondary));
+    color: var(--text-light);
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    text-align: center;
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+
+.sidebar-header h4 {
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.sidebar-nav .nav-item {
+    display: flex;
+    align-items: center;
+    padding: 14px 18px;
+    margin-bottom: 12px;
+    text-decoration: none;
+    font-weight: 500;
+    color: var(--text-light);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.sidebar-nav .nav-item i {
+    margin-right: 14px;
+    font-size: 1.2rem;
+}
+
+.sidebar-nav .nav-item:hover {
+    background: rgba(255,255,255,0.15);
+    transform: translateX(6px);
+}
+
+.sidebar-nav .nav-item.active {
+    background: linear-gradient(90deg, var(--accent), var(--secondary));
+    color: var(--text-dark);
+    font-weight: 600;
+}
+
+/* Main Content */
+.main-content {
+    flex-grow: 1;
+    background: var(--background);
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 35px;
+}
+
+.user-greeting {
+    display: flex;
+    align-items: center;
+}
+
+.profile-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--secondary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 700;
+    color: var(--text-dark);
+    font-size: 1.4rem;
+    margin-right: 15px;
+}
+
+.welcome-text {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.more-options-btn {
+    background: var(--primary);
+    color: var(--text-light);
+    border: none;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.more-options-btn:hover {
+    background: var(--secondary);
+}
+
+.back-button {
+    background: var(--accent);
+    border: none;
+    color: var(--text-dark);
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    margin-bottom: 20px;
+    max-width: 120px;
+}
+
+.back-button:hover {
+    background: var(--hover);
+    color: var(--text-light);
+}
+
+/* Action Buttons */
+.review-action-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.review-action-buttons button {
+    background: var(--accent);
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-dark);
+    transition: 0.3s;
+}
+
+.review-action-buttons button.active {
+    background: var(--button-active);
+    color: var(--text-light);
+}
+
+.review-action-buttons button:hover {
+    background: var(--primary);
+    color: var(--text-light);
+}
+
+/* Sections */
+.action-section {
+    display: none;
+}
+
+.action-section.active {
+    display: block;
+    animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+    from {opacity:0; transform:translateY(10px);}
+    to {opacity:1; transform:translateY(0);}
+}
+
+/* Cards */
+.main-card {
+    padding: 25px;
+    border-radius: 16px;
+    position: relative;
+    color: var(--text-light);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+}
+
+.main-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 35px rgba(0,0,0,0.3);
+}
+
+/* Buttons inside card */
+.glass-button {
+    background: var(--accent);
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--text-dark);
+    transition: 0.3s;
+    display: inline-block;
+}
+
+.glass-button:hover {
+    background: var(--primary);
+    color: var(--text-light);
+}
+
+/* Widget */
+.widget {
+    margin-top: 20px;
+    padding: 20px;
+    border-radius: 16px;
+    background: var(--secondary);
+    color: var(--text-dark);
+    text-align: center;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+}
+
+.progress-ring {
+    position: relative;
+    width: 70px;
+    height: 70px;
+    margin: 10px auto;
+}
+
+.progress-ring svg circle.bg {
+    fill: none;
+    stroke: rgba(255,255,255,0.3);
+    stroke-width: 5;
+}
+
+.progress-ring svg circle.progress {
+    fill: none;
+    stroke: var(--primary);
+    stroke-width: 5;
+    stroke-linecap: round;
+    transform: rotate(-90deg);
+    transform-origin: center;
+    stroke-dasharray: 125;
+    stroke-dashoffset: calc(125 * (1 - var(--progress)/100));
+}
+
+.progress-percent {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+  </style>
+</head>
+
+<body>
+  <div class="dashboard-wrapper">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h4><i class="fas fa-graduation-cap me-2"></i> Reviews</h4>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="{% url 'zero_stu' %}" class="nav-item"><i class="fas fa-file-alt"></i> Zeroth Review</a>
+        <a href="{% url 'one_stu' %}" class="nav-item active"><i class="fas fa-trophy"></i> First Review</a>
+        <a href="{% url 'two_stu' %}" class="nav-item"><i class="fas fa-chart-line"></i> Second Review</a>
+        <a href="{% url 'three_stu' %}" class="nav-item"><i class="fas fa-cog"></i> Third Review</a>
+      </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="top-header">
+        <div class="user-greeting">
+          <div class="profile-avatar">A</div>
+          <span class="welcome-text">Welcome, Alex!</span>
+        </div>
+        <div class="dropdown">
+          <button class="more-options-btn dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="fas fa-ellipsis-h"></i>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <a href="{% url 'zero_stu' %}" class="back-button"><i class="fas fa-arrow-left"></i>&nbsp; Back</a>
+
+      <div class="main-card">
+        <h6>First Review Tasks</h6>
+        <p>Access your review materials and submission status.</p>
+
+        <!-- Action Buttons -->
+        <div class="review-action-buttons">
+          <button class="glass-button active" onclick="showAction('upload', this)">File Upload</button>
+          <button class="glass-button" onclick="showAction('marks', this)">Marks Allocated</button>
+          <button class="glass-button" onclick="showAction('remarks', this)">Team Status & Remarks</button>
+        </div>
+
+        <!-- Sections -->
+        <div id="upload" class="action-section active">
+          <p>Upload your first review project presentation and files here.</p>
+          <a href="{% url 'student_dashboard' %}" class="glass-button">Upload</a>
+        </div>
+
+        <div id="marks" class="action-section">
+          <p>Check the marks given by your mentor for first review.</p>
+          <a href="{% url 'student_dashboard' %}" class="glass-button">Check</a>
+        </div>
+
+        <div id="remarks" class="action-section">
+          <p>See team progress, remarks, and status updates for first review.</p>
+          <a href="{% url 'student_dashboard' %}" class="glass-button">View</a>
+        </div>
+
+        <!-- Progress Widget -->
+        <div class="widget">
+          <div class="progress-ring" style="--progress: 85;">
+            <svg viewBox="0 0 50 50">
+              <circle class="bg" cx="25" cy="25" r="20"></circle>
+              <circle class="progress" cx="25" cy="25" r="20"></circle>
+            </svg>
+            <div class="progress-percent">85%</div>
+          </div>
+          <p>3 out of 4 submissions done</p>
+          <p><strong>Deadline:</strong> Nov 10</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showAction(id, button) {
+      document.querySelectorAll('.action-section').forEach(sec => sec.classList.remove('active'));
+      document.querySelectorAll('.review-action-buttons button').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      button.classList.add('active');
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

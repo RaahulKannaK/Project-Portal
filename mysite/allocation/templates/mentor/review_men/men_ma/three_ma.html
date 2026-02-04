@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Third Review Evaluation - {{ team_name }}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+  :root {
+    --primary: #6A0DAD;
+    --secondary: #F9DDEB;
+    --accent: #C7A4E0;
+    --background: #F8F9FC;
+    --text-dark: #2E2E2E;
+    --text-light: #ffffff;
+  }
+
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(120deg, var(--background), #ffffff);
+    margin: 0;
+    padding: 40px;
+    color: var(--text-dark);
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .header h2 {
+    font-size: 28px;
+    color: var(--primary);
+    margin-bottom: 5px;
+    font-weight: 700;
+  }
+
+  .header p {
+    color: #555;
+    font-size: 16px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--text-light);
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+  }
+
+  th {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: var(--text-light);
+    padding: 15px;
+    text-align: center;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  td {
+    padding: 12px;
+    text-align: center;
+    border-bottom: 1px solid #e5d8f5;
+    vertical-align: top;
+    color: var(--text-dark);
+  }
+
+  tr:hover {
+    background-color: var(--secondary);
+  }
+
+  input[type="number"] {
+    width: 60px;
+    text-align: center;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 5px;
+    transition: 0.3s ease;
+  }
+
+  input[type="number"]:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 5px var(--accent);
+  }
+
+  .subheader {
+    background-color: var(--accent);
+    font-weight: bold;
+    font-style: italic;
+    text-align: left;
+    color: var(--text-light);
+  }
+
+  .total-row {
+    background: linear-gradient(90deg, var(--primary), var(--accent)) !important;
+    color: var(--text-light);
+    font-weight: bold;
+  }
+
+  .title-box {
+    text-align: center;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 1.6em;
+    font-weight: 700;
+    margin: 30px 0 20px;
+  }
+
+  .submit-container {
+    text-align: center;
+    margin-top: 30px;
+  }
+
+  .submit-button {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: var(--text-light);
+    border: none;
+    padding: 15px 35px;
+    font-size: 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.3s ease;
+    box-shadow: 0 4px 12px rgba(106, 13, 173, 0.3);
+  }
+
+  .submit-button:hover {
+    background: var(--accent);
+    box-shadow: 0 6px 18px rgba(106, 13, 173, 0.4);
+  }
+
+  @media (max-width: 768px) {
+    table, th, td { font-size: 14px; }
+    input[type="number"] { width: 50px; padding: 4px; }
+  }
+</style>
+
+</head>
+
+<body>
+  <div class="header">
+    <h2><i class="fas fa-users"></i> Team Members Details</h2>
+    <p>Review 3 Evaluation - {{ team_name }}</p>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>S.No.</th>
+        <th>Batch No.</th>
+        <th>Reg. No.</th>
+        <th>Student Name</th>
+        <th>Project Supervisor</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for member in team_members %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ member.batch_no }}</td>
+        <td>{{ member.reg_no }}</td>
+        <td>{{ member }}</td>
+        <td>{{ member.supervisor }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="title-box">Team Members Contribution and Performance Evaluation</div>
+
+  <form method="POST" action="{% url 'save_evaluation_review3' %}" id="evaluation-form">
+    {% csrf_token %}
+    <table>
+      <thead>
+        <tr>
+          <th>Evaluation Component</th>
+          <th>Max Marks</th>
+          {% for member in team_members %}
+            <th>{{ forloop.counter }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Problem Formulation -->
+        <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Problem Formulation</td></tr>
+        <tr><td>Aim of the Project</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-0" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr><td>Justification for Carrying out the Project</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-1" min="0" max="5" value="0"></td>{% endfor %}</tr>
+
+        <!-- Knowledge / Understanding -->
+        <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Knowledge / Understanding of the Project</td></tr>
+        <tr><td>Review of the Literature - Knowledge about Existing Method</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-2" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr><td>Review of literature is presented in a logical Manner</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-3" min="0" max="5" value="0"></td>{% endfor %}</tr>
+
+        <!-- Objectives and Methodology -->
+        <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Objectives and Methodology of Proposed Work</td></tr>
+        <tr><td>Problem Identification</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-4" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr><td>Objective of the Project</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-5" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr><td>Selection of appropriate techniques and tools</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-6" min="0" max="5" value="0"></td>{% endfor %}</tr>
+
+        <!-- Work Progress -->
+        <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Work Progress</td></tr>
+        <tr><td>Technical Design</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-7" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr><td>Test Results & Discussion of Individual Modules</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-8" min="0" max="5" value="0"></td>{% endfor %}</tr>
+
+        <!-- Society and Environmental Relevance -->
+        <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Society and Environmental Relevance</td></tr>
+        <tr><td>Society and Environmental Relevance</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-9" min="0" max="5" value="0"></td>{% endfor %}</tr>
+
+        <!-- Presentation -->
+        <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Presentation</td></tr>
+        <tr><td>Organization of the Presentation</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-10" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr><td>Communication of Ideas</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-11" min="0" max="5" value="0"></td>{% endfor %}</tr>
+
+        <!-- Team Work -->
+        <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Team Work</td></tr>
+        <tr><td>Team Work</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-12" min="0" max="5" value="0"></td>{% endfor %}</tr>
+
+        <!-- Planning for Future Work -->
+        <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Planning for Future Work</td></tr>
+        <tr><td>Estimate of the Proposed Work</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-13" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr><td>Originality of the Proposed Work</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-14" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr><td>Recognize the need for Lifelong Learning</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-15" min="0" max="5" value="0"></td>{% endfor %}</tr>
+
+        <!-- Viva Voce -->
+        <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Viva Voce</td></tr>
+        <tr><td>Answering Questions</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-16" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr><td>Conceptual Understanding</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-17" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr><td>Relevance</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-18" min="0" max="5" value="0"></td>{% endfor %}</tr>
+
+        <!-- Additional Row to make 100 Marks -->
+        <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Extra Evaluation</td></tr>
+        <tr><td>Innovation / Creativity</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-19" min="0" max="5" value="0"></td>{% endfor %}</tr>
+
+        <!-- Total Row -->
+        <tr class="total-row">
+          <td><b>Total</b></td>
+          <td><b>100</b></td>
+          {% for member in team_members %}
+            <td id="total-{{ forloop.counter0 }}">0</td>
+          {% endfor %}
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="submit-container">
+      <button type="submit" class="submit-button">
+        <i class="fas fa-file-word"></i> Submit & Generate Report
+      </button>
+    </div>
+  </form>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const totalInputs = 20; // total criteria
+    const autoFillLimit = 16; // first 16 criteria
+    const inputs = document.querySelectorAll("input[type='number']");
+    const memberCount = {{ team_members|length }};
+
+    // Initialize data attributes
+    inputs.forEach((inp, idx) => {
+        inp.dataset.manual = "false"; // track manual edits
+        inp.dataset.memberIndex = idx % memberCount; // 0-based member index
+        inp.dataset.criteriaIndex = Math.floor(idx / memberCount);
+    });
+
+    // Function to calculate totals independently
+    function calculateTotal() {
+        for (let m = 0; m < memberCount; m++) {
+            let sum = 0;
+            inputs.forEach(inp => {
+                if (parseInt(inp.dataset.memberIndex) === m) {
+                    sum += parseInt(inp.value) || 0;
+                }
+            });
+            const totalCell = document.getElementById(`total-${m}`);
+            if (totalCell) totalCell.textContent = sum;
+        }
+    }
+
+    // Input event delegation for autofill and manual tracking
+    inputs.forEach(inp => {
+        inp.addEventListener("input", function() {
+            const memberIndex = parseInt(this.dataset.memberIndex);
+            const criteriaIndex = parseInt(this.dataset.criteriaIndex);
+
+            // Autofill first member to others if not manually changed
+            if (memberIndex === 0 && criteriaIndex < autoFillLimit) {
+                inputs.forEach(other => {
+                    const otherMember = parseInt(other.dataset.memberIndex);
+                    const otherCriteria = parseInt(other.dataset.criteriaIndex);
+                    if (otherMember > 0 && otherCriteria === criteriaIndex && other.dataset.manual === "false") {
+                        other.value = this.value; // autofill
+                    }
+                });
+            }
+
+            // Mark as manual if not first member
+            if (memberIndex > 0) {
+                this.dataset.manual = "true";
+            }
+
+            calculateTotal();
+        });
+    });
+
+    // Initial total
+    calculateTotal();
+
+    // Form submission
+    document.getElementById('evaluation-form').addEventListener('submit', function(e){
+        e.preventDefault();
+
+        const savedEvaluations = {};
+
+        // Collect each member's marks independently using data-member-index
+        {% for member in team_members %}
+            savedEvaluations["team_member-{{ member }}"] = [];
+            for (let i = 0; i < totalInputs; i++) {
+                const inp = document.querySelector(`input[data-member-index="{{ forloop.counter0 }}"][data-criteria-index="${i}"]`);
+                savedEvaluations["team_member-{{ member }}"].push(inp ? inp.value : 0);
+            }
+        {% endfor %}
+
+        const dataToSend = {
+            team_name: "{{ team_name }}",
+            evaluations: savedEvaluations
+        };
+
+        fetch("{% url 'save_evaluation_review3' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify(dataToSend)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                alert(`✅ Report generated successfully!\nFile: ${data.file_path}`);
+                calculateTotal();
+            } else {
+                alert(`❌ Error: ${data.message}`);
+            }
+        })
+        .catch(err => console.error("Fetch error:", err));
+    });
+});
+</script>
+
+
+</body>
+</html>

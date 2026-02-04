@@ -1,0 +1,344 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Team List</title>
+<style>
+    :root {
+        --primary: #1c1c1c;
+        --secondary: #555555;
+        --accent: #cccccc;
+        --background: #F8F9FC;
+        --text-dark: #2E2E2E;
+        --text-light: #ffffff;
+    }
+
+    body {
+        font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: var(--background);
+        margin: 0;
+        padding: 0;
+        color: var(--text-dark);
+    }
+
+    .container {
+        max-width: 1000px;
+        margin: 50px auto;
+        background-color: var(--text-light);
+        padding: 30px 150px;
+        border-radius: 14px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        position: relative;
+    }
+
+    h2 {
+        text-align: center;
+        color: var(--primary);
+        margin-bottom: 30px;
+        letter-spacing: 0.5px;
+        font-weight: 700;
+    }
+
+    table {
+        width: auto;
+        border-collapse: collapse;
+        margin-left: -60px;
+    }
+
+    th, td {
+        padding: 12px 15px;
+        border: 1px solid var(--accent);
+        text-align: center;
+    }
+
+    th {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: var(--text-light);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+    td {
+        background-color: #f9f9fb;
+        color: var(--text-dark);
+    }
+
+    .members, .member-names {
+        font-style: italic;
+        color: var(--secondary);
+    }
+
+    .domain {
+        font-weight: bold;
+        color: var(--primary);
+    }
+
+    .created {
+        font-size: 0.9em;
+        color: var(--primary);
+        padding: 12px 15px;
+    }
+
+    .action-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .btn {
+        border: none;
+        padding: 8px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-approve {
+        background-color: var(--secondary);
+        color: var(--text-light);
+    }
+    .btn-approve:hover { background-color: var(--primary); }
+
+    .btn-modify {
+        background-color: var(--accent);
+        color: var(--primary);
+    }
+    .btn-modify:hover { background-color: var(--primary); color: var(--text-light); }
+
+    .btn-confirm-final {
+        display: block;
+        margin: 30px auto 0;
+        background-color: var(--primary);
+        color: var(--text-light);
+        padding: 10px 20px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: 0.3s;
+        font-weight: 600;
+    }
+
+    .btn-confirm-final:hover {
+        background-color: var(--secondary);
+    }
+
+    /* Modal Popup */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 999;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5);
+    }
+
+    .modal-content {
+        background: var(--text-light);
+        border-radius: 12px;
+        padding: 20px;
+        width: 400px;
+        margin: 120px auto;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        text-align: center;
+    }
+
+    .modal-content h3 {
+        color: var(--primary);
+        margin-bottom: 15px;
+    }
+
+    .options { text-align: left; margin-bottom: 15px; }
+    .options label { display: block; padding: 6px 0; cursor: pointer; }
+
+    .btn-confirm, .btn-cancel {
+        padding: 8px 14px;
+        border: none;
+        border-radius: 8px;
+        color: var(--text-light);
+        cursor: pointer;
+        margin: 5px;
+        font-weight: 600;
+    }
+
+    .btn-confirm { background-color: var(--secondary); }
+    .btn-cancel { background-color: #b02a37; }
+    .btn-confirm:hover { background-color: var(--primary); }
+    .btn-cancel:hover { background-color: #861c27; }
+
+    /* Output tables */
+    .result-section {
+        margin-top: 40px;
+        display: none;
+    }
+
+    .result-section h3 {
+        color: var(--primary);
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    .result-table {
+        margin: 0 auto;
+        width: 90%;
+    }
+</style>
+
+</head>
+<body>
+<div class="container">
+    <h2>Team List</h2>
+
+    {% if teams %}
+        <table>
+            <thead>
+            <tr>
+                <th>Team Name</th>
+                <th>Class</th>
+                <th>Domain</th>
+                <th>Members (Roll No)</th>
+                <th>Members (Names)</th>
+                <th>Created At</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for t in teams %}
+                <tr data-project="{{ t.project_title }}">
+                    <td data-label="Team Name">{{ t.project_title }}</td>
+                    <td data-label="Class">{{ t.student_class }}</td>
+                    <td data-label="Domain" class="domain">{{ t.domain }}</td>
+                    <td data-label="Members (Roll No)" class="members">{{ t.members }}</td>
+                    <td data-label="Members (Names)" class="member-names">{{ t.member_names }}</td>
+                    <td data-label="Created At" class="created">{{ t.created_at|date:"Y-m-d H:i" }}</td>
+                    <td data-label="Actions">
+                        <div class="action-buttons">
+                            <button type="button" class="btn btn-approve" onclick="markApprove(this)">Approve</button>
+                            <button type="button" class="btn btn-modify" onclick="openModal(this)">Modify</button>
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+
+        <button class="btn-confirm-final" onclick="confirmAll()">Confirm</button>
+
+        <div id="results" class="result-section">
+            <h3>Approved Teams</h3>
+            <table class="result-table" id="approvedTable"></table>
+            <h3>Modified Teams</h3>
+            <table class="result-table" id="modifiedTable"></table>
+        </div>
+    {% else %}
+        <p style="text-align:center; color:#e84118; font-weight:bold;">No teams available.</p>
+    {% endif %}
+</div>
+
+<!-- Hidden Modal for Modify -->
+<div id="modifyModal" class="modal">
+    <div class="modal-content">
+        <h3>Select Modification Options</h3>
+        <div class="options">
+            <label><input type="checkbox" value="Project Title"> Project Title</label>
+            <label><input type="checkbox" value="Domain"> Domain</label>
+            <label><input type="checkbox" value="Members"> Members</label>
+        </div>
+        <button class="btn-confirm" onclick="submitModify()">Confirm</button>
+        <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+    </div>
+</div>
+
+<script>
+let activeRow = null;
+let approvedTeams = [];
+let modifiedTeams = [];
+
+function markApprove(btn) {
+    const row = btn.closest("tr");
+    const project = row.dataset.project;
+
+    // Prevent duplicates
+    if (!approvedTeams.includes(project)) {
+        approvedTeams.push(project);
+        row.style.backgroundColor = "#dff9fb";
+    }
+}
+
+function openModal(button) {
+    activeRow = button.closest("tr");
+    document.getElementById("modifyModal").style.display = "block";
+}
+
+function closeModal() {
+    document.getElementById("modifyModal").style.display = "none";
+    activeRow = null;
+    document.querySelectorAll('.modal input[type="checkbox"]').forEach(cb => cb.checked = false);
+}
+
+function submitModify() {
+    const selected = Array.from(document.querySelectorAll('.modal input[type="checkbox"]:checked'))
+        .map(cb => cb.value);
+    if (selected.length === 0) {
+        alert("Please select at least one field to modify!");
+        return;
+    }
+    const changeType = selected.join(", ");
+    const project = activeRow.dataset.project;
+
+    // Prevent duplicates
+    if (!modifiedTeams.some(m => m.project === project)) {
+        modifiedTeams.push({ project, changeType });
+        activeRow.style.backgroundColor = "#c7ecee";
+    }
+
+    closeModal();
+}
+
+function confirmAll() {
+    if (approvedTeams.length === 0 && modifiedTeams.length === 0) {
+        alert("No actions to confirm!");
+        return;
+    }
+
+    // Display the result tables
+    const approvedTable = document.getElementById("approvedTable");
+    const modifiedTable = document.getElementById("modifiedTable");
+
+    approvedTable.innerHTML = `
+        <tr><th>Project Title</th></tr>
+        ${approvedTeams.map(p => `<tr><td>${p}</td></tr>`).join("")}
+    `;
+
+    modifiedTable.innerHTML = `
+        <tr><th>Project Title</th><th>Change Type</th></tr>
+        ${modifiedTeams.map(m => `<tr><td>${m.project}</td><td>${m.changeType}</td></tr>`).join("")}
+    `;
+
+    document.getElementById("results").style.display = "block";
+
+    // Send data to Django (same view)
+    fetch("{% url 'team_list' %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            approved: approvedTeams,
+            modified: modifiedTeams
+        })
+    }).then(res => {
+        if (res.ok) alert("All actions confirmed and saved successfully!");
+        else alert("Error sending confirmation.");
+    }).catch(err => console.error("Error:", err));
+}
+
+window.onclick = function(e) {
+    if (e.target == document.getElementById("modifyModal")) closeModal();
+}
+
+</script>
+</body>
+</html>

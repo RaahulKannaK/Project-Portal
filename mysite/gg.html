@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coordinator Hub - Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #A78BFA;
+      --secondary: #3730A3;
+      --accent: #D8DBFE;
+      --background: #EDE9FE;
+      --text-dark: #3730A3;
+      --text-light: #E5E7EB;
+      --guide-color: #1e1e60;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Montserrat', sans-serif;
+      background: linear-gradient(120deg, var(--background), #ffffff);
+      color: var(--text-dark);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body.dark-mode {
+      background: #1f2937;
+      color: #f1f5f9;
+    }
+
+    .dashboard-wrapper { display: flex; width: 95%; max-width: 1400px; height: 90vh; background: var(--primary); border-radius: 20px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.2); transition: all 0.3s; }
+
+    /* Sidebar */
+    .sidebar { width: 280px; padding: 30px 20px; background: var(--secondary); color: var(--text-light); display: flex; flex-direction: column; }
+    .sidebar-header { text-align: center; padding-bottom: 20px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.15); }
+    .sidebar-header h4 { font-weight: 600; color: var(--accent); }
+    .sidebar-nav { flex-grow: 1; }
+    .sidebar-nav .nav-item { display: flex; align-items: center; color: var(--text-light); text-decoration: none; padding: 15px 20px; margin-bottom: 12px; border-radius: 12px; transition: all 0.3s ease; font-weight: 500; }
+    .sidebar-nav .nav-item i { margin-right: 15px; font-size: 1.2rem; }
+    .sidebar-nav .nav-item:hover { background: rgba(216,219,254,0.25); transform: translateX(6px); color: var(--text-dark); }
+    .sidebar-nav .nav-item.active { background: linear-gradient(90deg, var(--primary), var(--accent)); color: var(--text-dark); font-weight: 600; }
+
+    /* Main Content */
+    .main-content { flex-grow: 1; padding: 30px; background: var(--background); display: flex; flex-direction: column; transition: background 0.3s, color 0.3s; }
+    .main-content.dark-mode { background: #111827; color: #f1f5f9; }
+
+    .top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 35px; flex-wrap: wrap; gap:10px; }
+    .profile-avatar { width: 50px; height: 50px; border-radius: 50%; background: var(--primary); display: flex; justify-content: center; align-items: center; font-weight: 700; color: var(--text-light); font-size: 1.4rem; margin-right: 15px; }
+    .welcome-text { font-size: 1.6rem; font-weight: 600; color: var(--text-dark); }
+
+    .header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    .more-options-btn, #theme-toggle, .notif-btn { background: var(--accent); color: var(--text-dark); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.3s; }
+    .more-options-btn:hover, #theme-toggle:hover, .notif-btn:hover { background: var(--primary); color: var(--text-light); }
+
+    .notif-count { position: absolute; top: 8px; right: 8px; background: #ef4444; color: #fff; font-size: 0.7rem; border-radius: 50%; padding: 2px 6px; }
+
+    .dropdown-menu a#logout-btn { border-radius: 12px; font-weight: 600; background: var(--guide-color); color: #fff; transition: all 0.3s ease; }
+    .dropdown-menu a#logout-btn:hover { background-color: #5b36a5; color: #fff; }
+
+    .content-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; flex-grow: 1; }
+
+    .main-card { padding: 25px; border-radius: 16px; transition: transform 0.3s ease, box-shadow 0.3s ease; box-shadow: 0 8px 25px rgba(0,0,0,0.2); position: relative; overflow: hidden; }
+    .main-card:hover { transform: translateY(-5px); box-shadow: 0 12px 35px rgba(0,0,0,0.3); }
+    .main-card h6 { font-size: 1.4rem; font-weight: 600; margin-bottom: 10px; }
+    .main-card p { font-size: 0.9rem; opacity: 0.9; }
+    .main-card i { position: absolute; top: 20px; right: 20px; font-size: 2rem; opacity: 0.15; }
+
+    .gradient-purple { background: linear-gradient(135deg, var(--primary), var(--accent)); color: var(--text-dark); }
+    .gradient-dark { background: linear-gradient(135deg, var(--secondary), #1e1e60); color: var(--text-light); }
+
+    .glass-button { background: var(--accent); border: none; color: var(--text-dark); padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; margin-top: 10px; text-decoration: none; display: inline-block; }
+    .glass-button:hover { background: var(--primary); color: var(--text-light); }
+
+    .widget { padding: 20px; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--secondary); color: var(--text-light); box-shadow: 0 8px 25px rgba(0,0,0,0.2); }
+
+    .footer { text-align: center; padding: 12px; font-size: 0.85rem; color: var(--text-dark); margin-top: 15px; border-top: 1px solid #ddd; }
+    body.dark-mode .footer { color: #f1f5f9; border-top: 1px solid #444; }
+
+    /* Search box with right icon */
+    .search-wrapper {
+      position: relative;
+      display: inline-block;
+      margin-left: 15px;
+    }
+
+    #team-search {
+      padding: 8px 40px 8px 12px; /* padding-right for icon */
+      border-radius: 25px;
+      border: 1px solid #ccc;
+      outline: none;
+      transition: all 0.3s ease;
+      width: 220px;
+    }
+
+    #team-search:focus {
+      border-color: #A78BFA;
+      box-shadow: 0 0 8px rgba(167,139,250,0.5);
+      background-color: #fff;
+    }
+
+    .search-wrapper .search-icon {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 28px;
+      height: 28px;
+      background-color: #A78BFA;
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 14px;
+      pointer-events: none;
+      transition: all 0.3s;
+    }
+
+    #team-search:focus + .search-icon {
+      background-color: #7c3aed;
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    body.dark-mode #team-search {
+      background-color: #1f2937;
+      color: #f1f5f9;
+      border-color: #555;
+    }
+
+    body.dark-mode #team-search:focus {
+      background-color: #111827;
+      border-color: #A78BFA;
+      box-shadow: 0 0 8px rgba(167,139,250,0.5);
+    }
+
+    body.dark-mode .search-wrapper .search-icon {
+      color: #fff;
+      background-color: #A78BFA;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-wrapper">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h4><i class="fas fa-user-tie me-2"></i> Coordinator Hub</h4>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active"><i class="fas fa-users"></i> Teams</a>
+        <a href="#" class="nav-item"><i class="fas fa-chalkboard-teacher"></i> Mentor Allocation</a>
+        <a href="#" class="nav-item"><i class="fas fa-book"></i> Assign Class</a>
+        <a href="#" class="nav-item"><i class="fas fa-user-friends"></i> Guide Allocation</a>
+        <a href="#" class="nav-item"><i class="fas fa-cogs"></i> Settings</a>
+      </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="top-header">
+        <div class="d-flex align-items-center gap-2">
+          <div class="profile-avatar">C</div>
+          <span class="welcome-text">Welcome, Coordinator Alex!</span>
+
+          <!-- Search box with icon on right -->
+          <div class="search-wrapper">
+            <input type="text" id="team-search" placeholder="Search Teams...">
+            <i class="fas fa-magnifying-glass search-icon"></i>
+          </div>
+
+          <div id="clock" style="font-weight:600; font-size:1.1rem;"></div>
+        </div>
+
+        <div class="header-actions">
+          <button id="theme-toggle" title="Toggle Dark Mode">🌙</button>
+
+          <div class="dropdown">
+            <button class="notif-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fas fa-bell"></i>
+              <span class="notif-count">3</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="#">Team A submitted report</a></li>
+              <li><a class="dropdown-item" href="#">New meeting scheduled</a></li>
+              <li><a class="dropdown-item" href="#">Task deadline tomorrow</a></li>
+            </ul>
+          </div>
+
+          <div class="dropdown">
+            <button class="more-options-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fas fa-ellipsis-h"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="{% url 'logout' %}" id="logout-btn">Logout</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-grid">
+        <div class="main-card gradient-purple">
+          <i class="fas fa-users"></i>
+          <h6>Teams</h6>
+          <p>Manage and monitor all student teams.</p>
+          <a href="{% url 'coordinator_teams' %}" class="glass-button">View</a>
+        </div>
+        <div class="main-card gradient-dark">
+          <i class="fas fa-chalkboard-teacher"></i>
+          <h6>Mentor Allocation</h6>
+          <p>Assign and track mentor allocations.</p>
+          <a href="{% url 'coordinator_allocation' %}" class="glass-button">Manage</a>
+        </div>
+        <div class="main-card gradient-purple">
+          <i class="fas fa-book"></i>
+          <h6>Assign Class</h6>
+          <p>Allocate a class to yourself for coordination.</p>
+          <a href="{% url 'coordinator_assign_class' %}" class="glass-button">Assign</a>
+        </div>
+        <div class="main-card gradient-dark">
+          <i class="fas fa-user-friends"></i>
+          <h6>Guide Allocation</h6>
+          <p>Assign two teams per guide. <br><small>⚠ Teams must share the same domain.</small></p>
+          <a href="{% url 'coordinator_assign_guide' %}" class="glass-button">Allocate</a>
+        </div>
+
+        <div class="widget">
+          <i class="fas fa-tasks" style="font-size:2rem; margin-bottom:10px;"></i>
+          <p class="mb-0">Pending Tasks</p>
+          <h6>12</h6>
+        </div>
+
+        <div class="widget">
+          <i class="fas fa-calendar-alt" style="font-size:2rem; margin-bottom:10px;"></i>
+          <p class="mb-0">Next Deadline:</p>
+          <h6>Oct 30</h6>
+        </div>
+      </div>
+
+      <div class="footer">© 2025 Your College Name. All Rights Reserved.</div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const body = document.body;
+    const mainContent = document.querySelector('.main-content');
+    const themeBtn = document.getElementById('theme-toggle');
+
+    themeBtn.addEventListener('click', () => {
+      body.classList.toggle('dark-mode');
+      mainContent.classList.toggle('dark-mode');
+      themeBtn.textContent = body.classList.contains('dark-mode') ? '☀' : '🌙';
+    });
+
+    setInterval(() => {
+      const now = new Date();
+      document.getElementById('clock').innerText = now.toLocaleTimeString();
+    }, 1000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guide Hub - Review Details</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #0d1054;
+      --secondary: #e0ef0f;
+      --accent: #9b05f8;
+      --background: #8aff9c;
+      --text-dark: #000000;
+      --text-light: #ffffff;
+      --card-bg: rgba(13, 16, 84, 0.9);
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Montserrat', sans-serif;
+      background: linear-gradient(120deg, var(--background), #ffffff);
+      color: var(--text-dark);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center; /* Center the content vertically */
+      overflow-y: auto;
+    }
+
+    .dashboard-wrapper {
+      width: 90%;
+      max-width: 1000px; /* Adjusted for better centering */
+      min-height: 70vh; /* Reduced height for single card */
+      background: var(--primary);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+      padding: 20px 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center; /* Center the wrapper content */
+    }
+
+    .main-content {
+      padding: 0;
+      background: var(--background);
+      display: flex;
+      flex-direction: column;
+      height: auto;
+      width: 100%;
+      align-items: center; /* Center the content */
+    }
+
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 10px 0;
+      width: 100%;
+    }
+
+    .back-button {
+      background: var(--accent);
+      color: var(--text-light);
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.3s ease;
+      margin-right: 15px;
+    }
+
+    .back-button:hover {
+      background: #d35400;
+      transform: rotate(-90deg);
+    }
+
+    .back-button i {
+      font-size: 1.2rem;
+    }
+
+    .user-greeting {
+      display: flex;
+      align-items: center;
+    }
+
+    .profile-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: var(--secondary);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: 700;
+      color: var(--text-dark);
+      font-size: 1.4rem;
+      margin-right: 15px;
+      transition: transform 0.3s ease;
+    }
+
+    .profile-avatar:hover {
+      transform: scale(1.1);
+    }
+
+    .welcome-text {
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      transition: color 0.3s ease;
+    }
+
+    .welcome-text:hover {
+      color: var(--accent);
+    }
+
+    .more-options-btn {
+      background: var(--accent);
+      color: var(--text-light);
+      border: none;
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.3s ease;
+    }
+
+    .more-options-btn:hover {
+      background: #d35400;
+      transform: rotate(90deg);
+    }
+
+    .content-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 20px; /* Reduced gap since only one card */
+      width: 100%;
+      padding-bottom: 20px;
+      align-items: center;
+    }
+
+    .main-card {
+      padding: 30px; /* Increased padding for neatness */
+      border-radius: 20px; /* Increased border radius for a softer look */
+      color: var(--text-light);
+      background: var(--card-bg);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.3); /* Enhanced shadow for depth */
+      position: relative;
+      overflow: hidden;
+      border: 2px solid rgba(255, 255, 255, 0.2); /* Softer border */
+      max-width: 700px; /* Adjusted for better centering */
+      width: 85%; /* Adjusted width for neatness */
+      text-align: center; /* Center text inside card */
+    }
+
+    .main-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    }
+
+    .main-card h6 {
+      font-size: 1.8rem; /* Increased font size for emphasis */
+      font-weight: 700;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .main-card p {
+      font-size: 1.1rem; /* Increased font size for readability */
+      opacity: 0.9;
+      margin-bottom: 25px;
+    }
+
+    .main-card i {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 2.8rem; /* Slightly larger icon */
+      opacity: 0.3;
+      transition: opacity 0.3s ease;
+    }
+
+    .main-card:hover i {
+      opacity: 0.5;
+    }
+
+    .task-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .task-table td {
+      padding: 15px; /* Increased padding for neatness */
+      text-align: center; /* Center table content */
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2); /* Softer border */
+    }
+
+    .approval-select {
+      display: none;
+      margin-top: 15px;
+    }
+
+    .approval-select.active {
+      display: block;
+    }
+
+    .remark-input {
+      display: none;
+      margin-top: 15px;
+    }
+
+    .remark-input.active {
+      display: block;
+    }
+
+    .glass-button {
+      background: var(--secondary);
+      border: none;
+      color: var(--text-dark);
+      padding: 12px 25px; /* Increased padding for better look */
+      border-radius: 12px; /* Increased border radius */
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 1rem; /* Increased font size */
+    }
+
+    .glass-button:hover {
+      background: var(--accent);
+      color: var(--text-light);
+      transform: translateY(-3px); /* Enhanced hover effect */
+    }
+
+    .footer {
+      text-align: center;
+      padding: 12px;
+      font-size: 0.9rem;
+      color: var(--text-dark);
+      margin-top: 20px;
+      border-top: 1px solid rgba(0,0,0,0.1);
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      width: 100%;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-wrapper">
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="top-header d-flex justify-content-between align-items-center">
+        <button class="back-button" onclick="window.history.back()">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <div class="user-greeting d-flex align-items-center">
+          <div class="profile-avatar">S</div>
+          <span class="welcome-text">Welcome, {{ user.username }}!</span>
+        </div>
+        <div class="dropdown">
+          <button class="more-options-btn dropdown-toggle" type="button" id="moreOptionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fas fa-ellipsis-h"></i>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="moreOptionsDropdown">
+            <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="content-grid">
+        <!-- Box 1: PPT View -->
+        <div class="main-card">
+          <i class="fas fa-file-powerpoint"></i>
+          <h6>PPT View</h6>
+          <p>Review the presentation content.</p>
+          <table class="task-table">
+            <tbody>
+              <tr>
+                <td>PPT View</td>
+                <td><a href="#" class="glass-button approve-btn">View</a></td>
+              </tr>
+              <tr>
+                <td>Approve the PPT</td>
+                <td>
+                  <a href="#" class="glass-button approve-btn">Approve</a>
+                  <div class="approval-select">
+                    <select class="form-select">
+                      <option value="" disabled selected>Select Status</option>
+                      <option value="approved">Approved</option>
+                      <option value="not_approved">Not Approved</option>
+                    </select>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>Remark Type</td>
+                <td>
+                  <a href="#" class="glass-button remark-btn">Add Remark</a>
+                  <div class="remark-input">
+                    <textarea class="form-control" rows="3" placeholder="Type your remark here..."></textarea>
+                    <button class="glass-button save-remark-btn" style="margin-top: 10px;">Save Remark</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.querySelectorAll('.approve-btn').forEach(button => {
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const select = this.nextElementSibling;
+        select.classList.toggle('active');
+      });
+    });
+
+    document.querySelectorAll('.remark-btn').forEach(button => {
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const input = this.nextElementSibling;
+        input.classList.toggle('active');
+      });
+    });
+
+    document.querySelectorAll('.save-remark-btn').forEach(button => {
+      button.addEventListener('click', function() {
+        const textarea = this.previousElementSibling;
+        alert('Remark saved: ' + textarea.value);
+        textarea.value = '';
+        textarea.parentElement.classList.remove('active');
+      });
+    });
+  </script>
+</body>
+</html>

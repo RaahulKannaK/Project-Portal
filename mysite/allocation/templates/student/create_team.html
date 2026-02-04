@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Team</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --primary: #1f2aa4;        /* Deep Indigo */
+    --secondary: #a1a7c9;      /* Soft Indigo */
+    --accent: #d1d9ff;         /* Light Indigo */
+    --background: #F8F9FC;
+    --text-dark: #2E2E2E;
+    --text-light: #ffffff;
+}
+body {
+  background: linear-gradient(120deg, var(--background), #ffffff);
+  font-family: 'Montserrat', sans-serif;
+  color: var(--text-dark);
+  min-height: 100vh;
+  padding: 50px;
+}
+h2 { font-weight: 600; color: var(--primary); margin: 0; }
+.card { border-radius: 1rem; padding: 30px; box-shadow: 0 12px 30px rgba(0,0,0,0.15); background: linear-gradient(135deg, var(--primary), #004E52); color: var(--text-light); }
+label { font-weight: 500; }
+select.form-select { border-radius: 10px; padding: 10px; transition: all 0.3s ease; }
+select.form-select:focus { box-shadow: 0 0 0 0.2rem rgba(255, 183, 3, 0.3); border-color: var(--secondary); }
+h5 { margin-top: 20px; font-weight: 600; color: var(--text-light); }
+.row.mb-2 { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 10px; align-items: center; }
+.glass-button { background: var(--secondary); border: none; color: var(--text-dark); padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; margin-top: 15px; display: inline-block; text-decoration: none; }
+.glass-button:hover { background: var(--accent); color: var(--text-light); }
+.more-options-btn { background: var(--accent); color: var(--text-light); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.3s; }
+.more-options-btn:hover { background: #d35400; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>➕ Create Team</h2>
+    <div class="dropdown">
+      <button class="more-options-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="fas fa-ellipsis-h"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li class="dropdown-item text-center fw-bold">
+          {{ request.session.student_id }} – {{ request.session.student_name }}
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Already created team info -->
+  {% if already_created and existing_team %}
+    <div class="alert alert-info">
+      ✅ You have already created a team:<br><br>
+      <strong>Project Title:</strong> {{ existing_team.project_title }}<br>
+      <strong>Domain:</strong> {{ existing_team.domain }}<br>
+      <strong>Members:</strong>
+      <ul>
+        {% for sid, name in members_list %}
+          {% if sid == request.session.student_id %}
+            <li>👑 {{ sid }} – {{ name }} (Leader)</li>
+          {% else %}
+            <li>👤 {{ sid }} – {{ name }}</li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <!-- Team Form -->
+  {% if not already_created %}
+  <div class="card shadow-sm p-4">
+    <form id="teamForm">
+
+      <!-- Project Title Input -->
+      <div class="mb-3">
+        <label class="form-label">Project Title</label>
+        <input type="text" id="projectTitle" class="form-control" placeholder="Enter your project title" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Project Domain</label>
+        <select class="form-select" id="domain" required>
+          <option value="">-- Select Domain --</option>
+          <option value="AIDS">Artificial Intelligence & Data Science (AIDS)</option>
+          <option value="AIML">Artificial Intelligence & Machine Learning (AIML)</option>
+          <option value="CYS">Cyber Security (CYS)</option>
+          <option value="BW">Blockchain & Web (BW)</option>
+          <option value="FS">Full Stack Development (FS)</option>
+          <option value="AI">Artificial Intelligence (AI)</option>
+          <option value="CD">Cloud & DevOps (CD)</option>
+        </select>
+      </div>
+
+
+      <div class="mb-3">
+        <label class="form-label">Team Size</label>
+        <select class="form-select" id="teamSize" onchange="generateMembers()" required>
+          <option value="">-- Select Team Size --</option>
+          <option value="3">3 Members</option>
+          <option value="4">4 Members</option>
+        </select>
+      </div>
+      <div id="membersArea"></div>
+      <button type="submit" id="submitBtn" class="glass-button" disabled>Submit Team</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const students = [
+    {% for s in classmates %}
+    {student_id:"{{ s.student_id }}", name:"{{ s.name }}", cgpa:{{ s.cgpa }}},
+    {% endfor %}
+];
+
+let selectedStudents = [];
+const loggedIn = "{{ request.session.student_id }}";
+
+function getCGPAType(cgpa){
+    if(cgpa >= 9) return "very high";
+    if(cgpa >= 8.5) return "high";
+    if(cgpa >= 7.5) return "mid";
+    if(cgpa >= 6) return "low";
+    return "very low";
+}
+
+// Allowed sequences with multiple next options
+const allowedSequences3 = [
+    // Starting with very high
+    ["very high", ["high","mid","low","very low"], ["high","mid","low","very low"]],
+    ["very high", "high", ["mid","low","very low"]],
+    ["very high", "mid", ["high","low","very low"]],
+    ["very high", "low", ["high","mid","very low"]],
+    ["very high", "very low", ["mid","low","high"]],
+    ["very high", "very high", "very low"],
+
+    // Starting with high
+    ["high", ["very high","mid","low","very low"], ["mid","low","very low"]],
+    ["high", "very high", ["mid","low","very low"]],
+    ["high", "mid", ["high","low","very low"]],
+    ["high", "low", ["mid","high","very low"]],
+    ["high", "very low", ["mid","low","high"]],
+
+    // Starting with mid
+    ["mid", ["very high","high","low","very low"], ["high","low","very low"]],
+    ["mid", "very high", ["high","low","very low"]],
+    ["mid", "high", ["mid","low","very low"]],
+    ["mid", "low", ["high","mid","very low"]],
+    ["mid", "very low", ["low","mid","high"]],
+
+    // Starting with low
+    ["low", ["very high","high","mid"], ["high","mid","very low"]],
+    ["low", "very high", ["high","mid","very low"]],
+    ["low", "high", ["mid","low","very low"]],
+    ["low", "mid", ["high","low","very low"]],
+    ["low", "very low", ["mid","low","high"]],
+
+    // Starting with very low
+    ["very low", ["mid","high","very high"], ["mid","low","high"]],
+    ["very low", "low", ["mid","high","very high"]],
+    ["very low", "mid", ["low","high","very high"]],
+    ["very low", "high", ["mid","low","very high"]],
+    ["very low", "very high", ["mid","low","high"]]
+];
+
+
+const allowedSequences4 = [
+    ["very high", ["high","mid","low","very low"], ["mid","low","very low"], ["mid","low","very low"]],
+    ["high", ["very high","mid","low","very low"], ["mid","low","very low"], ["mid","low","very low"]],
+    ["mid", ["very high","high","low","very low"], ["high","low","very low"], ["mid","low","very low"]],
+    ["low", ["very high","high","mid"], ["high","mid","very low"], ["mid","low","very low"]],
+    ["very low", ["mid","high","very high"], ["mid","low","high"], ["mid","low","high"]],
+
+    ["very high", "high", ["mid","low","very low"], ["mid","low","very low"]],
+    ["high", "mid", ["high","low","very low"], ["mid","low"]],
+    ["mid", "low", ["high","mid","very low"], ["mid","low"]],
+    ["low", "mid", ["high","mid","very low"], ["mid","low"]],
+    ["very low", "mid", ["low","high","very high"], ["mid","low","high"]]
+];
+
+
+// Determine allowed CGPA types based on current team composition
+function allowedCGPATypes(currentCGPAs, teamSize){
+    const counts = { "very high":0, "high":0, "mid":0, "low":0, "very low":0 };
+    currentCGPAs.forEach(cgpa => counts[getCGPAType(cgpa)]++);
+
+    const maxHighCount = Math.ceil(teamSize/2); 
+    const maxLowCount = 1; 
+    let allowed = [];
+
+    // Original rules
+    if(currentCGPAs.length < teamSize) allowed.push("mid");
+    if(counts["very high"] < maxHighCount) allowed.push("very high");
+    if(counts["high"] < maxHighCount) allowed.push("high");
+    if(counts["low"] < maxLowCount) allowed.push("low");
+    if(counts["very low"] < maxLowCount) allowed.push("very low");
+
+    // Sequence rules override
+    const currentTypes = currentCGPAs.map(getCGPAType);
+    const sequences = teamSize === 3 ? allowedSequences3 : teamSize === 4 ? allowedSequences4 : [];
+    const sequenceAllowed = new Set();
+
+    sequences.forEach(seq => {
+        if(seq.length > currentTypes.length){
+            let match = true;
+            for(let i = 0; i < currentTypes.length; i++){
+                if(seq[i] !== currentTypes[i]){
+                    match = false;
+                    break;
+                }
+            }
+            if(match){
+                const next = seq[currentTypes.length];
+                if(Array.isArray(next)){
+                    next.forEach(t => sequenceAllowed.add(t));
+                } else {
+                    sequenceAllowed.add(next);
+                }
+            }
+        }
+    });
+
+    if(sequenceAllowed.size > 0) allowed = Array.from(sequenceAllowed);
+    return allowed;
+}
+
+// Get allowed students for a slot
+function getAllowedStudents(teamSize, currentSelected){
+    const currentCGPAs = currentSelected.map(id=>{
+        const stu = students.find(s=>s.student_id===id);
+        return stu ? stu.cgpa : null;
+    }).filter(Boolean);
+
+    const allowedTypes = allowedCGPATypes(currentCGPAs, teamSize);
+
+    return students.filter(s =>
+        allowedTypes.includes(getCGPAType(s.cgpa)) &&
+        !currentSelected.includes(s.student_id)
+    );
+}
+
+// Generate member dropdowns dynamically
+function generateMembers(){
+    const size = parseInt(document.getElementById("teamSize").value)||0;
+    const area = document.getElementById("membersArea");
+    area.innerHTML = ""; 
+    selectedStudents = [];
+    document.getElementById("submitBtn").disabled = true;
+    if(!size) return;
+
+    for(let i=0;i<size;i++){
+        const role = i===0 ? "👑 Team Leader" : `👤 Member ${i+1}`;
+        area.innerHTML += `<h5>${role}</h5>
+        <div class="row mb-2" data-selected="">
+            <div class="col">
+                <select class="form-select member-select" required>
+                    <option value="">-- Select Student --</option>
+                </select>
+            </div>
+        </div>`;
+    }
+
+    updateDropdowns(size);
+
+    document.querySelectorAll(".member-select").forEach(select => {
+        select.addEventListener("change", function(){
+            const roll = this.value;
+            const row = this.closest(".row");
+            if(roll && selectedStudents.includes(roll)){ 
+                alert("⚠ Student already selected!"); 
+                this.value = ""; 
+                return; 
+            }
+
+            const prev = row.dataset.selected;
+            if(prev) selectedStudents = selectedStudents.filter(s => s !== prev);
+            row.dataset.selected = roll;
+            if(roll) selectedStudents.push(roll);
+
+            updateDropdowns(size);
+            document.getElementById("submitBtn").disabled = !(selectedStudents.length === size);
+        });
+    });
+}
+
+// Update all dropdowns with current allowed students
+function updateDropdowns(teamSize){
+    document.querySelectorAll(".member-select").forEach(sel => {
+        const currentVal = sel.value;
+        const row = sel.closest(".row");
+        const currSelected = selectedStudents.filter(s => s !== currentVal);
+
+        const allowed = getAllowedStudents(teamSize, currSelected);
+
+        sel.innerHTML = `<option value="">-- Select Student --</option>` +
+                        allowed.map(s => `<option value="${s.student_id}">${s.student_id} - ${s.name} (CGPA: ${s.cgpa})</option>`).join("");
+
+        // Keep current value visible
+        if(currentVal && !sel.querySelector(`option[value="${currentVal}"]`)){
+            sel.innerHTML += `<option value="${currentVal}">${currentVal}</option>`;
+        }
+        sel.value = currentVal;
+    });
+}
+
+// Form submission
+document.getElementById("teamForm")?.addEventListener("submit", function(e){
+    e.preventDefault();
+    if(document.getElementById("submitBtn").disabled){ 
+        alert("⚠ Complete valid team selection first."); 
+        return; 
+    }
+
+    if(!selectedStudents.includes(loggedIn)){
+        alert("❌ You must be part of the team!");
+        return;
+    }
+
+    const domain = document.getElementById("domain").value;
+    const project_title= document.getElementById("projectTitle").value;
+    const members = selectedStudents;
+
+    fetch("",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","X-CSRFToken":"{{ csrf_token }}"},
+        body:JSON.stringify({domain,project_title,members})
+    }).then(r=>r.json()).then(data=>{
+        if(data.status==="success"){
+            alert("✅ Project Team :"+data.project_title+" created successfully!");
+            location.reload();
+        } else {
+            alert("❌ Error: "+(data.message||"Team creation failed"));
+        }
+    }).catch(err=>{ console.error(err); alert("❌ Server error, try again later"); });
+});
+</script>
+
+</body>
+</html>

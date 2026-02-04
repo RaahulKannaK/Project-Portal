@@ -1,0 +1,377 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guide Hub - Review 2</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --primary: #6A0DAD;       /* Deep Royal Purple */
+    --secondary: #F9DDEB;     /* Soft Pink Tint */
+    --accent: #C7A4E0;        /* Light Lavender Accent */
+    --background: #F8F9FC;    /* Light Background */
+    --text-dark: #2E2E2E;     /* Default Text */
+    --text-light: #ffffff;    /* White Text */
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Montserrat', 'Segoe UI', Tahoma, sans-serif;
+    background: linear-gradient(120deg, var(--background), #ffffff);
+    color: var(--text-dark);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* Wrapper */
+  .dashboard-wrapper {
+    display: flex;
+    width: 95%;
+    max-width: 1400px;
+    height: 90vh;
+    max-height: 950px;
+    background: var(--primary);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: 280px;
+    padding: 30px 20px;
+    background: linear-gradient(180deg, var(--primary), var(--accent));
+    color: var(--text-light);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-header {
+    text-align: center;
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+  }
+
+  .sidebar-header h4 {
+    font-weight: 600;
+    color: var(--secondary);
+  }
+
+  .sidebar-nav {
+    flex-grow: 1;
+  }
+
+  .sidebar-nav .nav-item {
+    display: flex;
+    align-items: center;
+    color: var(--text-light);
+    text-decoration: none;
+    padding: 15px 20px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .sidebar-nav .nav-item i {
+    margin-right: 15px;
+    font-size: 1.2rem;
+  }
+
+  .sidebar-nav .nav-item:hover {
+    background: rgba(249, 221, 235, 0.5);
+    color: var(--text-dark);
+    transform: translateX(6px);
+  }
+
+  .sidebar-nav .nav-item.active {
+    background: linear-gradient(90deg, var(--secondary), var(--accent));
+    color: var(--text-dark);
+    font-weight: 600;
+  }
+
+  /* Main Content */
+  .main-content {
+    flex-grow: 1;
+    padding: 30px;
+    background: var(--background);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 35px;
+  }
+
+  .back-button {
+    background: var(--accent);
+    border: none;
+    color: var(--text-light);
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    margin-bottom: 20px;
+    width: auto;
+    max-width: 100px;
+  }
+
+  .back-button:hover {
+    background: var(--primary);
+    color: var(--text-light);
+  }
+
+  .user-greeting {
+    display: flex;
+    align-items: center;
+  }
+
+  .profile-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 700;
+    color: var(--text-light);
+    font-size: 1.4rem;
+    margin-right: 15px;
+  }
+
+  .welcome-text {
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--text-dark);
+  }
+
+  .more-options-btn {
+    background: var(--secondary);
+    color: var(--text-dark);
+    border: none;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  .more-options-btn:hover {
+    background: var(--accent);
+    color: var(--text-light);
+  }
+
+  /* Grid Layout */
+  .content-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+    flex-grow: 1;
+  }
+
+  /* Cards */
+  .main-card {
+    padding: 25px;
+    border-radius: 16px;
+    color: var(--text-light);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+  }
+
+  .main-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 35px rgba(0,0,0,0.3);
+  }
+
+  .main-card h6 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  .main-card p {
+    font-size: 0.9rem;
+    opacity: 0.9;
+  }
+
+  .main-card i {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 2rem;
+    opacity: 0.15;
+  }
+
+  /* Buttons */
+  .glass-button {
+    background: var(--secondary);
+    border: none;
+    color: var(--text-dark);
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .glass-button:hover {
+    background: var(--accent);
+    color: var(--text-light);
+  }
+
+  /* Review / Action Section */
+  .review-action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+  }
+
+  .review-action-buttons button.active {
+    background: var(--accent);
+    color: var(--text-light);
+  }
+
+  .action-section {
+    display: none;
+  }
+
+  .action-section.active {
+    display: block;
+  }
+
+  /* Review Table */
+  .review-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+
+  .review-table th,
+  .review-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .review-table th {
+    background: var(--primary);
+    color: var(--text-light);
+  }
+</style>
+
+</head>
+<body>
+  <div class="dashboard-wrapper">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h4><i class="fas fa-graduation-cap me-2"></i> Reviews</h4>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="{% url 'zero_men' %}" class="nav-item "><i class="fas fa-trophy"></i> Review 0</a>
+        <a href="{% url 'one_men' %}" class="nav-item "><i class="fas fa-trophy"></i> Review 1</a>
+        <a href="{% url 'two_men' %}" class="nav-item active"><i class="fas fa-trophy"></i> Review 2</a>
+        <a href="{% url 'three_men' %}" class="nav-item "><i class="fas fa-trophy"></i> Review 3</a>
+      </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="top-header d-flex justify-content-between align-items-center">
+        <a href="{% url 'mentor_dashboard' %}" class="back-button">
+          <i class="fas fa-arrow-left"></i>&nbsp; Back
+        </a>
+        <div class="user-greeting d-flex align-items-center">
+          <div class="profile-avatar">{{ request.session.mentor_name|slice:":1" }}</div>
+          <span class="welcome-text">Welcome, {{ mentor_name }}!</span>
+        </div>
+        <div class="dropdown">
+          <button class="more-options-btn dropdown-toggle" type="button" id="moreOptionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fas fa-ellipsis-h"></i>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="moreOptionsDropdown">
+            <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="content-grid">
+        <div class="main-card gradient-teal">
+          <i class="fas fa-trophy"></i>
+          <h6>Second Review Details</h6>
+          <p>Check Second Review Details and handle tasks for your teams.</p>
+
+          <!-- Dynamic Action Buttons -->
+          <div class="review-action-buttons">
+            <button class="glass-button active" onclick="showAction('status')">Status of the Team</button>
+            <button class="glass-button" onclick="showAction('document')">Document View</button>
+            <button class="glass-button" onclick="showAction('allocate')">Mark Allocate</button>
+            <button class="glass-button" onclick="showAction('marks')">Review Total Marks</button>
+          </div>
+
+          <!-- Action Sections -->
+          <div id="status" class="action-section active">
+            <p>Current status of your team is displayed here.</p>
+            <a href="#" class="glass-button" style="padding:5px 10px; font-size:0.9rem;">Check</a>
+          </div>
+
+          <div id="document" class="action-section">
+            <p>View documents uploaded by the team.</p>
+            <a href="{% url 'men_ppt' %}" class="glass-button" style="padding:5px 10px; font-size:0.9rem;">View</a>
+          </div>
+
+          <div id="allocate" class="action-section">
+            <p>Allocate scores and tasks to your team.</p>
+            <a href="{% url 'two_ma' team_name=team_name %}" class="glass-button" style="padding:5px 10px; font-size:0.9rem;">
+              {{ team_name }}
+            </a>
+
+          </div>
+
+          <div id="marks" class="action-section">
+            <p>View overall scores of the team.</p>
+            <a href="#" class="glass-button" style="padding:5px 10px; font-size:0.9rem;">View</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showAction(id) {
+      document.querySelectorAll('.action-section').forEach(sec => sec.classList.remove('active'));
+      document.querySelectorAll('.review-action-buttons button').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      event.currentTarget.classList.add('active');
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
