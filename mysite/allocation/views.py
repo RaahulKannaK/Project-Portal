@@ -2075,7 +2075,12 @@ def save_evaluation(request):
 from django.http import FileResponse, JsonResponse # type: ignore
 import os
 from django.conf import settings
-
+try:
+    import pdfkit
+    from docx2pdf import convert
+except ImportError:
+    pdfkit = None
+    convert = None
 
 from django.shortcuts import redirect
 from django.http import JsonResponse
@@ -2126,7 +2131,12 @@ def download_docx(request, team_name):
     return redirect(docx_url)
 
 import os
-import pdfkit
+try:
+    import pdfkit
+    from docx2pdf import convert
+except ImportError:
+    pdfkit = None
+    convert = None
 from django.http import FileResponse, JsonResponse
 from django.conf import settings
 from docx import Document
