@@ -4,176 +4,201 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>One Review Evaluation - {{ team_name }}</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        integrity="sha512-pVnKQp8z+...etc"
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer" />
 
 <style>
-  :root {
-    --primary: #6A0DAD;
-    --secondary: #F9DDEB;
-    --accent: #C7A4E0;
-    --background: #F8F9FC;
-    --text-dark: #2E2E2E;
-    --text-light: #ffffff;
-  }
+:root {
+  --primary: #6A0DAD;
+  --secondary: #F9DDEB;
+  --accent: #C7A4E0;
+  --background: #F8F9FC;
+  --text-dark: #2E2E2E;
+  --text-light: #ffffff;
+}
 
-  body {
-    font-family: 'Poppins', sans-serif;
-    background: linear-gradient(120deg, var(--background), #ffffff);
-    margin: 0;
-    padding: 40px;
-    color: var(--text-dark);
-  }
+body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(120deg, var(--background), #ffffff);
+  margin: 0;
+  padding: 40px;
+  color: var(--text-dark);
+}
 
-  .header {
-    text-align: center;
-    margin-bottom: 40px;
-  }
+/* ---------------- HEADER ---------------- */
+.header {
+  text-align: center;
+  margin-bottom: 40px;
+}
 
-  .header h2 {
-    font-size: 28px;
-    color: var(--primary);
-    margin-bottom: 5px;
-    font-weight: 700;
-  }
+.header h2 {
+  font-size: 28px;
+  color: var(--primary);
+  margin-bottom: 5px;
+  font-weight: 700;
+}
 
-  .header p {
-    color: #555;
-    font-size: 16px;
-  }
+.header p {
+  color: #555;
+  font-size: 16px;
+}
 
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    background: var(--text-light);
-    border-radius: 15px;
-    overflow: hidden;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
-    margin-bottom: 30px;
-  }
+/* ---------------- TABLE BASE ---------------- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--text-light);
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  margin-bottom: 30px;
+}
 
-  th {
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    color: var(--text-light);
-    padding: 15px;
-    text-align: center;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-  }
+th {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: var(--text-light);
+  padding: 15px;
+  text-align: center;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
 
-  td {
-    padding: 12px;
-    text-align: center;
-    border-bottom: 1px solid #e5d8f5;
-    vertical-align: top;
-    color: var(--text-dark);
-  }
+td {
+  padding: 12px;
+  text-align: center;
+  border-bottom: 1px solid #e5d8f5;
+  vertical-align: top;
+  color: var(--text-dark);
+}
 
-  tr:hover {
-    background-color: var(--secondary);
-  }
+tr:hover {
+  background-color: var(--secondary);
+}
 
+/* ---------------- INPUTS ---------------- */
+input[type="number"] {
+  width: 60px;
+  text-align: center;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 5px;
+  transition: 0.3s ease;
+}
+
+input[type="number"]:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 5px var(--accent);
+}
+
+/* ---------------- SECTION HEADERS ---------------- */
+.subheader {
+  background-color: var(--accent);
+  font-weight: bold;
+  font-style: italic;
+  text-align: left;
+  color: var(--text-light);
+}
+
+/* ---------------- TOTAL ROW ---------------- */
+.total-row {
+  background: linear-gradient(90deg, var(--primary), var(--accent)) !important;
+  color: var(--text-light);
+  font-weight: bold;
+}
+
+/* ---------------- TITLE BOX ---------------- */
+.title-box {
+  text-align: center;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-size: 1.6em;
+  font-weight: 700;
+  margin: 30px 0 20px;
+}
+
+/* ---------------- BUTTONS ---------------- */
+.submit-container {
+  text-align: center;
+  margin-top: 30px;
+}
+
+.submit-button {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: var(--text-light);
+  border: none;
+  padding: 15px 35px;
+  font-size: 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.3s ease;
+  box-shadow: 0 4px 12px rgba(106, 13, 173, 0.3);
+  margin: 5px;
+}
+
+.submit-button:hover {
+  background: var(--accent);
+  box-shadow: 0 6px 18px rgba(106, 13, 173, 0.4);
+}
+
+/* ---------------- FINAL SUMMARY ---------------- */
+#final-summary {
+  display: none;
+  margin-top: 30px;
+  background: var(--text-light);
+  border-radius: 15px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  padding: 15px;
+}
+
+#final-summary table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#final-summary th,
+#final-summary td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+
+#final-summary th {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: var(--text-light);
+}
+
+/* ---------------- RESPONSIVE ---------------- */
+@media (max-width: 768px) {
+  table, th, td {
+    font-size: 14px;
+  }
   input[type="number"] {
-    width: 60px;
-    text-align: center;
-    border: 1px solid var(--accent);
-    border-radius: 8px;
-    padding: 5px;
-    transition: 0.3s ease;
+    width: 50px;
+    padding: 4px;
   }
-
-  input[type="number"]:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 5px var(--accent);
-  }
-
-  .subheader {
-    background-color: var(--accent);
-    font-weight: bold;
-    font-style: italic;
-    text-align: left;
-    color: var(--text-light);
-  }
-
-  .total-row {
-    background: linear-gradient(90deg, var(--primary), var(--accent)) !important;
-    color: var(--text-light);
-    font-weight: bold;
-  }
-
-  .title-box {
-    text-align: center;
-    background: linear-gradient(90deg, var(--primary), var(--accent));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-size: 1.6em;
-    font-weight: 700;
-    margin: 30px 0 20px;
-  }
-
-  .submit-container {
-    text-align: center;
-    margin-top: 30px;
-  }
-
-  .submit-button {
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    color: var(--text-light);
-    border: none;
-    padding: 15px 35px;
-    font-size: 18px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: 0.3s ease;
-    box-shadow: 0 4px 12px rgba(106, 13, 173, 0.3);
-    margin: 5px;
-  }
-
-  .submit-button:hover {
-    background: var(--accent);
-    box-shadow: 0 6px 18px rgba(106, 13, 173, 0.4);
-  }
-
-  @media (max-width: 768px) {
-    table, th, td { font-size: 14px; }
-    input[type="number"] { width: 50px; padding: 4px; }
-  }
-
-  #final-summary {
-    display: none;
-    margin-top: 30px;
-    background: var(--text-light);
-    border-radius: 15px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
-    padding: 15px;
-  }
-
-  #final-summary table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  #final-summary th, #final-summary td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: center;
-  }
-
-  #final-summary th {
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    color: var(--text-light);
-  }
+}
 </style>
 </head>
-
 <body>
 
+  <!-- ================= HEADER ================= -->
   <div class="header">
-    <h2><i class="fas fa-users"></i> Team Members Details</h2>
-    <p>Review 1 Evaluation - {{ team_name }}</p>
+    <h2>
+      <i class="fas fa-users"></i>
+      Team Members Details
+    </h2>
+    <p>Review 1 Evaluation – {{ team_name }}</p>
   </div>
 
+  <!-- ================= TEAM DETAILS TABLE ================= -->
   <table>
     <thead>
       <tr>
@@ -184,6 +209,7 @@
         <th>Project Supervisor</th>
       </tr>
     </thead>
+
     <tbody>
       {% for member in team_members %}
       <tr>
@@ -193,17 +219,22 @@
         <td>{{ member }}</td>
         <td>{{ member.supervisor }}</td>
       </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5">No team members found</td>
+      </tr>
       {% endfor %}
     </tbody>
   </table>
 
+  <!-- ================= TITLE ================= -->
   <div class="title-box">
     Team Members Contribution and Performance Evaluation
   </div>
 
+  <!-- ================= FORM START ================= -->
   <form method="POST" id="evaluation-form">
     {% csrf_token %}
-
     <table>
       <thead>
         <tr>
@@ -217,7 +248,7 @@
 
       <tbody>
 
-        <!-- Problem Formulation -->
+        <!-- ================= PROBLEM FORMULATION ================= -->
         <tr class="subheader">
           <td colspan="{{ team_members|length|add:'2' }}">Problem Formulation</td>
         </tr>
@@ -236,9 +267,11 @@
           {% endfor %}
         </tr>
 
-        <!-- Knowledge -->
+        <!-- ================= KNOWLEDGE ================= -->
         <tr class="subheader">
-          <td colspan="{{ team_members|length|add:'2' }}">Knowledge / Understanding of the Project</td>
+          <td colspan="{{ team_members|length|add:'2' }}">
+            Knowledge / Understanding of the Project
+          </td>
         </tr>
         <tr>
           <td>Review of the Literature - Knowledge about Existing Method</td>
@@ -255,9 +288,11 @@
           {% endfor %}
         </tr>
 
-        <!-- Objectives -->
+        <!-- ================= OBJECTIVES & METHODOLOGY ================= -->
         <tr class="subheader">
-          <td colspan="{{ team_members|length|add:'2' }}">Objectives and Methodology of Proposed Work</td>
+          <td colspan="{{ team_members|length|add:'2' }}">
+            Objectives and Methodology of Proposed Work
+          </td>
         </tr>
         <tr>
           <td>Problem Identification</td>
@@ -281,7 +316,7 @@
           {% endfor %}
         </tr>
 
-        <!-- Work Progress -->
+        <!-- ================= WORK PROGRESS ================= -->
         <tr class="subheader">
           <td colspan="{{ team_members|length|add:'2' }}">Work Progress</td>
         </tr>
@@ -300,9 +335,11 @@
           {% endfor %}
         </tr>
 
-        <!-- Society -->
+        <!-- ================= SOCIETY & ENVIRONMENT ================= -->
         <tr class="subheader">
-          <td colspan="{{ team_members|length|add:'2' }}">Society and Environmental Relevance</td>
+          <td colspan="{{ team_members|length|add:'2' }}">
+            Society and Environmental Relevance
+          </td>
         </tr>
         <tr>
           <td>Society and Environmental Relevance</td>
@@ -312,7 +349,7 @@
           {% endfor %}
         </tr>
 
-        <!-- Presentation -->
+        <!-- ================= PRESENTATION ================= -->
         <tr class="subheader">
           <td colspan="{{ team_members|length|add:'2' }}">Presentation</td>
         </tr>
@@ -331,7 +368,7 @@
           {% endfor %}
         </tr>
 
-        <!-- Team Work -->
+        <!-- ================= TEAM WORK ================= -->
         <tr class="subheader">
           <td colspan="{{ team_members|length|add:'2' }}">Team Work</td>
         </tr>
@@ -343,9 +380,11 @@
           {% endfor %}
         </tr>
 
-        <!-- Future -->
+        <!-- ================= FUTURE WORK ================= -->
         <tr class="subheader">
-          <td colspan="{{ team_members|length|add:'2' }}">Planning for Future Work</td>
+          <td colspan="{{ team_members|length|add:'2' }}">
+            Planning for Future Work
+          </td>
         </tr>
         <tr>
           <td>Estimate of the Proposed Work</td>
@@ -369,7 +408,7 @@
           {% endfor %}
         </tr>
 
-        <!-- Viva -->
+        <!-- ================= VIVA VOCE ================= -->
         <tr class="subheader">
           <td colspan="{{ team_members|length|add:'2' }}">Viva Voce</td>
         </tr>
@@ -395,7 +434,7 @@
           {% endfor %}
         </tr>
 
-        <!-- Extra -->
+        <!-- ================= EXTRA ================= -->
         <tr class="subheader">
           <td colspan="{{ team_members|length|add:'2' }}">Extra Evaluation</td>
         </tr>
@@ -407,7 +446,7 @@
           {% endfor %}
         </tr>
 
-        <!-- TOTAL -->
+        <!-- ================= TOTAL ================= -->
         <tr class="total-row">
           <td><b>Total</b></td>
           <td><b>100</b></td>
@@ -418,16 +457,27 @@
 
       </tbody>
     </table>
-
+    <!-- ================= ACTION BUTTONS ================= -->
     <div class="submit-container">
-      <button type="button" id="confirm-btn">Confirm Marks</button>
-      <button type="submit" id="submit-btn" disabled>Submit & Generate Report</button>
+      <button type="button" class="submit-button" id="confirm-btn">
+        ✅ Confirm Marks
+      </button>
+
+      <button type="button"
+              class="submit-button"
+              id="download-btn"
+              style="display:none;">
+        ⬇️ Download DOCX
+      </button>
     </div>
 
   </form>
+  <!-- ================= FORM END ================= -->
 
-  <div id="final-summary" style="display:none">
+  <!-- ================= FINAL EVALUATION SUMMARY ================= -->
+  <div id="final-summary">
     <h3>Final Evaluation Summary - {{ team_name }}</h3>
+
     <table>
       <thead>
         <tr>
@@ -439,178 +489,178 @@
           <th>Total</th>
         </tr>
       </thead>
-      <tbody id="summary-body"></tbody>
+
+      <tbody id="summary-body">
+        <!-- JS will populate -->
+      </tbody>
     </table>
   </div>
-
-
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-    const MAX_MARK = 5;
-    const MIN_MARK = 0;
-    const totalInputs = 20;
-    const autoFillLimit = 16;
+  const MAX_MARK = 5;
+  const MIN_MARK = 0;
+  const totalInputs = 20;
+  const autoFillLimit = 16;
 
-    const inputs = document.querySelectorAll("input[type='number']");
-    const memberCount = {{ team_members|length }};
+  const inputs = document.querySelectorAll("input[type='number']");
+  const memberCount = {{ team_members|length }};
 
-    /* ---------- TEAM MEMBERS ARRAY (DJANGO → JS SAFE) ---------- */
-    const teamMembers = [
-        {% for member in team_members %}
-            "{{ member }}",
-        {% endfor %}
-    ];
+  /* ---------- TEAM MEMBERS ---------- */
+  const teamMembers = [
+    {% for member in team_members %}
+      "{{ member }}",
+    {% endfor %}
+  ];
 
-    /* ---------- INITIALIZE DATA ATTRIBUTES ---------- */
-    inputs.forEach((inp, idx) => {
-        inp.dataset.manual = "false";
-        inp.dataset.memberIndex = idx % memberCount;
-        inp.dataset.criteriaIndex = Math.floor(idx / memberCount);
-    });
+  /* ---------- INIT INPUT METADATA ---------- */
+  inputs.forEach((inp, idx) => {
+    inp.dataset.manual = "false";
+    inp.dataset.memberIndex = idx % memberCount;
+    inp.dataset.criteriaIndex = Math.floor(idx / memberCount);
+  });
 
-    /* ---------- FORCE VALUE BETWEEN 0 AND 5 ---------- */
-    function sanitizeInput(input) {
-        let value = parseInt(input.value);
-        if (isNaN(value)) value = 0;
-        if (value > MAX_MARK) value = MAX_MARK;
-        if (value < MIN_MARK) value = MIN_MARK;
-        input.value = value;
-    }
+  /* ---------- SANITIZE ---------- */
+  function sanitizeInput(input) {
+    let value = parseInt(input.value);
+    if (isNaN(value)) value = 0;
+    if (value > MAX_MARK) value = MAX_MARK;
+    if (value < MIN_MARK) value = MIN_MARK;
+    input.value = value;
+  }
 
-    /* ---------- CALCULATE TOTAL ---------- */
-    function calculateTotal() {
-        for (let m = 0; m < memberCount; m++) {
-            let sum = 0;
-            inputs.forEach(inp => {
-                if (parseInt(inp.dataset.memberIndex) === m) {
-                    sum += parseInt(inp.value) || 0;
-                }
-            });
-            document.getElementById(`total-${m}`).textContent = sum;
+  /* ---------- TOTAL ---------- */
+  function calculateTotal() {
+    for (let m = 0; m < memberCount; m++) {
+      let sum = 0;
+      inputs.forEach(inp => {
+        if (parseInt(inp.dataset.memberIndex) === m) {
+          sum += parseInt(inp.value) || 0;
         }
+      });
+      document.getElementById(`total-${m}`).textContent = sum;
     }
+  }
 
-    /* ---------- INPUT HANDLING ---------- */
-    inputs.forEach(inp => {
+  /* ---------- INPUT HANDLING ---------- */
+  inputs.forEach(inp => {
 
-        inp.addEventListener("input", function () {
-            sanitizeInput(this);
+    inp.addEventListener("input", function () {
+      sanitizeInput(this);
 
-            const memberIndex = parseInt(this.dataset.memberIndex);
-            const criteriaIndex = parseInt(this.dataset.criteriaIndex);
+      const memberIndex = parseInt(this.dataset.memberIndex);
+      const criteriaIndex = parseInt(this.dataset.criteriaIndex);
 
-            /* ---- AUTO FILL LOGIC (OLD WORKING LOGIC) ---- */
-            if (memberIndex === 0 && criteriaIndex < autoFillLimit) {
-                inputs.forEach(other => {
-                    if (
-                        parseInt(other.dataset.memberIndex) > 0 &&
-                        parseInt(other.dataset.criteriaIndex) === criteriaIndex &&
-                        other.dataset.manual === "false"
-                    ) {
-                        other.value = this.value;
-                    }
-                });
-            }
-
-            if (memberIndex > 0) {
-                this.dataset.manual = "true";
-            }
-
-            calculateTotal();
+      /* AUTO FILL */
+      if (memberIndex === 0 && criteriaIndex < autoFillLimit) {
+        inputs.forEach(other => {
+          if (
+            parseInt(other.dataset.memberIndex) > 0 &&
+            parseInt(other.dataset.criteriaIndex) === criteriaIndex &&
+            other.dataset.manual === "false"
+          ) {
+            other.value = this.value;
+          }
         });
+      }
 
-        /* ---- PREVENT PASTE > 5 ---- */
-        inp.addEventListener("paste", function (e) {
-            e.preventDefault();
-            let pasted = parseInt((e.clipboardData || window.clipboardData).getData("text"));
-            if (isNaN(pasted)) pasted = 0;
-            if (pasted > MAX_MARK) pasted = MAX_MARK;
-            this.value = pasted;
-            this.dispatchEvent(new Event("input"));
-        });
+      if (memberIndex > 0) {
+        this.dataset.manual = "true";
+      }
+
+      calculateTotal();
     });
 
-    calculateTotal();
+    inp.addEventListener("paste", function (e) {
+      e.preventDefault();
+      let pasted = parseInt((e.clipboardData || window.clipboardData).getData("text"));
+      if (isNaN(pasted)) pasted = 0;
+      if (pasted > MAX_MARK) pasted = MAX_MARK;
+      this.value = pasted;
+      this.dispatchEvent(new Event("input"));
+    });
+  });
 
-    /* ---------- CONFIRM BUTTON ---------- */
-    const confirmBtn = document.getElementById("confirm-btn");
-    const submitBtn = document.getElementById("submit-btn");
-    const summaryBody = document.getElementById("summary-body");
-    const finalSummary = document.getElementById("final-summary");
+  calculateTotal();
 
-    if (confirmBtn) {
-        confirmBtn.addEventListener("click", function () {
+  /* ---------- BUTTONS ---------- */
+  const confirmBtn = document.getElementById("confirm-btn");
+  const downloadBtn = document.getElementById("download-btn");
+  const summaryBody = document.getElementById("summary-body");
+  const finalSummary = document.getElementById("final-summary");
 
-            summaryBody.innerHTML = "";
+  /* ---------- CONFIRM ---------- */
+  confirmBtn.addEventListener("click", function () {
 
-            for (let m = 0; m < memberCount; m++) {
-                const row = document.createElement("tr");
-                let rowHTML = `<td>${teamMembers[m]}</td>`;
+    summaryBody.innerHTML = "";
 
-                for (let c = 0; c < totalInputs; c++) {
-                    const inp = Array.from(inputs).find(i =>
-                        parseInt(i.dataset.memberIndex) === m &&
-                        parseInt(i.dataset.criteriaIndex) === c
-                    );
-                    rowHTML += `<td>${inp ? inp.value : 0}</td>`;
-                }
+    for (let m = 0; m < memberCount; m++) {
+      let rowHTML = `<td>${teamMembers[m]}</td>`;
 
-                const total = document.getElementById(`total-${m}`).textContent;
-                rowHTML += `<td>${total}</td>`;
+      for (let c = 0; c < totalInputs; c++) {
+        const inp = Array.from(inputs).find(i =>
+          parseInt(i.dataset.memberIndex) === m &&
+          parseInt(i.dataset.criteriaIndex) === c
+        );
+        rowHTML += `<td>${inp ? inp.value : 0}</td>`;
+      }
 
-                row.innerHTML = rowHTML;
-                summaryBody.appendChild(row);
-            }
+      rowHTML += `<td>${document.getElementById(`total-${m}`).textContent}</td>`;
 
-            finalSummary.style.display = "block";
-            submitBtn.disabled = false;
-
-            window.scrollTo({
-                top: finalSummary.offsetTop,
-                behavior: "smooth"
-            });
-        });
+      const row = document.createElement("tr");
+      row.innerHTML = rowHTML;
+      summaryBody.appendChild(row);
     }
 
-    /* ---------- FORM SUBMIT (OLD LOGIC – UNCHANGED) ---------- */
-    document.getElementById("evaluation-form").addEventListener("submit", function (e) {
-        e.preventDefault();
+    finalSummary.style.display = "block";
+    downloadBtn.style.display = "inline-block";
 
-        const savedEvaluations = {};
+    window.scrollTo({ top: finalSummary.offsetTop, behavior: "smooth" });
+  });
 
-        {% for member in team_members %}
-        savedEvaluations["team_member-{{ member }}"] = [];
-        for (let i = 0; i < totalInputs; i++) {
-            const inp = Array.from(inputs).find(input =>
-                parseInt(input.dataset.memberIndex) === {{ forloop.counter0 }} &&
-                parseInt(input.dataset.criteriaIndex) === i
-            );
-            savedEvaluations["team_member-{{ member }}"].push(inp ? inp.value : 0);
-        }
-        {% endfor %}
+  /* ---------- DOWNLOAD DOCX (FIXED) ---------- */
+  downloadBtn.addEventListener("click", function () {
 
-        fetch("{% url 'save_evaluation_review1' %}", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": "{{ csrf_token }}"
-            },
-            body: JSON.stringify({
-                team_name: "{{ team_name }}",
-                evaluations: savedEvaluations
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.status === "success") {
-                alert(`✅ Report generated successfully!\nFile: ${data.file_path}`);
-            } else {
-                alert(`❌ Error: ${data.message}`);
-            }
-        })
-        .catch(err => console.error(err));
+    const savedEvaluations = {};
+
+    {% for member in team_members %}
+    savedEvaluations["team_member-{{ member }}"] = [];
+    for (let i = 0; i < totalInputs; i++) {
+      const inp = Array.from(inputs).find(input =>
+        parseInt(input.dataset.memberIndex) === {{ forloop.counter0 }} &&
+        parseInt(input.dataset.criteriaIndex) === i
+      );
+      savedEvaluations["team_member-{{ member }}"].push(inp ? inp.value : 0);
+    }
+    {% endfor %}
+
+    fetch("{% url 'save_evaluation_review1' %}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": "{{ csrf_token }}"
+      },
+      body: JSON.stringify({
+        team_name: "{{ team_name }}",
+        evaluations: savedEvaluations
+      })
+    })
+    .then(response => response.blob())
+    .then(blob => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "{{ team_name }}_Review1.docx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    })
+    .catch(err => {
+      console.error(err);
+      alert("❌ DOCX download failed");
     });
+  });
 
 });
 </script>

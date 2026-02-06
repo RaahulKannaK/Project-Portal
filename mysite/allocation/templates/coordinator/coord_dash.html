@@ -148,18 +148,23 @@ body{
 <!-- SIDEBAR -->
 <aside class="sidebar">
   <div class="brand">
-    <i class="fas fa-user"></i><h4>Coordinator Hub</h4>
+    <i class="fas fa-user"></i>
+    <h4>Coordinator Hub</h4>
   </div>
-  <div class="nav-item active" onclick="showSection('overview',this)">
+
+  <div class="nav-item active" onclick="showSection('overview', this)">
     <i class="fas fa-home"></i> Overview
   </div>
-  <div class="nav-item" onclick="showSection('announce',this)">
+
+  <div class="nav-item" onclick="showSection('announce', this)">
     <i class="fas fa-bullhorn"></i> Announcements
   </div>
-  <div class="nav-item" onclick="showSection('chat',this)">
-    <i class="fas fa-comments"></i> Chatbot
+
+  <div class="nav-item" onclick="showSection('csvUpload', this)">
+    <i class="fas fa-file-csv"></i> Student CSV Upload
   </div>
 </aside>
+
 
 <!-- MAIN -->
 <main class="main-content">
@@ -267,14 +272,85 @@ body{
 </section>
 
 <!-- CHAT -->
-<section id="chat" class="section d-none">
-<h5>Chatbot</h5>
-<div id="chatBox" style="background:#fff;height:300px;padding:10px;overflow:auto;border-radius:10px"></div>
-<div class="d-flex mt-2 gap-2">
-<input id="chatInput" class="form-control">
-<button class="btn btn-primary" onclick="sendChat()">Send</button>
+<section id="csvUpload" class="section d-none">
+<h5>📤 Student CSV Upload</h5>
+
+<div class="card-lg alt" style="background:#fff">
+
+  <div class="info mb-3" style="background:#e8f1ff;padding:15px;border-left:4px solid #0d6efd">
+    <strong>CSV Format Required:</strong>
+    <table class="table table-sm mt-2">
+      <thead>
+        <tr>
+          <th>student_id</th>
+          <th>name</th>
+          <th>cgpa</th>
+          <th>class</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>24UCS201</td>
+          <td>Salis</td>
+          <td>8.5</td>
+          <td>CSE-B</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" action="{% url 'upload_csv' %}">
+    {% csrf_token %}
+    <input type="file" name="file" accept=".csv" class="form-control mb-3" required>
+    <button type="submit" class="btn btn-success">Upload CSV</button>
+  </form>
+
+  {% if error %}
+    <div class="alert alert-danger mt-3">{{ error }}</div>
+  {% endif %}
+
+  {% if show_results %}
+    {% if allowed %}
+    <div class="alert alert-success mt-4">
+      <h6>✅ Imported Successfully ({{ allowed|length }})</h6>
+      <table class="table table-bordered mt-2">
+        <tr>
+          <th>ID</th><th>Name</th><th>CGPA</th><th>Class</th>
+        </tr>
+        {% for s in allowed %}
+        <tr>
+          <td>{{ s.student_id }}</td>
+          <td>{{ s.name }}</td>
+          <td>{{ s.cgpa }}</td>
+          <td>{{ s.class }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endif %}
+
+    {% if not_allowed %}
+    <div class="alert alert-danger mt-4">
+      <h6>❌ Failed Records ({{ not_allowed|length }})</h6>
+      <table class="table table-bordered mt-2">
+        <tr>
+          <th>ID</th><th>Name</th><th>Reason</th>
+        </tr>
+        {% for s in not_allowed %}
+        <tr>
+          <td>{{ s.student_id }}</td>
+          <td>{{ s.name }}</td>
+          <td>{{ s.reason }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endif %}
+  {% endif %}
+
 </div>
 </section>
+
 
 </main>
 </div>
@@ -282,30 +358,70 @@ body{
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-function showSection(id,el){
-  document.querySelectorAll('.section').forEach(s=>s.classList.add('d-none'));
-  document.getElementById(id).classList.remove('d-none');
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  if(el) el.classList.add('active');
+/* =========================
+   SECTION SWITCHING
+========================= */
+function showSection(id, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.add('d-none'));
+
+  const activeSection = document.getElementById(id);
+  if (activeSection) {
+    activeSection.classList.remove('d-none');
+  }
+
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
 }
 
-setInterval(()=>clock.innerText=new Date().toLocaleTimeString(),1000);
-
-function toggleFields(){
-  deadlineFields.classList.add('d-none');
-  scheduleFields.classList.add('d-none');
-  instructionFields.classList.add('d-none');
-  if(annType.value==='deadline') deadlineFields.classList.remove('d-none');
-  if(annType.value==='schedule') scheduleFields.classList.remove('d-none');
-  if(annType.value==='instruction') instructionFields.classList.remove('d-none');
+/* =========================
+   LIVE CLOCK (SAFE)
+========================= */
+const clock = document.getElementById("clock");
+if (clock) {
+  setInterval(() => {
+    clock.innerText = new Date().toLocaleTimeString();
+  }, 1000);
 }
 
-function sendChat(){
-  let v=chatInput.value.trim();
-  if(!v) return;
-  chatBox.insertAdjacentHTML('beforeend',`<div><b>You:</b> ${v}</div>`);
-  chatInput.value='';
+/* =========================
+   ANNOUNCEMENT FIELD TOGGLE
+========================= */
+function toggleFields() {
+  const annType = document.getElementById("annType");
+  const deadlineFields = document.getElementById("deadlineFields");
+  const scheduleFields = document.getElementById("scheduleFields");
+  const instructionFields = document.getElementById("instructionFields");
+
+  if (!annType) return;
+
+  deadlineFields?.classList.add("d-none");
+  scheduleFields?.classList.add("d-none");
+  instructionFields?.classList.add("d-none");
+
+  if (annType.value === "deadline") {
+    deadlineFields?.classList.remove("d-none");
+  }
+  if (annType.value === "schedule") {
+    scheduleFields?.classList.remove("d-none");
+  }
+  if (annType.value === "instruction") {
+    instructionFields?.classList.remove("d-none");
+  }
 }
+
+/* =========================
+   AUTO-OPEN CSV SECTION
+   (AFTER POST RESULT)
+========================= */
+document.addEventListener("DOMContentLoaded", function () {
+  const hasResults =
+    document.querySelector(".alert-success") ||
+    document.querySelector(".alert-danger");
+
+  if (hasResults) {
+    showSection("csvUpload");
+  }
+});
 </script>
 
 </body>

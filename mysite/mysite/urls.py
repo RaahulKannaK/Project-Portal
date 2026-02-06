@@ -12,7 +12,7 @@ from allocation.views import (
     mentor_list, zero_ma, allocate_view, zero_men, one_men, three_men, two_men,
     zero_review, zero_base, zero_ppt, zero_form, men_ppt, hod_dashboard, coordinator_dashboard,
     team_list, save_evaluation, clean_text, zero_stu, one_stu, two_stu, three_stu,
-    approve_team, modify_team, zero_ma1, download_docx, download_pdf, one_ma,two_ma,three_ma,
+    approve_team, modify_team, zero_ma1, download_docx, download_pdf, one_ma,two_ma,three_ma,upload_csv,
     save_evaluation_review1,save_evaluation_review2,save_evaluation_review3, serve_pdf, save_zeroth_remark, acknowledge_announcement,serve_temp_html
 )
 
@@ -75,6 +75,9 @@ urlpatterns = [
     path('download/<str:team_name>/docx/', download_docx, name='download_docx'),
     path('download/<str:team_name>/pdf/', download_pdf, name='download_pdf'),
     path('mentor/pdf/<str:team_name>/<str:pdf_type>/', serve_pdf, name='serve_pdf'),
+    # ---------------- CSV Upload ----------------
+    path("coordinator/upload-csv/", upload_csv, name="upload_csv"),
+
     # ---------------- Announcements ----------------
     path("student/ack/<int:status_id>/", acknowledge_announcement, name="ack_announcement"),
     path("mentor/temp-html/<str:team>/<str:filename>/",serve_temp_html,name="serve_temp_html"),

@@ -277,6 +277,105 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.utils import timezone
 
+import pandas as pd
+from django.shortcuts import render
+from .models import Student
+
+REQUIRED_COLUMNS = {"student_id", "name", "cgpa", "class"}
+
+def upload_csv(request):
+    allowed = []
+    not_allowed = []
+
+    if request.method == 'POST':
+        file = request.FILES.get('file')
+
+        # ❌ No file
+        if not file:
+            return render(request, 'coordinator/coord_dash.html', {
+                'error': 'No file uploaded'
+            })
+
+        # ❌ Excel file uploaded
+        if file.name.endswith(('.xlsx', '.xls')):
+            return render(request, 'coordinator/coord_dash.html', {
+                'error': 'Excel files are not supported. Please upload a CSV file.'
+            })
+
+        # ❌ Not CSV
+        if not file.name.endswith('.csv'):
+            return render(request, 'coordinator/coord_dash.html', {
+                'error': 'Invalid file type. Only CSV files are allowed.'
+            })
+
+        # ❌ CSV read error
+        try:
+            df = pd.read_csv(file)
+        except Exception:
+            return render(request, 'coordinator/coord_dash.html', {
+                'error': 'Unable to read CSV file. Please check the format.'
+            })
+
+        # ❌ Empty file
+        if df.empty:
+            return render(request, 'coordinator/coord_dash.html', {
+                'error': 'CSV file is empty.'
+            })
+
+        # 🔥 Normalize column names
+        df.columns = df.columns.str.strip().str.lower()
+
+        # ❌ Missing required columns
+        if not REQUIRED_COLUMNS.issubset(set(df.columns)):
+            return render(request, 'coordinator/coord_dash.html', {
+                'error': f'CSV must contain columns: {", ".join(REQUIRED_COLUMNS)}'
+            })
+
+        # ✅ Process rows
+        for _, row in df.iterrows():
+            try:
+                student_id = str(row['student_id']).strip()
+                name = str(row['name']).strip()
+                cgpa = float(row['cgpa'])
+                class_name = str(row['class']).strip()
+
+                if not student_id or not name or not class_name:
+                    raise ValueError("Missing required fields")
+
+                if cgpa < 0 or cgpa > 10:
+                    raise ValueError("CGPA must be between 0 and 10")
+
+                Student.objects.update_or_create(
+                    student_id=student_id,
+                    defaults={
+                        'name': name,
+                        'cgpa': cgpa,
+                        'class_name': class_name
+                    }
+                )
+
+                allowed.append({
+                    'student_id': student_id,
+                    'name': name,
+                    'cgpa': cgpa,
+                    'class': class_name
+                })
+
+            except Exception as e:
+                not_allowed.append({
+                    'student_id': row.get('student_id', ''),
+                    'name': row.get('name', ''),
+                    'reason': str(e)
+                })
+
+        return render(request, 'coordinator/coord_dash.html', {
+            'allowed': allowed,
+            'not_allowed': not_allowed,
+            'show_results': True
+        })
+
+    return render(request, 'coordinator/coord_dash.html')
+
 
 def coordinator_dashboard(request):
 
@@ -440,6 +539,7 @@ def coordinator_dashboard(request):
         "coordinator": coordinator,
         "announcements": announcements
     })
+
 
 def logout_view(request):
     logout(request)
@@ -1033,6 +1133,8 @@ def zero_review(request):
     cloud_url = project_file.cloudinary_url
 
     temp_dir = os.path.join(settings.MEDIA_ROOT, "temp_html", folder_name)
+    docker_temp_dir = os.path.abspath(temp_dir).replace("\\", "/")
+
     os.makedirs(temp_dir, exist_ok=True)
 
     pdf_name = f"{folder_name}_Abstract.pdf"
@@ -1063,7 +1165,7 @@ def zero_review(request):
             subprocess.run(
                 [
                     "docker", "run", "--rm",
-                    "-v", f"{temp_dir}:/pdf",
+                    "-v", f"{docker_temp_dir}:/pdf",
                     "pdf2html_local",
                     pdf_name,
                     "--dest-dir", "/pdf"
@@ -1612,7 +1714,7 @@ def upload_to_cloudinary(file_obj, file_type, folder_name):
         result = cloudinary.uploader.upload(
             file_obj,
             resource_type="auto",       # Supports PDF, PPT, etc.
-            folder=f"project_portal/{folder_name}",
+            folder=f"project_portal/Upload_docs/{folder_name}",
             public_id=f"{folder_name}_{file_type}",
             overwrite=True,
             use_filename=True,
@@ -2125,6 +2227,7 @@ def download_docx(request, team_name):
     # -------------------------------------------------
     return redirect(docx_url)
 
+
 import os
 import pdfkit
 from django.http import FileResponse, JsonResponse
@@ -2195,11 +2298,16 @@ from django.conf import settings
 from docx import Document
 from django.views.decorators.csrf import csrf_exempt
 
+from django.http import JsonResponse, HttpResponse
+from docx import Document
+from django.conf import settings
+import json, os, io, time, traceback
 
 @csrf_exempt
 def save_evaluation_review1(request):
     """
-    📝 Save FIRST REVIEW Evaluation Marks into DOCX
+    📝 Save FIRST REVIEW Evaluation Marks
+    📥 DIRECT DOCX DOWNLOAD (NO LOCAL SAVE)
     """
 
     if request.method != "POST":
@@ -2211,7 +2319,7 @@ def save_evaluation_review1(request):
     try:
         data = json.loads(request.body)
         team_name = data.get("team_name")
-        evaluations = data.get("evaluations")  # {"member_name": [marks list]}
+        evaluations = data.get("evaluations")
 
         if not team_name or not evaluations:
             return JsonResponse(
@@ -2219,13 +2327,10 @@ def save_evaluation_review1(request):
                 status=400
             )
 
-        # -------------------------------------------------
-        # Safe team name (filesystem)
-        # -------------------------------------------------
         team_name_fs = team_name.replace(" ", "_")
 
         # -------------------------------------------------
-        # Paths
+        # Load TEMPLATE ONLY (no output file)
         # -------------------------------------------------
         template_path = os.path.join(
             settings.BASE_DIR,
@@ -2234,31 +2339,13 @@ def save_evaluation_review1(request):
             "first_review_mark.docx"
         )
 
-        output_dir = os.path.join(settings.BASE_DIR, "generated_docs")
-        os.makedirs(output_dir, exist_ok=True)
+        if not os.path.exists(template_path):
+            return JsonResponse(
+                {"status": "error", "message": "DOCX template not found"},
+                status=500
+            )
 
-        output_path = os.path.join(
-            output_dir,
-            f"{team_name_fs}_Review1.docx"
-        )
-
-        print("[DEBUG] Review1 output:", output_path)
-
-        # -------------------------------------------------
-        # Load existing doc OR template
-        # -------------------------------------------------
-        if os.path.exists(output_path):
-            doc = Document(output_path)
-        else:
-            if not os.path.exists(template_path):
-                return JsonResponse(
-                    {
-                        "status": "error",
-                        "message": f"Template not found: {template_path}"
-                    },
-                    status=500
-                )
-            doc = Document(template_path)
+        doc = Document(template_path)
 
         # -------------------------------------------------
         # Update title
@@ -2269,67 +2356,54 @@ def save_evaluation_review1(request):
                 break
 
         # -------------------------------------------------
-        # TEAM MEMBERS table (assumed first table)
+        # TEAM MEMBERS TABLE (Table 0)
         # -------------------------------------------------
         members_table = doc.tables[0]
-
-        start_row = 2  # after headers
+        start_row = 2
         existing_names = []
 
         for r in members_table.rows[start_row:]:
-            if len(r.cells) >= 4 and r.cells[3].text.strip():
+            if r.cells[3].text.strip():
                 existing_names.append(r.cells[3].text.strip())
 
         current_index = len(existing_names) + 1
 
         for member_key in evaluations.keys():
-            clean_name = member_key.replace("team_member-", "").strip()
-
-            if clean_name in existing_names:
+            name = member_key.replace("team_member-", "").strip()
+            if name in existing_names:
                 continue
 
-            row_index = start_row + (current_index - 1)
-            if row_index >= len(members_table.rows):
+            if start_row + current_index - 1 >= len(members_table.rows):
                 members_table.add_row()
 
-            members_table.rows[row_index].cells[0].text = str(current_index)
-            members_table.rows[row_index].cells[3].text = clean_name
+            row = members_table.rows[start_row + current_index - 1]
+            row.cells[0].text = str(current_index)
+            row.cells[3].text = name
 
-            existing_names.append(clean_name)
+            existing_names.append(name)
             current_index += 1
 
         # -------------------------------------------------
-        # Map member → S.NO
+        # MAP MEMBER → S.NO
         # -------------------------------------------------
         member_to_sno = {}
         for r in members_table.rows[start_row:]:
-            if len(r.cells) >= 4 and r.cells[3].text.strip():
-                name = r.cells[3].text.strip().lower()
-                sno = r.cells[0].text.strip()
-                member_to_sno[name] = sno
-
-        print("[DEBUG] Member → S.NO:", member_to_sno)
+            if r.cells[3].text.strip():
+                member_to_sno[r.cells[3].text.strip().lower()] = r.cells[0].text.strip()
 
         # -------------------------------------------------
-        # MARKS table (assumed second table)
+        # MARKS TABLE (Table 1)
         # -------------------------------------------------
         marks_table = doc.tables[1]
 
-        # -------------------------------------------------
-        # Detect TOTAL row
-        # -------------------------------------------------
         total_row = None
         for i, row in enumerate(marks_table.rows):
             if "total" in row.cells[0].text.lower():
                 total_row = i
                 break
-
         if total_row is None:
             total_row = len(marks_table.rows) - 1
 
-        # -------------------------------------------------
-        # Detect S.NO → column mapping
-        # -------------------------------------------------
         sno_col_map = {}
         sno_row_idx = None
 
@@ -2341,20 +2415,17 @@ def save_evaluation_review1(request):
             if sno_col_map:
                 break
 
-        print("[DEBUG] S.NO → Column:", sno_col_map)
-
         # -------------------------------------------------
-        # Insert marks
+        # INSERT MARKS
         # -------------------------------------------------
         for member_key, marks_list in evaluations.items():
-            clean_name = member_key.replace("team_member-", "").strip().lower()
-            sno = member_to_sno.get(clean_name)
-
+            name = member_key.replace("team_member-", "").strip().lower()
+            sno = member_to_sno.get(name)
             if not sno:
                 continue
 
-            col_idx = sno_col_map.get(sno)
-            if col_idx is None:
+            col = sno_col_map.get(sno)
+            if col is None:
                 continue
 
             total = 0
@@ -2363,44 +2434,36 @@ def save_evaluation_review1(request):
             for mark in marks_list:
                 if row_idx >= total_row:
                     break
-                try:
-                    marks_table.rows[row_idx].cells[col_idx].text = str(mark)
-                    total += int(mark)
-                except:
-                    pass
+                marks_table.rows[row_idx].cells[col].text = str(mark)
+                total += int(mark)
                 row_idx += 1
 
-            marks_table.rows[total_row].cells[col_idx].text = str(total)
+            marks_table.rows[total_row].cells[col].text = str(total)
 
         # -------------------------------------------------
-        # Safe save
+        # STREAM DOCX (NO SAVE)
         # -------------------------------------------------
-        try:
-            doc.save(output_path)
-        except PermissionError:
-            ts = time.strftime("%Y%m%d_%H%M%S")
-            alt = os.path.join(
-                output_dir,
-                f"{team_name_fs}_Review1_{ts}.docx"
-            )
-            doc.save(alt)
-            output_path = alt
+        buffer = io.BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
 
-        return JsonResponse(
-            {
-                "status": "success",
-                "message": "Review 1 marks saved successfully",
-                "file_path": output_path
-            }
+        response = HttpResponse(
+            buffer.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+        response["Content-Disposition"] = (
+            f'attachment; filename="{team_name_fs}_Review1.docx"'
         )
 
+        return response
+
     except Exception as e:
-        import traceback
         traceback.print_exc()
         return JsonResponse(
             {"status": "error", "message": str(e)},
             status=500
         )
+
 
 def save_evaluation_review2(request):
     """
