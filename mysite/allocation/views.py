@@ -2181,7 +2181,6 @@ from django.http import FileResponse, JsonResponse # type: ignore
 import os
 from django.conf import settings
 
-from docx2pdf import convert
 
 try:
     import pdfkit
