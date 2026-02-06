@@ -148,26 +148,6 @@ body{
 <!-- SIDEBAR -->
 <aside class="sidebar">
   <div class="brand">
-<<<<<<< HEAD
-    <i class="fas fa-user"></i>
-    <h4>Coordinator Hub</h4>
-  </div>
-
-  <div class="nav-item active" onclick="showSection('overview', this)">
-    <i class="fas fa-home"></i> Overview
-  </div>
-
-  <div class="nav-item" onclick="showSection('announce', this)">
-    <i class="fas fa-bullhorn"></i> Announcements
-  </div>
-
-  <div class="nav-item" onclick="showSection('csvUpload', this)">
-    <i class="fas fa-file-csv"></i> Student CSV Upload
-  </div>
-</aside>
-
-
-=======
     <i class="fas fa-user"></i><h4>Coordinator Hub</h4>
   </div>
   <div class="nav-item active" onclick="showSection('overview',this)">
@@ -176,12 +156,12 @@ body{
   <div class="nav-item" onclick="showSection('announce',this)">
     <i class="fas fa-bullhorn"></i> Announcements
   </div>
-  <div class="nav-item" onclick="showSection('chat',this)">
-    <i class="fas fa-comments"></i> Chatbot
+  <div class="nav-item" onclick="showSection('csvUpload',this)">
+    <i class="fas fa-file-csv"></i> Student CSV Upload
   </div>
+
 </aside>
 
->>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
 <!-- MAIN -->
 <main class="main-content">
 
@@ -287,8 +267,6 @@ body{
 </form>
 </section>
 
-<!-- CHAT -->
-<<<<<<< HEAD
 <section id="csvUpload" class="section d-none">
 <h5>📤 Student CSV Upload</h5>
 
@@ -317,6 +295,7 @@ body{
   </div>
 
   <form method="post" enctype="multipart/form-data" action="{% url 'upload_csv' %}">
+    
     {% csrf_token %}
     <input type="file" name="file" accept=".csv" class="form-control mb-3" required>
     <button type="submit" class="btn btn-success">Upload CSV</button>
@@ -369,24 +348,12 @@ body{
 </section>
 
 
-=======
-<section id="chat" class="section d-none">
-<h5>Chatbot</h5>
-<div id="chatBox" style="background:#fff;height:300px;padding:10px;overflow:auto;border-radius:10px"></div>
-<div class="d-flex mt-2 gap-2">
-<input id="chatInput" class="form-control">
-<button class="btn btn-primary" onclick="sendChat()">Send</button>
-</div>
-</section>
-
->>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
 </main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-<<<<<<< HEAD
 /* =========================
    SECTION SWITCHING
 ========================= */
@@ -451,33 +418,8 @@ document.addEventListener("DOMContentLoaded", function () {
     showSection("csvUpload");
   }
 });
-=======
-function showSection(id,el){
-  document.querySelectorAll('.section').forEach(s=>s.classList.add('d-none'));
-  document.getElementById(id).classList.remove('d-none');
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  if(el) el.classList.add('active');
-}
-
-setInterval(()=>clock.innerText=new Date().toLocaleTimeString(),1000);
-
-function toggleFields(){
-  deadlineFields.classList.add('d-none');
-  scheduleFields.classList.add('d-none');
-  instructionFields.classList.add('d-none');
-  if(annType.value==='deadline') deadlineFields.classList.remove('d-none');
-  if(annType.value==='schedule') scheduleFields.classList.remove('d-none');
-  if(annType.value==='instruction') instructionFields.classList.remove('d-none');
-}
-
-function sendChat(){
-  let v=chatInput.value.trim();
-  if(!v) return;
-  chatBox.insertAdjacentHTML('beforeend',`<div><b>You:</b> ${v}</div>`);
-  chatInput.value='';
-}
->>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
 </script>
+
 
 </body>
 </html>

@@ -195,18 +195,7 @@ onclick="document.getElementById('detectedHeading').value='{{ h|escapejs }}'">
 </div>
 </div>
 
-<!-- ✅ DB SAVED REMARKS JSON -->
-<script>
-const DB_SAVED_REMARKS = [
-{% for r in saved_remarks %}
-  {
-    heading: "{{ r.heading|escapejs }}",
-    remark: "{{ r.remark|escapejs }}",
-    color: "{{ r.color }}"
-  },
-{% endfor %}
-];
-</script>
+
 
 <script>
 document.addEventListener("DOMContentLoaded",()=>{

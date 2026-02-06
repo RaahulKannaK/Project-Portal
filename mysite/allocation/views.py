@@ -277,7 +277,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.utils import timezone
 
-<<<<<<< HEAD
+
 import pandas as pd
 from django.shortcuts import render
 from .models import Student
@@ -376,9 +376,6 @@ def upload_csv(request):
         })
 
     return render(request, 'coordinator/coord_dash.html')
-
-=======
->>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
 
 def coordinator_dashboard(request):
 
@@ -543,10 +540,6 @@ def coordinator_dashboard(request):
         "announcements": announcements
     })
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
 def logout_view(request):
     logout(request)
     return redirect("login")
@@ -1139,11 +1132,9 @@ def zero_review(request):
     cloud_url = project_file.cloudinary_url
 
     temp_dir = os.path.join(settings.MEDIA_ROOT, "temp_html", folder_name)
-<<<<<<< HEAD
+
     docker_temp_dir = os.path.abspath(temp_dir).replace("\\", "/")
 
-=======
->>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
     os.makedirs(temp_dir, exist_ok=True)
 
     pdf_name = f"{folder_name}_Abstract.pdf"
@@ -1174,11 +1165,9 @@ def zero_review(request):
             subprocess.run(
                 [
                     "docker", "run", "--rm",
-<<<<<<< HEAD
+
                     "-v", f"{docker_temp_dir}:/pdf",
-=======
-                    "-v", f"{temp_dir}:/pdf",
->>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
+
                     "pdf2html_local",
                     pdf_name,
                     "--dest-dir", "/pdf"
@@ -1727,11 +1716,8 @@ def upload_to_cloudinary(file_obj, file_type, folder_name):
         result = cloudinary.uploader.upload(
             file_obj,
             resource_type="auto",       # Supports PDF, PPT, etc.
-<<<<<<< HEAD
+
             folder=f"project_portal/Upload_docs/{folder_name}",
-=======
-            folder=f"project_portal/{folder_name}",
->>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
             public_id=f"{folder_name}_{file_type}",
             overwrite=True,
             use_filename=True,
@@ -2194,16 +2180,15 @@ def save_evaluation(request):
 from django.http import FileResponse, JsonResponse # type: ignore
 import os
 from django.conf import settings
-<<<<<<< HEAD
+
 from docx2pdf import convert
-=======
+
 try:
     import pdfkit
     from docx2pdf import convert
 except ImportError:
     pdfkit = None
     convert = None
->>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
 
 from django.shortcuts import redirect
 from django.http import JsonResponse
@@ -2253,11 +2238,9 @@ def download_docx(request, team_name):
     # -------------------------------------------------
     return redirect(docx_url)
 
-<<<<<<< HEAD
 
 import os
 import pdfkit
-=======
 import os
 try:
     import pdfkit
@@ -2265,7 +2248,6 @@ try:
 except ImportError:
     pdfkit = None
     convert = None
->>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
 from django.http import FileResponse, JsonResponse
 from django.conf import settings
 from docx import Document
@@ -2334,23 +2316,17 @@ from django.conf import settings
 from docx import Document
 from django.views.decorators.csrf import csrf_exempt
 
-<<<<<<< HEAD
+
 from django.http import JsonResponse, HttpResponse
 from docx import Document
 from django.conf import settings
 import json, os, io, time, traceback
-=======
->>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
 
 @csrf_exempt
 def save_evaluation_review1(request):
     """
-<<<<<<< HEAD
     📝 Save FIRST REVIEW Evaluation Marks
     📥 DIRECT DOCX DOWNLOAD (NO LOCAL SAVE)
-=======
-    📝 Save FIRST REVIEW Evaluation Marks into DOCX
->>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
     """
 
     if request.method != "POST":
@@ -2362,11 +2338,7 @@ def save_evaluation_review1(request):
     try:
         data = json.loads(request.body)
         team_name = data.get("team_name")
-<<<<<<< HEAD
-        evaluations = data.get("evaluations")
-=======
-        evaluations = data.get("evaluations")  # {"member_name": [marks list]}
->>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
+        evaluations = data.get("evaluations")  # {"team_member-X": [marks]}
 
         if not team_name or not evaluations:
             return JsonResponse(
@@ -2374,20 +2346,10 @@ def save_evaluation_review1(request):
                 status=400
             )
 
-<<<<<<< HEAD
         team_name_fs = team_name.replace(" ", "_")
 
         # -------------------------------------------------
-        # Load TEMPLATE ONLY (no output file)
-=======
-        # -------------------------------------------------
-        # Safe team name (filesystem)
-        # -------------------------------------------------
-        team_name_fs = team_name.replace(" ", "_")
-
-        # -------------------------------------------------
-        # Paths
->>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
+        # Load DOCX template
         # -------------------------------------------------
         template_path = os.path.join(
             settings.BASE_DIR,
@@ -2396,7 +2358,6 @@ def save_evaluation_review1(request):
             "first_review_mark.docx"
         )
 
-<<<<<<< HEAD
         if not os.path.exists(template_path):
             return JsonResponse(
                 {"status": "error", "message": "DOCX template not found"},
@@ -2404,33 +2365,6 @@ def save_evaluation_review1(request):
             )
 
         doc = Document(template_path)
-=======
-        output_dir = os.path.join(settings.BASE_DIR, "generated_docs")
-        os.makedirs(output_dir, exist_ok=True)
-
-        output_path = os.path.join(
-            output_dir,
-            f"{team_name_fs}_Review1.docx"
-        )
-
-        print("[DEBUG] Review1 output:", output_path)
-
-        # -------------------------------------------------
-        # Load existing doc OR template
-        # -------------------------------------------------
-        if os.path.exists(output_path):
-            doc = Document(output_path)
-        else:
-            if not os.path.exists(template_path):
-                return JsonResponse(
-                    {
-                        "status": "error",
-                        "message": f"Template not found: {template_path}"
-                    },
-                    status=500
-                )
-            doc = Document(template_path)
->>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
 
         # -------------------------------------------------
         # Update title
@@ -2441,7 +2375,6 @@ def save_evaluation_review1(request):
                 break
 
         # -------------------------------------------------
-<<<<<<< HEAD
         # TEAM MEMBERS TABLE (Table 0)
         # -------------------------------------------------
         members_table = doc.tables[0]
@@ -2449,25 +2382,14 @@ def save_evaluation_review1(request):
         existing_names = []
 
         for r in members_table.rows[start_row:]:
-            if r.cells[3].text.strip():
-=======
-        # TEAM MEMBERS table (assumed first table)
-        # -------------------------------------------------
-        members_table = doc.tables[0]
-
-        start_row = 2  # after headers
-        existing_names = []
-
-        for r in members_table.rows[start_row:]:
             if len(r.cells) >= 4 and r.cells[3].text.strip():
->>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
                 existing_names.append(r.cells[3].text.strip())
 
         current_index = len(existing_names) + 1
 
         for member_key in evaluations.keys():
-<<<<<<< HEAD
             name = member_key.replace("team_member-", "").strip()
+
             if name in existing_names:
                 continue
 
@@ -2482,73 +2404,31 @@ def save_evaluation_review1(request):
             current_index += 1
 
         # -------------------------------------------------
-        # MAP MEMBER → S.NO
+        # Map MEMBER → S.NO
         # -------------------------------------------------
         member_to_sno = {}
         for r in members_table.rows[start_row:]:
-            if r.cells[3].text.strip():
-                member_to_sno[r.cells[3].text.strip().lower()] = r.cells[0].text.strip()
+            if len(r.cells) >= 4 and r.cells[3].text.strip():
+                member_to_sno[
+                    r.cells[3].text.strip().lower()
+                ] = r.cells[0].text.strip()
 
         # -------------------------------------------------
         # MARKS TABLE (Table 1)
         # -------------------------------------------------
         marks_table = doc.tables[1]
 
-=======
-            clean_name = member_key.replace("team_member-", "").strip()
-
-            if clean_name in existing_names:
-                continue
-
-            row_index = start_row + (current_index - 1)
-            if row_index >= len(members_table.rows):
-                members_table.add_row()
-
-            members_table.rows[row_index].cells[0].text = str(current_index)
-            members_table.rows[row_index].cells[3].text = clean_name
-
-            existing_names.append(clean_name)
-            current_index += 1
-
-        # -------------------------------------------------
-        # Map member → S.NO
-        # -------------------------------------------------
-        member_to_sno = {}
-        for r in members_table.rows[start_row:]:
-            if len(r.cells) >= 4 and r.cells[3].text.strip():
-                name = r.cells[3].text.strip().lower()
-                sno = r.cells[0].text.strip()
-                member_to_sno[name] = sno
-
-        print("[DEBUG] Member → S.NO:", member_to_sno)
-
-        # -------------------------------------------------
-        # MARKS table (assumed second table)
-        # -------------------------------------------------
-        marks_table = doc.tables[1]
-
-        # -------------------------------------------------
         # Detect TOTAL row
-        # -------------------------------------------------
->>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
         total_row = None
         for i, row in enumerate(marks_table.rows):
             if "total" in row.cells[0].text.lower():
                 total_row = i
                 break
-<<<<<<< HEAD
-        if total_row is None:
-            total_row = len(marks_table.rows) - 1
-
-=======
 
         if total_row is None:
             total_row = len(marks_table.rows) - 1
 
-        # -------------------------------------------------
         # Detect S.NO → column mapping
-        # -------------------------------------------------
->>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
         sno_col_map = {}
         sno_row_idx = None
 
@@ -2560,34 +2440,20 @@ def save_evaluation_review1(request):
             if sno_col_map:
                 break
 
-<<<<<<< HEAD
-        # -------------------------------------------------
-        # INSERT MARKS
-        # -------------------------------------------------
-        for member_key, marks_list in evaluations.items():
-            name = member_key.replace("team_member-", "").strip().lower()
-            sno = member_to_sno.get(name)
-            if not sno:
-                continue
-
-            col = sno_col_map.get(sno)
-            if col is None:
-=======
         print("[DEBUG] S.NO → Column:", sno_col_map)
 
         # -------------------------------------------------
         # Insert marks
         # -------------------------------------------------
         for member_key, marks_list in evaluations.items():
-            clean_name = member_key.replace("team_member-", "").strip().lower()
-            sno = member_to_sno.get(clean_name)
+            name = member_key.replace("team_member-", "").strip().lower()
+            sno = member_to_sno.get(name)
 
             if not sno:
                 continue
 
             col_idx = sno_col_map.get(sno)
             if col_idx is None:
->>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
                 continue
 
             total = 0
@@ -2596,15 +2462,17 @@ def save_evaluation_review1(request):
             for mark in marks_list:
                 if row_idx >= total_row:
                     break
-<<<<<<< HEAD
-                marks_table.rows[row_idx].cells[col].text = str(mark)
-                total += int(mark)
+                try:
+                    marks_table.rows[row_idx].cells[col_idx].text = str(mark)
+                    total += int(mark)
+                except Exception:
+                    pass
                 row_idx += 1
 
-            marks_table.rows[total_row].cells[col].text = str(total)
+            marks_table.rows[total_row].cells[col_idx].text = str(total)
 
         # -------------------------------------------------
-        # STREAM DOCX (NO SAVE)
+        # STREAM DOCX (NO LOCAL SAVE)
         # -------------------------------------------------
         buffer = io.BytesIO()
         doc.save(buffer)
@@ -2621,51 +2489,13 @@ def save_evaluation_review1(request):
         return response
 
     except Exception as e:
-=======
-                try:
-                    marks_table.rows[row_idx].cells[col_idx].text = str(mark)
-                    total += int(mark)
-                except:
-                    pass
-                row_idx += 1
-
-            marks_table.rows[total_row].cells[col_idx].text = str(total)
-
-        # -------------------------------------------------
-        # Safe save
-        # -------------------------------------------------
-        try:
-            doc.save(output_path)
-        except PermissionError:
-            ts = time.strftime("%Y%m%d_%H%M%S")
-            alt = os.path.join(
-                output_dir,
-                f"{team_name_fs}_Review1_{ts}.docx"
-            )
-            doc.save(alt)
-            output_path = alt
-
-        return JsonResponse(
-            {
-                "status": "success",
-                "message": "Review 1 marks saved successfully",
-                "file_path": output_path
-            }
-        )
-
-    except Exception as e:
         import traceback
->>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
         traceback.print_exc()
         return JsonResponse(
             {"status": "error", "message": str(e)},
             status=500
         )
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
 def save_evaluation_review2(request):
     """
     📝 Save Second REVIEW Evaluation Marks into DOCX
