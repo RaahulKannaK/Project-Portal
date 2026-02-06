@@ -11,6 +11,11 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
+<<<<<<< HEAD
+=======
+import pymysql
+pymysql.install_as_MySQLdb()
+>>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
 
 # Load .env file
 
@@ -35,8 +40,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Security
 # -----------------------------
 SECRET_KEY = os.getenv("SECRET_KEY")
+<<<<<<< HEAD
 DEBUG = False
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '10.79.10.25', 'yourdomain.com', 'www.yourdomain.com']
+=======
+DEBUG = True
+ALLOWED_HOSTS = ['*']
+>>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
 
 # -----------------------------
 # Installed apps
@@ -60,6 +70,10 @@ INSTALLED_APPS = [
 # -----------------------------
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+<<<<<<< HEAD
+=======
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+>>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -94,14 +108,33 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 # -----------------------------
 # Database (MySQL)
 # -----------------------------
+<<<<<<< HEAD
+=======
+# -----------------------------
+# Database (MySQL)
+# -----------------------------
+# -----------------------------
+# Database (MySQL)
+# -----------------------------
+>>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': os.getenv("DB_NAME"),
         'USER': os.getenv("DB_USER"),
         'PASSWORD': os.getenv("DB_PASSWORD"),
+<<<<<<< HEAD
         'HOST': os.getenv("DB_HOST", "localhost"),
         'PORT': os.getenv("DB_PORT", "3306"),
+=======
+        'HOST': os.getenv("DB_HOST"),
+        'PORT': os.getenv("DB_PORT"),
+        'OPTIONS': {
+            'ssl': {'ca': None},
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES', sql_require_primary_key=0",
+            # 'auth_plugin': 'mysql_native_password',  <--- INTHA LINE-AH DELETE PANNIDUNGA
+        },
+>>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
     }
 }
 
@@ -131,6 +164,10 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
     BASE_DIR / 'allocation' / 'static',
 ]
+<<<<<<< HEAD
+=======
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+>>>>>>> 9db60b58a4c4f0174abb69e50ae40ee60c252640
 
 # -----------------------------
 # Media files
