@@ -2239,7 +2239,6 @@ def download_docx(request, team_name):
 
 
 import os
-import pdfkit
 import os
 try:
     import pdfkit
