@@ -138,15 +138,11 @@ class ZerothReviewRemark(models.Model):
     heading = models.CharField(max_length=255)
     remark = models.TextField()
     color = models.CharField(max_length=20)
-    created_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=['team_name', 'mentor_name', 'heading'],
-                name='unique_zeroth_review_remark'
-            )
-        ]
+    # ✅ New column to identify pdf / ppt / abstract
+    file_type = models.CharField(max_length=20)
+
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
 # =========================

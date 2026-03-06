@@ -45,6 +45,14 @@
     .remark-card { background:#fff; border-radius:12px; padding:15px; margin-bottom:10px; border-left:5px solid var(--primary); font-size:14px; }
     .pdf-viewer { flex:1; height:80vh; border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 8px 25px rgba(0,0,0,0.1); }
     .pdf-viewer iframe { width:100%; height:100%; border:none; }
+    
+    /* New styles for file tabs */
+    .file-tabs { display:flex; gap:10px; margin-bottom:15px; }
+    .file-tab { padding:10px 20px; border:none; border-radius:8px; background:#fff; color:var(--primary); font-weight:600; cursor:pointer; transition:0.3s; box-shadow:0 2px 5px rgba(0,0,0,0.1); }
+    .file-tab:hover { background:var(--accent); }
+    .file-tab.active { background:var(--primary); color:#fff; }
+    .file-tab:disabled { opacity:0.5; cursor:not-allowed; background:#ccc; }
+    .no-file-message { display:flex; align-items:center; justify-content:center; height:100%; color:#666; font-size:16px; }
   </style>
 </head>
 
@@ -79,7 +87,7 @@
             {% if uploaded_files.ppt %}
               <div class="file-label success"><i class="fas fa-check-circle me-2"></i>{{ uploaded_files.ppt|slice:"-50:" }}</div>
             {% else %}
-              <input type="file" id="pptFile" name="pptFile" accept=".ppt,.pptx">
+              <input type="file" id="pptFile" name="pptFile" accept=".ppt,.pptx" style="display:none;">
               <label for="pptFile" class="file-label">Choose PPT</label>
             {% endif %}
           </div>
@@ -90,7 +98,7 @@
             {% if uploaded_files.pdf %}
               <div class="file-label success"><i class="fas fa-check-circle me-2"></i>{{ uploaded_files.pdf|slice:"-50:" }}</div>
             {% else %}
-              <input type="file" id="pdfFile" name="pdfFile" accept=".pdf">
+              <input type="file" id="pdfFile" name="pdfFile" accept=".pdf" style="display:none;">
               <label for="pdfFile" class="file-label">Choose PDF</label>
             {% endif %}
           </div>
@@ -101,7 +109,7 @@
             {% if uploaded_files.abstract %}
               <div class="file-label success"><i class="fas fa-check-circle me-2"></i>{{ uploaded_files.abstract|slice:"-50:" }}</div>
             {% else %}
-              <input type="file" id="abstractFile" name="abstractFile" accept=".pdf">
+              <input type="file" id="abstractFile" name="abstractFile" accept=".pdf" style="display:none;">
               <label for="abstractFile" class="file-label">Choose Abstract</label>
             {% endif %}
           </div>
@@ -116,13 +124,22 @@
     <div id="remarksSection" class="remarks-wrapper">
       <h5 class="mb-3"><i class="fas fa-comments me-2"></i>Mentor Remarks</h5>
 
+      <!-- File Type Tabs -->
+      <div class="file-tabs">
+        <button class="file-tab active" onclick="switchFile('abstract')" id="tab-abstract" {% if not uploaded_files.abstract %}disabled{% endif %}>
+          <i class="fas fa-file-pdf me-2"></i>Abstract
+        </button>
+        <button class="file-tab" onclick="switchFile('pdf')" id="tab-pdf" {% if not uploaded_files.pdf %}disabled{% endif %}>
+          <i class="fas fa-file-alt me-2"></i>Report
+        </button>
+        <button class="file-tab" onclick="switchFile('ppt')" id="tab-ppt" {% if not uploaded_files.ppt %}disabled{% endif %}>
+          <i class="fas fa-file-powerpoint me-2"></i>PPT
+        </button>
+      </div>
+
       <div class="remarks-layout">
-        <div class="pdf-viewer">
-          {% if highlighted_html_url %}
-            <iframe src="{{ highlighted_html_url }}"></iframe>
-          {% else %}
-            <p class="text-center mt-5">No Abstract uploaded yet.</p>
-          {% endif %}
+        <div class="pdf-viewer" id="pdfViewer">
+          <!-- Dynamic content loaded here -->
         </div>
         <div style="width:35%;">
           <h6>Remarks</h6>
@@ -145,16 +162,68 @@
 </div>
 
 <script>
+// File URLs from Django template
+const fileUrls = {
+  abstract: "{{ uploaded_files.abstract|default:'' }}",
+  pdf: "{{ uploaded_files.pdf|default:'' }}",
+  ppt: "{{ uploaded_files.ppt|default:'' }}"
+};
+
 const uploadSection = document.getElementById("uploadSection");
 const remarksSection = document.getElementById("remarksSection");
+const pdfViewer = document.getElementById("pdfViewer");
 
 function showUpload(){
   uploadSection.style.display="block";
   remarksSection.style.display="none";
+  document.querySelector('.nav-item.active')?.classList.remove('active');
+  event.target.classList.add('active');
 }
+
 function showRemarks(){
   uploadSection.style.display="none";
   remarksSection.style.display="block";
+  document.querySelector('.nav-item.active')?.classList.remove('active');
+  event.target.classList.add('active');
+  
+  // Load first available file by default
+  if(fileUrls.abstract) {
+    switchFile('abstract');
+  } else if(fileUrls.pdf) {
+    switchFile('pdf');
+  } else if(fileUrls.ppt) {
+    switchFile('ppt');
+  }
+}
+
+function switchFile(fileType) {
+  // Update active tab
+  document.querySelectorAll('.file-tab').forEach(tab => tab.classList.remove('active'));
+  document.getElementById('tab-' + fileType).classList.add('active');
+  
+  // Load content based on file type
+  const url = fileUrls[fileType];
+  
+  if(!url) {
+    pdfViewer.innerHTML = '<div class="no-file-message"><i class="fas fa-exclamation-circle me-2"></i>No file uploaded for this category</div>';
+    return;
+  }
+  
+  if(fileType === 'ppt') {
+    // PPT files - use Google Docs viewer or download link
+    pdfViewer.innerHTML = `
+      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
+        <i class="fas fa-file-powerpoint" style="font-size:64px; color:var(--primary); margin-bottom:20px;"></i>
+        <p style="margin-bottom:20px;">PPT files cannot be previewed directly in browser</p>
+        <a href="${url}" target="_blank" class="btn btn-primary">
+          <i class="fas fa-download me-2"></i>Download PPT
+        </a>
+      </div>
+    `;
+  } else {
+    // PDF files - embed in iframe
+    pdfViewer.innerHTML = `<iframe src="${url}" title="${fileType} viewer"></iframe>`;
+  }
 }
 
 // Upload files
@@ -185,22 +254,35 @@ document.getElementById("uploadForm").addEventListener("submit", function(e){
   .then(d => {
     console.log("DEBUG: Response →", d);
 
-    // ✅ Update DOM dynamically instead of reloading
+    // Update DOM dynamically
     if(d.files) {
       if(d.files.ppt){
         const pptLabel = document.querySelector("label[for='pptFile']");
-        pptLabel.classList.add("success");
-        pptLabel.innerHTML = `<i class="fas fa-check-circle me-2"></i>${d.files.ppt.split("/").pop()}`;
+        if(pptLabel) {
+          pptLabel.classList.add("success");
+          pptLabel.innerHTML = `<i class="fas fa-check-circle me-2"></i>${d.files.ppt.split("/").pop()}`;
+        }
+        // Enable tab and update URL
+        fileUrls.ppt = d.files.ppt;
+        document.getElementById('tab-ppt').disabled = false;
       }
       if(d.files.pdf){
         const pdfLabel = document.querySelector("label[for='pdfFile']");
-        pdfLabel.classList.add("success");
-        pdfLabel.innerHTML = `<i class="fas fa-check-circle me-2"></i>${d.files.pdf.split("/").pop()}`;
+        if(pdfLabel) {
+          pdfLabel.classList.add("success");
+          pdfLabel.innerHTML = `<i class="fas fa-check-circle me-2"></i>${d.files.pdf.split("/").pop()}`;
+        }
+        fileUrls.pdf = d.files.pdf;
+        document.getElementById('tab-pdf').disabled = false;
       }
       if(d.files.abstract){
         const absLabel = document.querySelector("label[for='abstractFile']");
-        absLabel.classList.add("success");
-        absLabel.innerHTML = `<i class="fas fa-check-circle me-2"></i>${d.files.abstract.split("/").pop()}`;
+        if(absLabel) {
+          absLabel.classList.add("success");
+          absLabel.innerHTML = `<i class="fas fa-check-circle me-2"></i>${d.files.abstract.split("/").pop()}`;
+        }
+        fileUrls.abstract = d.files.abstract;
+        document.getElementById('tab-abstract').disabled = false;
       }
     }
 
@@ -211,8 +293,17 @@ document.getElementById("uploadForm").addEventListener("submit", function(e){
     alert("Failed to upload files");
   });
 });
-</script>
 
+// File input change handlers to show selected filename
+document.querySelectorAll('input[type="file"]').forEach(input => {
+  input.addEventListener('change', function() {
+    if(this.files.length > 0) {
+      const label = document.querySelector(`label[for='${this.id}']`);
+      label.innerHTML = `<i class="fas fa-file me-2"></i>${this.files[0].name}`;
+    }
+  });
+});
+</script>
 
 </body>
 </html>

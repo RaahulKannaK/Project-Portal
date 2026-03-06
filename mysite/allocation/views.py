@@ -546,20 +546,104 @@ def logout_view(request):
 
 
 @csrf_exempt
+def team_partitions(total_students, team_sizes=(3, 4)):
+    """Generate all possible team formations with teams of 3 and 4 members."""
+    results = []
+
+    def backtrack(remaining, current):
+        if remaining == 0:
+            results.append(list(current))
+            return
+        for size in team_sizes:
+            if remaining - size >= 0:
+                current.append(size)
+                backtrack(remaining - size, current)
+                current.pop()
+
+    backtrack(total_students, [])
+
+    # Normalize by counts (ignore order)
+    unique = []
+    final = []
+    for combo in results:
+        counts = (combo.count(3), combo.count(4))  # (teams of 3, teams of 4)
+        if counts not in unique:
+            unique.append(counts)
+            final.append(counts)
+
+    return final
+
+
+def find_best_possibilities(possibilities):
+    """
+    Best definition (neutral & fair):
+    - fewer total teams is better
+    - 3 and 4 member teams are both allowed
+    """
+    # total teams = teams_of_3 + teams_of_4
+    min_teams = min(a + b for a, b in possibilities)
+
+    best = []
+    for a, b in possibilities:
+        if a + b == min_teams:
+            best.append((a, b))
+
+    return best
+
+
+def calculate_team_possibilities(student_class):
+    """
+    Calculate team possibilities for available students in a class.
+    Returns dict with total available, possibilities, and best options.
+    """
+    # Get all students in class
+    all_class_students = Student.objects.filter(clas=student_class)
+    total_in_class = all_class_students.count()
+    
+    # Get used students (already in teams)
+    used_rolls = []
+    for t in Team.objects.filter(student_class=student_class):
+        if t.members:
+            used_rolls.extend(t.members.split(","))
+    
+    # Calculate available students
+    available_students = total_in_class - len(set(used_rolls))
+    
+    # Get possibilities if enough students
+    possibilities = []
+    best_possibilities = []
+    
+    if available_students >= 3:
+        possibilities = team_partitions(available_students)
+        best_possibilities = find_best_possibilities(possibilities)
+    
+    return {
+        "total_in_class": total_in_class,
+        "used_students": len(set(used_rolls)),
+        "available_students": available_students,
+        "possibilities": possibilities,
+        "best_possibilities": best_possibilities,
+        "can_form_teams": available_students >= 3
+    }
+
+
 def create_team(request):
     student_class = request.session.get("student_class")
     student_id = request.session.get("student_id")
 
-    # collect all members already used in any team
+    # Calculate team possibilities for the class
+    team_data = calculate_team_possibilities(student_class)
+    
+    # Collect all members already used in any team (global check)
     used_rolls = []
     for t in Team.objects.all():
         if t.members:
             used_rolls.extend(t.members.split(","))
 
-    # classmates list (only free students)
+    # Classmates list (only free students)
     classmates = Student.objects.filter(clas=student_class).exclude(student_id__in=used_rolls)
 
-    # check if this student already has a team
+    # Check if this student already has a team
     existing_team = None
     for t in Team.objects.filter(student_class=student_class):
         if t.members and student_id in t.members.split(","):
@@ -572,7 +656,7 @@ def create_team(request):
     # -----------------------------
     if request.method == "POST":
         try:
-            # ✅ Read JSON safely regardless of content type
+            # Read JSON safely regardless of content type
             body = request.body.decode("utf-8")
             data = json.loads(body) if body else {}
 
@@ -584,7 +668,7 @@ def create_team(request):
             domain = domain_raw.upper() if domain_raw else ""
             members = data.get("members", [])
 
-            # 🧩 Validation checks
+            # Validation checks
             if not project_title:
                 return JsonResponse({"status": "error", "message": "⚠ Project title is required."})
 
@@ -594,18 +678,18 @@ def create_team(request):
             if not members:
                 return JsonResponse({"status": "error", "message": "⚠ No members selected."})
 
-            # include leader (logged-in student)
+            # Include leader (logged-in student)
             all_members = set(members)
             all_members.add(student_id)
 
-            # check if logged-in student is part of the submitted members
+            # Check if logged-in student is part of the submitted members
             if student_id not in all_members:
                 return JsonResponse({
                     "status": "error",
                     "message": "⚠ The user didn't involve in the team!"
                 })
 
-            # check if any members are already used
+            # Check if any members are already used
             already_used = [m for m in all_members if m in used_rolls]
             if already_used:
                 return JsonResponse({
@@ -613,25 +697,32 @@ def create_team(request):
                     "message": f"⚠ Student(s) {', '.join(already_used)} already in a team."
                 })
 
-            # check if this student already created a team
+            # Check if this student already created a team
             if already_created:
                 return JsonResponse({
                     "status": "error",
                     "message": "⚠ You have already created a team."
                 })
 
-            # check for duplicate project titles
+            # Check for duplicate project titles
             if Team.objects.filter(project_title__iexact=project_title).exists():
                 return JsonResponse({
                     "status": "error",
                     "message": "⚠ Project title already exists. Please choose another."
                 })
 
-            # ✅ Get names of selected members
+            # Validate team size (3 or 4 members)
+            if len(all_members) not in [3, 4]:
+                return JsonResponse({
+                    "status": "error",
+                    "message": f"⚠ Team must have 3 or 4 members. You selected {len(all_members)}."
+                })
+
+            # Get names of selected members
             member_objs = Student.objects.filter(student_id__in=all_members)
             member_names = [s.name for s in member_objs]
 
-            # ✅ Create team with project title
+            # Create team with project title
             Team.objects.create(
                 project_title=project_title,
                 student_class=student_class,
@@ -664,8 +755,13 @@ def create_team(request):
         "already_created": already_created,
         "existing_team": existing_team,
         "members_list": members_list,
+        # New team possibility data
+        "team_data": team_data,
+        "possibilities": team_data["possibilities"],
+        "best_possibilities": team_data["best_possibilities"],
+        "available_students": team_data["available_students"],
+        "can_form_teams": team_data["can_form_teams"],
     })
-
 
 def view_mentor(request):
     return render(request, "accounts/view_mentor.html")
@@ -1256,12 +1352,209 @@ def serve_temp_html(request, team, filename):
 
 
 def zero_base(request):
+    print("\n🟢 zero_base CALLED")
+
     mentor_name = request.session.get("mentor_name")
     username = request.session.get("username")
-    return render(request,  "mentor/review_men/men_doc/zero_paper/zero_base.html", {
-        "mentor_name": mentor_name,
-        "username": username,
-    })
+
+    print("mentor_name:", mentor_name)
+    print("username:", username)
+    print("method:", request.method)
+
+    # =====================================================
+    # POST → SAVE ZERO BASE REMARKS (for Report/PDF)
+    # =====================================================
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            remarks = data.get("remarks", [])
+            print("Incoming remarks:", len(remarks))
+
+            allocation = AllocationResult.objects.filter(
+                mentor_name=mentor_name
+            ).first()
+
+            if not allocation:
+                return JsonResponse({"status": "fail", "message": "Team not found"}, status=404)
+
+            team_name = allocation.team_name
+            inserted = 0
+            updated = 0
+
+            for r in remarks:
+                heading = (r.get("heading") or "").strip()
+                remark = (r.get("remark") or "").strip()
+                color = r.get("color") or "#ffe066"
+
+                if not heading or not remark:
+                    continue
+
+                obj, created = ZerothReviewRemark.objects.update_or_create(
+                    team_name=team_name,
+                    mentor_name=mentor_name,
+                    heading=heading,
+                    file_type="pdf",  # 🔥 Differentiator for Report remarks
+                    defaults={
+                        "remark": remark,
+                        "color": color
+                    }
+                )
+
+                if created:
+                    inserted += 1
+                else:
+                    updated += 1
+
+            return JsonResponse({
+                "status": "success",
+                "inserted": inserted,
+                "updated": updated
+            })
+
+        except Exception as e:
+            print("❌ POST ERROR:", e)
+            return JsonResponse({"status": "fail", "message": str(e)}, status=500)
+
+    # =====================================================
+    # GET → DISPLAY PAGE
+    # =====================================================
+    allocation = AllocationResult.objects.filter(
+        mentor_name=mentor_name
+    ).first()
+
+    if not allocation:
+        return render(request, "mentor/review_men/men_doc/zero_paper/zero_base.html")
+
+    team_name = allocation.team_name
+    folder_name = team_name.replace(" ", "_")
+
+    print("Team:", team_name)
+
+    # =====================================================
+    # 🔥 LOAD SAVED REMARKS (only for PDF/Report file_type)
+    # =====================================================
+    saved_remarks = ZerothReviewRemark.objects.filter(
+        team_name=team_name,
+        mentor_name=mentor_name,
+        file_type="pdf"  # 🔥 Only fetch Report remarks
+    ).order_by("id")
+
+    print("🔥 Loaded remarks:", saved_remarks.count())
+    for r in saved_remarks:
+        print(" ->", r.heading)
+
+    # =====================================================
+    # REPORT PDF FILE FROM CLOUDINARY
+    # =====================================================
+    project_file = ProjectFile.objects.filter(
+        team_name=team_name,
+        file_type="pdf"  # 🔥 Report file
+    ).first()
+
+    if not project_file:
+        return render(request, "mentor/review_men/men_doc/zero_paper/zero_base.html", {
+            "report_available": False
+        })
+
+    cloud_url = project_file.cloudinary_url
+
+    temp_dir = os.path.join(settings.MEDIA_ROOT, "temp_html", folder_name)
+    docker_temp_dir = os.path.abspath(temp_dir).replace("\\", "/")
+    os.makedirs(temp_dir, exist_ok=True)
+
+    pdf_name = f"{folder_name}_Report.pdf"  # 🔥 Report naming
+    html_name = f"{folder_name}_Report.html"
+
+    pdf_path = os.path.join(temp_dir, pdf_name)
+    html_path = os.path.join(temp_dir, html_name)
+
+    # =====================================================
+    # DOWNLOAD PDF
+    # =====================================================
+    if not os.path.exists(pdf_path):
+        try:
+            r = requests.get(cloud_url, timeout=20)
+            r.raise_for_status()
+            with open(pdf_path, "wb") as f:
+                f.write(r.content)
+            print("✔ PDF downloaded")
+        except Exception as e:
+            print("❌ PDF DOWNLOAD ERROR:", e)
+            return render(request, "mentor/review_men/men_doc/zero_paper/zero_base.html", {
+                "report_available": False
+            })
+
+    # =====================================================
+    # PDF → HTML
+    # =====================================================
+    if not os.path.exists(html_path):
+        try:
+            subprocess.run(
+                [
+                    "docker", "run", "--rm",
+                    "-v", f"{docker_temp_dir}:/pdf",
+                    "pdf2html_local",
+                    pdf_name,
+                    "--dest-dir", "/pdf"
+                ],
+                check=True
+            )
+            print("✔ PDF converted to HTML")
+        except Exception as e:
+            print("❌ PDF→HTML ERROR:", e)
+
+    # =====================================================
+    # READ HTML CONTENT
+    # =====================================================
+    html_content = ""
+    try:
+        with open(html_path, "r", encoding="utf-8") as f:
+            html_content = f.read()
+    except Exception as e:
+        print("❌ HTML READ ERROR:", e)
+
+    # =====================================================
+    # HEADING EXTRACTION (Same logic as zero_review)
+    # =====================================================
+    main_heading_lines = []
+    sub_headings = []
+
+    lines = re.findall(r'>([^<]{2,120})<', html_content)
+
+    for line in lines:
+        text = line.strip()
+        if not text:
+            continue
+
+        if is_valid_heading(text):
+            if not main_heading_lines:
+                main_heading_lines.append(text)
+            elif text not in sub_headings:
+                sub_headings.append(text)
+        elif looks_like_early_heading(text):
+            if text not in sub_headings:
+                sub_headings.append(text)
+
+    main_heading = " ".join(main_heading_lines)
+
+    # =====================================================
+    # FINAL RENDER
+    # =====================================================
+    return render(
+        request,
+        "mentor/review_men/men_doc/zero_paper/zero_base.html",
+        {
+            "mentor_name": mentor_name,
+            "username": username,
+            "team_name": team_name,
+            "main_heading": main_heading,
+            "sub_headings": sub_headings,
+            "html_content": html_content,
+            "saved_remarks": saved_remarks,   # 🔥 Report-specific remarks
+            "report_available": True
+        }
+        )
+
 def zero_form(request):
     mentor_name = request.session.get("mentor_name")
     username = request.session.get("username")
@@ -1286,43 +1579,77 @@ def zero_form(request):
     })
 
 def zero_ppt(request):
+    print("\n🟢 zero_ppt CALLED")
+
     mentor_name = request.session.get("mentor_name")
     username = request.session.get("username")
 
-    ppt_path = None
+    print("mentor_name:", mentor_name)
+    print("username:", username)
+
+    ppt_url = None
     team_name = None
 
+    # =====================================================
+    # 🔹 GET ALLOCATED TEAM (same as zero_review)
+    # =====================================================
     allocation = AllocationResult.objects.filter(
         mentor_name=mentor_name
     ).first()
 
-    if allocation:
-        team_name = allocation.team_name
-
-        # ✅ CLOUDINARY PPT URL (NO LOCAL STORAGE)
-        ppt_path = allocation.zeroth_ppt_url
-
-        if ppt_path:
-            print(f"[DEBUG] Cloudinary PPT URL found: {ppt_path}")
-        else:
-            print("[DEBUG] PPT URL not available in Cloudinary")
-
-    else:
-        print(
-            f"[DEBUG] No allocated team found for mentor '{mentor_name}'"
+    if not allocation:
+        print("❌ No team allocated")
+        return render(
+            request,
+            "mentor/review_men/men_doc/zero_paper/zero_ppt.html",
+            {
+                "mentor_name": mentor_name,
+                "username": username,
+                "ppt_path": None,
+                "team_name": None,
+            }
         )
 
+    team_name = allocation.team_name
+    print("✔ Team:", team_name)
+
+    # =====================================================
+    # 🔥 FETCH PPT FROM ProjectFile (LIKE zero_review)
+    # =====================================================
+    project_file = ProjectFile.objects.filter(
+        team_name=team_name,
+        file_type="ppt"      # 👈 IMPORTANT
+    ).first()
+
+    if not project_file:
+        print("❌ PPT not uploaded in ProjectFile")
+        return render(
+            request,
+            "mentor/review_men/men_doc/zero_paper/zero_ppt.html",
+            {
+                "mentor_name": mentor_name,
+                "username": username,
+                "ppt_path": None,
+                "team_name": team_name,
+            }
+        )
+
+    ppt_url = project_file.cloudinary_url
+    print("✔ PPT Cloudinary URL:", ppt_url)
+
+    # =====================================================
+    # FINAL RENDER
+    # =====================================================
     return render(
         request,
         "mentor/review_men/men_doc/zero_paper/zero_ppt.html",
         {
             "mentor_name": mentor_name,
             "username": username,
-            "ppt_path": ppt_path,   # 👈 Cloudinary URL
+            "ppt_path": ppt_url,   # 👈 SAME VARIABLE USED IN TEMPLATE
             "team_name": team_name,
         }
     )
-
 
 def zero_ma(request, team_name):
     team_members = []
@@ -1853,6 +2180,7 @@ from django.http import JsonResponse
 import json
 
 @csrf_exempt
+
 def save_zeroth_remark(request):
     print("🔥 save_zeroth_remark CALLED")
 
@@ -1876,7 +2204,9 @@ def save_zeroth_remark(request):
     try:
         data = json.loads(request.body)
         remarks = data.get("remarks", [])
+        file_type = data.get("file_type") or "pdf"   # ✅ DEFAULT TO PDF
         print("Remarks count:", len(remarks))
+        print("File type:", file_type)
     except Exception as e:
         print("❌ JSON error:", e)
         return JsonResponse({"status": "fail", "message": "Invalid JSON"})
@@ -1895,6 +2225,7 @@ def save_zeroth_remark(request):
             team_name=team_name,
             mentor_name=mentor_name,
             heading=heading,
+            file_type=file_type,   # ✅ INCLUDE IN UNIQUE CHECK
             defaults={
                 "remark": remark,
                 "color": color,
@@ -1908,7 +2239,6 @@ def save_zeroth_remark(request):
 
     print("✅ Remarks saved successfully")
     return JsonResponse({"status": "success"})
-
 
 def clean_text(text):
     return re.sub(r'\(.*?\)', '', text).strip().lower()

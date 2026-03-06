@@ -9,39 +9,299 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-    --primary: #1f2aa4;        /* Deep Indigo */
-    --secondary: #a1a7c9;      /* Soft Indigo */
-    --accent: #d1d9ff;         /* Light Indigo */
+    --primary: #1f2aa4;
+    --secondary: #a1a7c9;
+    --accent: #d1d9ff;
     --background: #F8F9FC;
     --text-dark: #2E2E2E;
     --text-light: #ffffff;
+    --success: #28a745;
+    --warning: #ffc107;
+    --danger: #dc3545;
+    --info: #17a2b8;
 }
 body {
   background: linear-gradient(120deg, var(--background), #ffffff);
   font-family: 'Montserrat', sans-serif;
   color: var(--text-dark);
   min-height: 100vh;
-  padding: 50px;
+  padding: 30px;
 }
-h2 { font-weight: 600; color: var(--primary); margin: 0; }
-.card { border-radius: 1rem; padding: 30px; box-shadow: 0 12px 30px rgba(0,0,0,0.15); background: linear-gradient(135deg, var(--primary), #004E52); color: var(--text-light); }
-label { font-weight: 500; }
-select.form-select { border-radius: 10px; padding: 10px; transition: all 0.3s ease; }
-select.form-select:focus { box-shadow: 0 0 0 0.2rem rgba(255, 183, 3, 0.3); border-color: var(--secondary); }
-h5 { margin-top: 20px; font-weight: 600; color: var(--text-light); }
-.row.mb-2 { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 10px; align-items: center; }
-.glass-button { background: var(--secondary); border: none; color: var(--text-dark); padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; margin-top: 15px; display: inline-block; text-decoration: none; }
-.glass-button:hover { background: var(--accent); color: var(--text-light); }
-.more-options-btn { background: var(--accent); color: var(--text-light); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.3s; }
-.more-options-btn:hover { background: #d35400; }
+h2 { font-weight: 700; color: var(--primary); margin: 0; letter-spacing: -0.5px; }
+
+/* Stats Cards */
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+}
+.stat-card {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    transition: transform 0.3s ease;
+}
+.stat-card:hover {
+    transform: translateY(-3px);
+}
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary);
+    display: block;
+}
+.stat-label {
+    font-size: 0.9rem;
+    color: #666;
+    font-weight: 500;
+}
+
+/* Possibilities Section */
+.possibilities-section {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+.possibilities-title {
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.possibility-card {
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 10px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+.possibility-card:hover {
+    border-color: var(--secondary);
+    transform: translateX(5px);
+}
+.possibility-card.best {
+    border-color: var(--success);
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+    position: relative;
+}
+.possibility-card.best::before {
+    content: "⭐ BEST";
+    position: absolute;
+    top: -10px;
+    right: 15px;
+    background: var(--success);
+    color: white;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.possibility-stats {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.stat-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 15px;
+    border-radius: 25px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+.badge-3 { background: #e3f2fd; color: #1976d2; }
+.badge-4 { background: #f3e5f5; color: #7b1fa2; }
+.badge-total { background: #e8f5e9; color: #388e3c; }
+
+/* Main Card */
+.card { 
+    border-radius: 20px; 
+    padding: 35px; 
+    box-shadow: 0 15px 40px rgba(0,0,0,0.15); 
+    background: linear-gradient(135deg, var(--primary), #004E52); 
+    color: var(--text-light); 
+}
+label { font-weight: 500; font-size: 0.95rem; }
+.form-control, .form-select { 
+    border-radius: 12px; 
+    padding: 12px 15px; 
+    border: 2px solid transparent;
+    transition: all 0.3s ease; 
+    font-size: 0.95rem;
+}
+.form-control:focus, .form-select:focus { 
+    box-shadow: 0 0 0 4px rgba(161, 167, 201, 0.3); 
+    border-color: var(--secondary);
+    transform: translateY(-1px);
+}
+h5 { margin-top: 25px; font-weight: 600; color: var(--text-light); font-size: 1.1rem; }
+.row.mb-2 { 
+    background: rgba(255,255,255,0.08); 
+    padding: 12px 15px; 
+    border-radius: 12px; 
+    align-items: center;
+    margin-bottom: 12px !important;
+    transition: background 0.3s ease;
+}
+.row.mb-2:hover {
+    background: rgba(255,255,255,0.12);
+}
+.glass-button { 
+    background: var(--secondary); 
+    border: none; 
+    color: var(--text-dark); 
+    padding: 12px 30px; 
+    border-radius: 12px; 
+    font-weight: 600; 
+    cursor: pointer; 
+    transition: all 0.3s ease; 
+    margin-top: 20px; 
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+}
+.glass-button:hover:not(:disabled) { 
+    background: var(--accent); 
+    color: var(--text-light);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+.glass-button:disabled {
+    background: #6c757d;
+    color: #adb5bd;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+.more-options-btn { 
+    background: var(--accent); 
+    color: var(--text-light); 
+    border: none; 
+    width: 45px; 
+    height: 45px; 
+    border-radius: 50%; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    cursor: pointer; 
+    transition: 0.3s; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+.more-options-btn:hover { 
+    background: var(--secondary); 
+    transform: scale(1.05);
+}
+
+/* Info Alert */
+.info-alert {
+    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+    border: none;
+    border-radius: 15px;
+    padding: 20px;
+    color: #1565c0;
+}
+.info-alert i {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+/* Team Info Display */
+.team-info-card {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+.team-info-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+.team-avatar {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+}
+.member-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.member-list li {
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.3s ease;
+}
+.member-list li:hover {
+    background: #e9ecef;
+    transform: translateX(5px);
+}
+.leader-badge {
+    background: linear-gradient(135deg, #ffd700, #ffaa00);
+    color: #333;
+    padding: 3px 10px;
+    border-radius: 15px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.member-badge {
+    background: var(--secondary);
+    color: white;
+    padding: 3px 10px;
+    border-radius: 15px;
+    font-size: 0.75rem;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-in {
+    animation: fadeInUp 0.5s ease forwards;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    body { padding: 15px; }
+    .stats-container { grid-template-columns: repeat(2, 1fr); }
+    .card { padding: 20px; }
+    .possibility-stats { flex-direction: column; gap: 10px; align-items: flex-start; }
+}
 </style>
 </head>
 <body>
 
 <div class="container">
+
   <!-- Header -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>➕ Create Team</h2>
+  <div class="d-flex justify-content-between align-items-center mb-4 animate-in">
+    <div>
+        <h2><i class="fas fa-users me-2"></i>Create Team</h2>
+        <small class="text-muted">Class: {{ student_class }}</small>
+    </div>
     <div class="dropdown">
       <button class="more-options-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
         <i class="fas fa-ellipsis-h"></i>
@@ -51,73 +311,227 @@ h5 { margin-top: 20px; font-weight: 600; color: var(--text-light); }
           {{ request.session.student_id }} – {{ request.session.student_name }}
         </li>
         <li><hr class="dropdown-divider"></li>
-        <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+        <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
       </ul>
     </div>
   </div>
 
-  <!-- Already created team info -->
+  <!-- Already Created Team -->
   {% if already_created and existing_team %}
-    <div class="alert alert-info">
-      ✅ You have already created a team:<br><br>
-      <strong>Project Title:</strong> {{ existing_team.project_title }}<br>
-      <strong>Domain:</strong> {{ existing_team.domain }}<br>
-      <strong>Members:</strong>
-      <ul>
-        {% for sid, name in members_list %}
-          {% if sid == request.session.student_id %}
-            <li>👑 {{ sid }} – {{ name }} (Leader)</li>
-          {% else %}
-            <li>👤 {{ sid }} – {{ name }}</li>
-          {% endif %}
-        {% endfor %}
-      </ul>
+    <div class="team-info-card animate-in">
+      <div class="team-info-header">
+        <div class="team-avatar">
+          <i class="fas fa-check"></i>
+        </div>
+        <div>
+          <h4 class="mb-1">{{ existing_team.project_title }}</h4>
+          <span class="badge bg-primary">{{ existing_team.domain }}</span>
+        </div>
+      </div>
+      
+      <div class="row">
+        <div class="col-md-6">
+            <h6 class="text-muted mb-3"><i class="fas fa-users me-2"></i>Team Members</h6>
+            <ul class="member-list">
+                {% for sid, name in members_list %}
+                <li>
+                    {% if sid == request.session.student_id %}
+                        <i class="fas fa-crown text-warning"></i>
+                        <span class="leader-badge">LEADER</span>
+                    {% else %}
+                        <i class="fas fa-user text-secondary"></i>
+                        <span class="member-badge">MEMBER</span>
+                    {% endif %}
+                    <div>
+                        <div class="fw-bold">{{ name }}</div>
+                        <small class="text-muted">{{ sid }}</small>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="col-md-6">
+            <div class="alert alert-info mt-3">
+                <i class="fas fa-info-circle me-2"></i>
+                You have already created a team. You cannot create another team or join other teams.
+            </div>
+        </div>
+      </div>
     </div>
-  {% endif %}
 
-  <!-- Team Form -->
-  {% if not already_created %}
-  <div class="card shadow-sm p-4">
-    <form id="teamForm">
+  {% else %}
 
-      <!-- Project Title Input -->
-      <div class="mb-3">
-        <label class="form-label">Project Title</label>
-        <input type="text" id="projectTitle" class="form-control" placeholder="Enter your project title" required>
-      </div>
+    <!-- Stats Overview -->
+    <div class="stats-container animate-in">
+        <div class="stat-card">
+            <span class="stat-number">{{ team_data.total_in_class }}</span>
+            <span class="stat-label">Total in Class</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number text-warning">{{ team_data.used_students }}</span>
+            <span class="stat-label">In Teams</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number text-success">{{ team_data.available_students }}</span>
+            <span class="stat-label">Available</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number text-info">{{ possibilities|length }}</span>
+            <span class="stat-label">Possibilities</span>
+        </div>
+    </div>
 
-      <div class="mb-3">
-        <label class="form-label">Project Domain</label>
-        <select class="form-select" id="domain" required>
-          <option value="">-- Select Domain --</option>
-          <option value="AIDS">Artificial Intelligence & Data Science (AIDS)</option>
-          <option value="AIML">Artificial Intelligence & Machine Learning (AIML)</option>
-          <option value="CYS">Cyber Security (CYS)</option>
-          <option value="BW">Blockchain & Web (BW)</option>
-          <option value="FS">Full Stack Development (FS)</option>
-          <option value="AI">Artificial Intelligence (AI)</option>
-          <option value="CD">Cloud & DevOps (CD)</option>
-        </select>
-      </div>
+    <!-- Team Possibilities -->
+    {% if can_form_teams %}
+    <div class="possibilities-section animate-in">
+        <div class="possibilities-title">
+            <i class="fas fa-calculator"></i>
+            <span>Team Formation Possibilities</span>
+        </div>
+        
+        <p class="text-muted mb-3">
+            Based on <strong>{{ available_students }}</strong> available students, here are all valid team formations:
+        </p>
 
+        {% for teams_3, teams_4 in possibilities %}
+        <div class="possibility-card {% if forloop.first and best_possibilities|length > 0 %}best{% endif %}" 
+             onclick="selectTeamSize({{ teams_3 }}, {{ teams_4 }})">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="possibility-stats">
+                    <span class="stat-badge badge-3">
+                        <i class="fas fa-users"></i>
+                        {{ teams_3 }} team{% if teams_3 != 1 %}s{% endif %} of 3
+                    </span>
+                    <span class="stat-badge badge-4">
+                        <i class="fas fa-users"></i>
+                        {{ teams_4 }} team{% if teams_4 != 1 %}s{% endif %} of 4
+                    </span>
+                    <span class="stat-badge badge-total">
+                        <i class="fas fa-calculator"></i>
+                        Total: {{ teams_3|add:teams_4 }} team{% if teams_3|add:teams_4 != 1 %}s{% endif %}
+                    </span>
+                </div>
+                <div class="text-end">
+                    <small class="text-muted d-block">Students Used</small>
+                    <strong class="text-primary">
+                        {% if teams_3 == 0 %}
+                            {% with t4=teams_4 %}
+                                {{ t4|add:t4|add:t4|add:t4 }}
+                            {% endwith %}
+                        {% elif teams_4 == 0 %}
+                            {% with t3=teams_3 %}
+                                {{ t3|add:t3|add:t3 }}
+                            {% endwith %}
+                        {% else %}
+                            {% with t3_sum=teams_3|add:teams_3|add:teams_3 %}
+                                {% with t4_sum=teams_4|add:teams_4|add:teams_4|add:teams_4 %}
+                                    {{ t3_sum|add:t4_sum }}
+                                {% endwith %}
+                            {% endwith %}
+                        {% endif %}
+                    </strong>
+                    <small class="text-muted">/ {{ available_students }}</small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
 
-      <div class="mb-3">
-        <label class="form-label">Team Size</label>
-        <select class="form-select" id="teamSize" onchange="generateMembers()" required>
-          <option value="">-- Select Team Size --</option>
-          <option value="3">3 Members</option>
-          <option value="4">4 Members</option>
-        </select>
-      </div>
-      <div id="membersArea"></div>
-      <button type="submit" id="submitBtn" class="glass-button" disabled>Submit Team</button>
-    </form>
-  </div>
+        {% if best_possibilities %}
+        <div class="alert alert-success mt-3 mb-0">
+            <i class="fas fa-star me-2"></i>
+            <strong>Recommended:</strong> 
+            {% for t3, t4 in best_possibilities %}
+                {{ t3 }} team{% if t3 != 1 %}s{% endif %} of 3 + {{ t4 }} team{% if t4 != 1 %}s{% endif %} of 4 
+                ({{ t3|add:t4 }} total)
+                {% if not forloop.last %} or {% endif %}
+            {% endfor %}
+            — Fewest teams possible!
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="info-alert animate-in mb-4">
+        <i class="fas fa-exclamation-circle"></i>
+        <h5>Not Enough Students</h5>
+        <p class="mb-0">Only {{ available_students }} student(s) available. Need at least 3 to form a team.</p>
+    </div>
+    {% endif %}
+
+    <!-- Team Creation Form -->
+    {% if can_form_teams %}
+    <div class="card animate-in">
+        <form id="teamForm">
+            <div class="text-center mb-4">
+                <h4><i class="fas fa-plus-circle me-2"></i>Create New Team</h4>
+                <p class="opacity-75 mb-0">Select your project details and team members</p>
+            </div>
+
+            <!-- Project Title -->
+            <div class="mb-4">
+                <label class="form-label"><i class="fas fa-heading me-2"></i>Project Title</label>
+                <input type="text" id="projectTitle" class="form-control" placeholder="Enter your project title" required>
+            </div>
+
+            <!-- Domain -->
+            <div class="mb-4">
+                <label class="form-label"><i class="fas fa-tag me-2"></i>Project Domain</label>
+                <select class="form-select" id="domain" required>
+                    <option value="">-- Select Domain --</option>
+                    <option value="AIDS">Artificial Intelligence & Data Science (AIDS)</option>
+                    <option value="AIML">Artificial Intelligence & Machine Learning (AIML)</option>
+                    <option value="CYS">Cyber Security (CYS)</option>
+                    <option value="BW">Blockchain & Web (BW)</option>
+                    <option value="FS">Full Stack Development (FS)</option>
+                    <option value="AI">Artificial Intelligence (AI)</option>
+                    <option value="CD">Cloud & DevOps (CD)</option>
+                </select>
+            </div>
+
+            <!-- Team Size -->
+            <div class="mb-4">
+                <label class="form-label"><i class="fas fa-users me-2"></i>Team Size</label>
+                <select class="form-select" id="teamSize" onchange="generateMembers()" required>
+                    <option value="">-- Select Team Size --</option>
+                    <option value="3">3 Members</option>
+                    <option value="4">4 Members</option>
+                </select>
+                <small class="form-text text-light opacity-75 mt-2 d-block">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Recommended based on available students: 
+                    {% if best_possibilities %}
+                        {% for t3, t4 in best_possibilities|slice:":1" %}
+                            {% if t3 > 0 and t4 > 0 %}
+                                Mix of 3 and 4 member teams
+                            {% elif t4 > 0 %}
+                                4 member teams preferred
+                            {% else %}
+                                3 member teams preferred
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </small>
+            </div>
+
+            <!-- Dynamic Members Area -->
+            <div id="membersArea"></div>
+
+            <!-- Submit Button -->
+            <div class="text-center mt-4">
+                <button type="submit" id="submitBtn" class="glass-button" disabled>
+                    <i class="fas fa-check-circle"></i>Create Team
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
   {% endif %}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
+// Student data from Django
 const students = [
     {% for s in classmates %}
     {student_id:"{{ s.student_id }}", name:"{{ s.name }}", cgpa:{{ s.cgpa }}},
@@ -127,6 +541,7 @@ const students = [
 let selectedStudents = [];
 const loggedIn = "{{ request.session.student_id }}";
 
+// CGPA classification
 function getCGPAType(cgpa){
     if(cgpa >= 9) return "very high";
     if(cgpa >= 8.5) return "high";
@@ -135,98 +550,57 @@ function getCGPAType(cgpa){
     return "very low";
 }
 
-// Allowed sequences with multiple next options
+// Allowed sequences for 3-member teams
 const allowedSequences3 = [
-    // Starting with very high
     ["very high", ["high","mid","low","very low"], ["high","mid","low","very low"]],
     ["very high", "high", ["mid","low","very low"]],
     ["very high", "mid", ["high","low","very low"]],
     ["very high", "low", ["high","mid","very low"]],
     ["very high", "very low", ["mid","low","high"]],
-    ["very high", "very high", "very low"],
-
-    // Starting with high
     ["high", ["very high","mid","low","very low"], ["mid","low","very low"]],
     ["high", "very high", ["mid","low","very low"]],
     ["high", "mid", ["high","low","very low"]],
-    ["high", "low", ["mid","high","very low"]],
-    ["high", "very low", ["mid","low","high"]],
-
-    // Starting with mid
     ["mid", ["very high","high","low","very low"], ["high","low","very low"]],
-    ["mid", "very high", ["high","low","very low"]],
-    ["mid", "high", ["mid","low","very low"]],
-    ["mid", "low", ["high","mid","very low"]],
-    ["mid", "very low", ["low","mid","high"]],
-
-    // Starting with low
     ["low", ["very high","high","mid"], ["high","mid","very low"]],
-    ["low", "very high", ["high","mid","very low"]],
-    ["low", "high", ["mid","low","very low"]],
-    ["low", "mid", ["high","low","very low"]],
-    ["low", "very low", ["mid","low","high"]],
-
-    // Starting with very low
-    ["very low", ["mid","high","very high"], ["mid","low","high"]],
-    ["very low", "low", ["mid","high","very high"]],
-    ["very low", "mid", ["low","high","very high"]],
-    ["very low", "high", ["mid","low","very high"]],
-    ["very low", "very high", ["mid","low","high"]]
+    ["very low", ["mid","high","very high"], ["mid","low","high"]]
 ];
 
-
+// Allowed sequences for 4-member teams
 const allowedSequences4 = [
     ["very high", ["high","mid","low","very low"], ["mid","low","very low"], ["mid","low","very low"]],
     ["high", ["very high","mid","low","very low"], ["mid","low","very low"], ["mid","low","very low"]],
     ["mid", ["very high","high","low","very low"], ["high","low","very low"], ["mid","low","very low"]],
     ["low", ["very high","high","mid"], ["high","mid","very low"], ["mid","low","very low"]],
-    ["very low", ["mid","high","very high"], ["mid","low","high"], ["mid","low","high"]],
-
-    ["very high", "high", ["mid","low","very low"], ["mid","low","very low"]],
-    ["high", "mid", ["high","low","very low"], ["mid","low"]],
-    ["mid", "low", ["high","mid","very low"], ["mid","low"]],
-    ["low", "mid", ["high","mid","very low"], ["mid","low"]],
-    ["very low", "mid", ["low","high","very high"], ["mid","low","high"]]
+    ["very low", ["mid","high","very high"], ["mid","low","high"], ["mid","low","high"]]
 ];
 
-
-// Determine allowed CGPA types based on current team composition
+// Calculate allowed CGPA types based on current team
 function allowedCGPATypes(currentCGPAs, teamSize){
     const counts = { "very high":0, "high":0, "mid":0, "low":0, "very low":0 };
     currentCGPAs.forEach(cgpa => counts[getCGPAType(cgpa)]++);
 
-    const maxHighCount = Math.ceil(teamSize/2); 
-    const maxLowCount = 1; 
     let allowed = [];
-
-    // Original rules
     if(currentCGPAs.length < teamSize) allowed.push("mid");
-    if(counts["very high"] < maxHighCount) allowed.push("very high");
-    if(counts["high"] < maxHighCount) allowed.push("high");
-    if(counts["low"] < maxLowCount) allowed.push("low");
-    if(counts["very low"] < maxLowCount) allowed.push("very low");
+    if(counts["very high"] < Math.ceil(teamSize/2)) allowed.push("very high");
+    if(counts["high"] < Math.ceil(teamSize/2)) allowed.push("high");
+    if(counts["low"] < 1) allowed.push("low");
+    if(counts["very low"] < 1) allowed.push("very low");
 
-    // Sequence rules override
+    // Apply sequence rules
     const currentTypes = currentCGPAs.map(getCGPAType);
-    const sequences = teamSize === 3 ? allowedSequences3 : teamSize === 4 ? allowedSequences4 : [];
+    const sequences = teamSize === 3 ? allowedSequences3 : allowedSequences4;
     const sequenceAllowed = new Set();
 
     sequences.forEach(seq => {
         if(seq.length > currentTypes.length){
             let match = true;
             for(let i = 0; i < currentTypes.length; i++){
-                if(seq[i] !== currentTypes[i]){
-                    match = false;
-                    break;
-                }
+                if(seq[i] !== currentTypes[i]){ match = false; break; }
             }
             if(match){
                 const next = seq[currentTypes.length];
-                if(Array.isArray(next)){
-                    next.forEach(t => sequenceAllowed.add(t));
-                } else {
-                    sequenceAllowed.add(next);
-                }
+                if(Array.isArray(next)) next.forEach(t => sequenceAllowed.add(t));
+                else sequenceAllowed.add(next);
             }
         }
     });
@@ -235,10 +609,10 @@ function allowedCGPATypes(currentCGPAs, teamSize){
     return allowed;
 }
 
-// Get allowed students for a slot
+// Get allowed students for selection
 function getAllowedStudents(teamSize, currentSelected){
-    const currentCGPAs = currentSelected.map(id=>{
-        const stu = students.find(s=>s.student_id===id);
+    const currentCGPAs = currentSelected.map(id => {
+        const stu = students.find(s => s.student_id === id);
         return stu ? stu.cgpa : null;
     }).filter(Boolean);
 
@@ -250,33 +624,59 @@ function getAllowedStudents(teamSize, currentSelected){
     );
 }
 
-// Generate member dropdowns dynamically
+// Select team size from possibility card
+function selectTeamSize(teams3, teams4) {
+    const sizeSelect = document.getElementById("teamSize");
+    // Determine best size based on clicked possibility
+    if (teams4 > teams3) {
+        sizeSelect.value = "4";
+    } else {
+        sizeSelect.value = "3";
+    }
+    generateMembers();
+    // Scroll to form
+    document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Generate member dropdowns
 function generateMembers(){
-    const size = parseInt(document.getElementById("teamSize").value)||0;
+    const size = parseInt(document.getElementById("teamSize").value) || 0;
     const area = document.getElementById("membersArea");
     area.innerHTML = ""; 
     selectedStudents = [];
     document.getElementById("submitBtn").disabled = true;
     if(!size) return;
 
-    for(let i=0;i<size;i++){
-        const role = i===0 ? "👑 Team Leader" : `👤 Member ${i+1}`;
-        area.innerHTML += `<h5>${role}</h5>
-        <div class="row mb-2" data-selected="">
-            <div class="col">
-                <select class="form-select member-select" required>
-                    <option value="">-- Select Student --</option>
-                </select>
+    for(let i = 0; i < size; i++){
+        const role = i === 0 ? "👑 Team Leader (You)" : `👤 Member ${i+1}`;
+        area.innerHTML += `
+            <h5>${role}</h5>
+            <div class="row mb-2" data-selected="">
+                <div class="col">
+                    <select class="form-select member-select" required ${i === 0 ? 'disabled' : ''}>
+                        <option value="">${i === 0 ? loggedIn + ' - You' : '-- Select Student --'}</option>
+                    </select>
+                </div>
             </div>
-        </div>`;
+        `;
+    }
+
+    // Auto-select leader
+    if(size > 0) {
+        const firstRow = area.querySelector('.row');
+        firstRow.dataset.selected = loggedIn;
+        selectedStudents.push(loggedIn);
     }
 
     updateDropdowns(size);
 
-    document.querySelectorAll(".member-select").forEach(select => {
+    document.querySelectorAll(".member-select").forEach((select, index) => {
+        if(index === 0) return; // Skip leader
+        
         select.addEventListener("change", function(){
             const roll = this.value;
             const row = this.closest(".row");
+            
             if(roll && selectedStudents.includes(roll)){ 
                 alert("⚠ Student already selected!"); 
                 this.value = ""; 
@@ -289,14 +689,21 @@ function generateMembers(){
             if(roll) selectedStudents.push(roll);
 
             updateDropdowns(size);
-            document.getElementById("submitBtn").disabled = !(selectedStudents.length === size);
+            const submitBtn = document.getElementById("submitBtn");
+            submitBtn.disabled = !(selectedStudents.length === size);
+            
+            if(!submitBtn.disabled) {
+                submitBtn.innerHTML = '<i class="fas fa-check-circle"></i>Create Team (' + selectedStudents.length + ' members)';
+            }
         });
     });
 }
 
-// Update all dropdowns with current allowed students
+// Update all dropdowns
 function updateDropdowns(teamSize){
-    document.querySelectorAll(".member-select").forEach(sel => {
+    document.querySelectorAll(".member-select").forEach((sel, index) => {
+        if(index === 0) return; // Skip leader
+        
         const currentVal = sel.value;
         const row = sel.closest(".row");
         const currSelected = selectedStudents.filter(s => s !== currentVal);
@@ -306,9 +713,11 @@ function updateDropdowns(teamSize){
         sel.innerHTML = `<option value="">-- Select Student --</option>` +
                         allowed.map(s => `<option value="${s.student_id}">${s.student_id} - ${s.name} (CGPA: ${s.cgpa})</option>`).join("");
 
-        // Keep current value visible
         if(currentVal && !sel.querySelector(`option[value="${currentVal}"]`)){
-            sel.innerHTML += `<option value="${currentVal}">${currentVal}</option>`;
+            const stu = students.find(s => s.student_id === currentVal);
+            if(stu) {
+                sel.innerHTML += `<option value="${currentVal}">${currentVal} - ${stu.name} (CGPA: ${stu.cgpa})</option>`;
+            }
         }
         sel.value = currentVal;
     });
@@ -317,7 +726,8 @@ function updateDropdowns(teamSize){
 // Form submission
 document.getElementById("teamForm")?.addEventListener("submit", function(e){
     e.preventDefault();
-    if(document.getElementById("submitBtn").disabled){ 
+    const submitBtn = document.getElementById("submitBtn");
+    if(submitBtn.disabled){ 
         alert("⚠ Complete valid team selection first."); 
         return; 
     }
@@ -328,21 +738,38 @@ document.getElementById("teamForm")?.addEventListener("submit", function(e){
     }
 
     const domain = document.getElementById("domain").value;
-    const project_title= document.getElementById("projectTitle").value;
+    const project_title = document.getElementById("projectTitle").value;
     const members = selectedStudents;
+
+    // Loading state
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating...';
 
     fetch("",{
         method:"POST",
-        headers:{"Content-Type":"application/json","X-CSRFToken":"{{ csrf_token }}"},
-        body:JSON.stringify({domain,project_title,members})
-    }).then(r=>r.json()).then(data=>{
-        if(data.status==="success"){
-            alert("✅ Project Team :"+data.project_title+" created successfully!");
+        headers:{
+            "Content-Type":"application/json",
+            "X-CSRFToken":"{{ csrf_token }}"
+        },
+        body:JSON.stringify({domain, project_title, members})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if(data.status === "success"){
+            alert("✅ Team created successfully!\n\nProject: " + data.project_title);
             location.reload();
         } else {
-            alert("❌ Error: "+(data.message||"Team creation failed"));
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-check-circle"></i>Create Team';
+            alert("❌ Error: " + (data.message || "Team creation failed"));
         }
-    }).catch(err=>{ console.error(err); alert("❌ Server error, try again later"); });
+    })
+    .catch(err => { 
+        console.error(err); 
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-check-circle"></i>Create Team';
+        alert("❌ Server error, try again later"); 
+    });
 });
 </script>
 
