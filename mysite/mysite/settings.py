@@ -101,12 +101,6 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 # Database (MySQL)
 # -----------------------------
 
-# -----------------------------
-# Database (MySQL)
-# -----------------------------
-# -----------------------------
-# Database (MySQL)
-# -----------------------------
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -115,12 +109,9 @@ DATABASES = {
         'PASSWORD': os.getenv("DB_PASSWORD"),
         'HOST': os.getenv("DB_HOST", "localhost"),
         'PORT': os.getenv("DB_PORT", "3306"),
-        'HOST': os.getenv("DB_HOST"),
-        'PORT': os.getenv("DB_PORT"),
         'OPTIONS': {
             'ssl': {'ca': None},
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES', sql_require_primary_key=0",
-            # 'auth_plugin': 'mysql_native_password',  <--- INTHA LINE-AH DELETE PANNIDUNGA
         },
     }
 }
