@@ -97,6 +97,7 @@ body{
   padding:30px;
   background:var(--background);
   overflow:auto;
+  position: relative;
 }
 
 /* TOP HEADER */
@@ -192,6 +193,8 @@ body{
   text-decoration:none;
   transition:.3s;
   display:inline-block;
+  border: none;
+  cursor: pointer;
 }
 
 .glass-button:hover{
@@ -203,8 +206,272 @@ body{
 .announcement-box{
   background:rgba(255,255,255,.15);
   border-radius:10px;
-  padding:10px;
+  padding:15px;
   margin-bottom:10px;
+  position: relative;
+}
+
+.announcement-box.unread{
+  border-left: 4px solid var(--accent);
+}
+
+.announcement-box.read{
+  border-left: 4px solid #28a745;
+  opacity: 0.8;
+}
+
+.announcement-header{
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.announcement-title{
+  font-weight: 600;
+  font-size: 1rem;
+  margin: 0;
+  flex: 1;
+}
+
+.announcement-type{
+  background: rgba(255,255,255,.2);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  margin-left: 10px;
+}
+
+.announcement-preview{
+  font-size: 0.85rem;
+  opacity: 0.9;
+  margin: 0 0 10px 0;
+  line-height: 1.4;
+}
+
+.announcement-meta{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.deadline-badge{
+  background: rgba(255,255,255,.2);
+  padding: 4px 10px;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.status-icon{
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-icon.acknowledged{
+  background: #28a745;
+  color: white;
+}
+
+.status-icon.pending{
+  background: rgba(255,255,255,.3);
+  color: white;
+}
+
+/* SLIDE PANEL */
+.slide-panel {
+  position: fixed;
+  top: 0;
+  right: -450px;
+  width: 400px;
+  height: 100vh;
+  background: white;
+  box-shadow: -10px 0 30px rgba(0,0,0,0.2);
+  transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.slide-panel.active {
+  right: 0;
+}
+
+.slide-panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  z-index: 999;
+}
+
+.slide-panel-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.slide-panel-header {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  padding: 25px;
+  position: relative;
+}
+
+.slide-panel-header h4 {
+  margin: 0;
+  font-weight: 600;
+  font-size: 1.2rem;
+  padding-right: 40px;
+}
+
+.slide-panel-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255,255,255,0.2);
+  border: none;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.slide-panel-close:hover {
+  background: rgba(255,255,255,0.3);
+  transform: rotate(90deg);
+}
+
+.slide-panel-body {
+  flex: 1;
+  padding: 25px;
+  overflow-y: auto;
+}
+
+.panel-type-badge {
+  display: inline-block;
+  background: var(--accent);
+  color: var(--primary);
+  padding: 4px 12px;
+  border-radius: 15px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.panel-description {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--text-dark);
+  margin-bottom: 25px;
+}
+
+.panel-meta-grid {
+  display: grid;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.panel-meta-item {
+  background: var(--background);
+  padding: 15px;
+  border-radius: 12px;
+  border-left: 4px solid var(--primary);
+}
+
+.panel-meta-label {
+  font-size: 0.75rem;
+  color: var(--secondary);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.panel-meta-value {
+  font-size: 0.95rem;
+  color: var(--text-dark);
+  font-weight: 500;
+}
+
+.slide-panel-footer {
+  padding: 20px 25px;
+  background: var(--background);
+  border-top: 1px solid #e0e0e0;
+}
+
+.acknowledge-form {
+  margin: 0;
+}
+
+.acknowledge-btn {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.acknowledge-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(44, 55, 173, 0.3);
+}
+
+.acknowledge-btn.acknowledged {
+  background: #28a745;
+  cursor: default;
+}
+
+.acknowledge-btn.acknowledged:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.back-to-dashboard {
+  background: transparent;
+  border: 2px solid var(--primary);
+  color: var(--primary);
+  padding: 12px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 10px;
+  text-decoration: none;
+}
+
+.back-to-dashboard:hover {
+  background: var(--primary);
+  color: white;
 }
 
 /* SETTINGS */
@@ -223,6 +490,35 @@ body{
   font-size:.9rem;
   border-top:1px solid #ddd;
   padding-top:12px;
+}
+
+/* Scrollbar styling */
+.announcement-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.announcement-list::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+}
+
+.announcement-list::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.3);
+  border-radius: 3px;
+}
+
+.slide-panel-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.slide-panel-body::-webkit-scrollbar-track {
+  background: var(--background);
+  border-radius: 4px;
+}
+
+.slide-panel-body::-webkit-scrollbar-thumb {
+  background: var(--secondary);
+  border-radius: 4px;
 }
 </style>
 </head>
@@ -302,37 +598,125 @@ body{
     <div class="main-card gradient-purple">
       <i class="fas fa-bell"></i>
       <h6>Announcements</h6>
-      <div style="max-height:200px; overflow:auto;">
+      <div class="announcement-list" style="max-height:200px; overflow:auto;">
         {% for status in announcements %}
-          <div class="announcement-box">
-            <strong>{{ status.announcement.title }}</strong><br>
-            <small>{{ status.announcement.ann_type|title }}</small>
-
-            {% if status.announcement.deadline_date %}
-              <div class="small">⏰ {{ status.announcement.deadline_date }} {{ status.announcement.deadline_time }}</div>
-            {% endif %}
-
-            <div class="text-end mt-1">
-              {% if status.acknowledged_at %}
-                <i class="fas fa-check-double text-info"></i>
+          <div class="announcement-box {% if status.acknowledged_at %}read{% else %}unread{% endif %}">
+            <div class="announcement-header">
+              <h6 class="announcement-title">{{ status.announcement.title }}</h6>
+              <span class="announcement-type">{{ status.announcement.ann_type|title }}</span>
+            </div>
+            <p class="announcement-preview">{{ status.announcement.description|truncatewords:8 }}</p>
+            <div class="announcement-meta">
+              {% if status.announcement.deadline_date %}
+                <div class="deadline-badge">
+                  <i class="fas fa-clock"></i>
+                  <span>{{ status.announcement.deadline_date }}</span>
+                </div>
               {% else %}
-                <form method="post" action="{% url 'ack_announcement' status.id %}">
-                  {% csrf_token %}
-                  <button class="btn btn-sm btn-light">✔</button>
-                </form>
+                <div class="deadline-badge">
+                  <i class="fas fa-calendar"></i>
+                  <span>{{ status.announcement.created_at|date:"M d" }}</span>
+                </div>
               {% endif %}
+              <div class="status-icon {% if status.acknowledged_at %}acknowledged{% else %}pending{% endif %}">
+                {% if status.acknowledged_at %}
+                  <i class="fas fa-check"></i>
+                {% else %}
+                  <i class="fas fa-bell"></i>
+                {% endif %}
+              </div>
             </div>
           </div>
         {% empty %}
           <p class="text-light">No announcements</p>
         {% endfor %}
       </div>
+      <button class="glass-button mt-3" onclick="openAnnouncementsPanel()" style="width: 100%; text-align: center;">
+        <i class="fas fa-eye me-2"></i>View Announcements
+      </button>
     </div>
 
   </div>
 
   <div class="footer">
     © 2025 Project Portal. All Rights Reserved.
+  </div>
+</div>
+
+<!-- SLIDE PANEL FOR ANNOUNCEMENTS -->
+<div class="slide-panel-overlay" id="slideOverlay" onclick="closeAnnouncementsPanel()"></div>
+<div class="slide-panel" id="announcementsPanel">
+  <div class="slide-panel-header">
+    <h4><i class="fas fa-bullhorn me-2"></i>All Announcements</h4>
+    <button class="slide-panel-close" onclick="closeAnnouncementsPanel()">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+  
+  <div class="slide-panel-body" id="panelBody">
+    {% for status in announcements %}
+      <div class="announcement-detail-card mb-4" id="announcement-{{ status.id }}">
+        <span class="panel-type-badge">{{ status.announcement.ann_type|title }}</span>
+        <h5 style="color: var(--primary); margin-bottom: 15px; font-weight: 600;">{{ status.announcement.title }}</h5>
+        
+        <p class="panel-description">{{ status.announcement.description }}</p>
+        
+        <div class="panel-meta-grid">
+          <div class="panel-meta-item">
+            <div class="panel-meta-label">Posted On</div>
+            <div class="panel-meta-value">{{ status.announcement.created_at|date:"F d, Y" }}</div>
+          </div>
+          
+          {% if status.announcement.deadline_date %}
+          <div class="panel-meta-item">
+            <div class="panel-meta-label">Deadline</div>
+            <div class="panel-meta-value">
+              {{ status.announcement.deadline_date }}
+              {% if status.announcement.deadline_time %}at {{ status.announcement.deadline_time }}{% endif %}
+            </div>
+          </div>
+          {% endif %}
+          
+          {% if status.acknowledged_at %}
+          <div class="panel-meta-item" style="border-left-color: #28a745;">
+            <div class="panel-meta-label" style="color: #28a745;">Acknowledged On</div>
+            <div class="panel-meta-value">{{ status.acknowledged_at|date:"F d, Y H:i" }}</div>
+          </div>
+          {% endif %}
+        </div>
+        
+        {% if not status.acknowledged_at %}
+        <form method="post" action="{% url 'ack_announcement' status.id %}" class="acknowledge-form">
+          {% csrf_token %}
+          <button type="submit" class="acknowledge-btn">
+            <i class="fas fa-check-circle"></i>
+            <span>Acknowledge Announcement</span>
+          </button>
+        </form>
+        {% else %}
+        <button class="acknowledge-btn acknowledged" disabled>
+          <i class="fas fa-check-double"></i>
+          <span>Acknowledged</span>
+        </button>
+        {% endif %}
+        
+        {% if not forloop.last %}
+        <hr style="margin: 25px 0; border-color: #e0e0e0;">
+        {% endif %}
+      </div>
+    {% empty %}
+      <div class="text-center py-5">
+        <i class="fas fa-inbox" style="font-size: 3rem; color: var(--secondary); margin-bottom: 15px;"></i>
+        <p style="color: var(--secondary);">No announcements available</p>
+      </div>
+    {% endfor %}
+  </div>
+  
+  <div class="slide-panel-footer">
+    <button class="back-to-dashboard" onclick="closeAnnouncementsPanel()">
+      <i class="fas fa-arrow-left"></i>
+      Back to Dashboard
+    </button>
   </div>
 </div>
 
@@ -388,6 +772,26 @@ settingsLink.addEventListener('click', (e)=>{
 backBtn.addEventListener('click', ()=>{
   settings.style.display='none';
   dashboard.style.display='block';
+});
+
+// Slide Panel Functions
+function openAnnouncementsPanel() {
+  document.getElementById('announcementsPanel').classList.add('active');
+  document.getElementById('slideOverlay').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAnnouncementsPanel() {
+  document.getElementById('announcementsPanel').classList.remove('active');
+  document.getElementById('slideOverlay').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+// Close panel on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeAnnouncementsPanel();
+  }
 });
 </script>
 </body>

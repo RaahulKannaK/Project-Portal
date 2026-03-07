@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mentor Allocation Result</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary: #6A0DAD;
+      --secondary: #C7A4E0;
+      --accent: #F9DDEB;
+      --background: #F8F9FC;
+      --text-dark: #2E2E2E;
+      --text-light: #ffffff;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --info: #3b82f6;
+    }
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background: linear-gradient(135deg, var(--background), #ffffff);
+      min-height: 100vh;
+      padding: 30px 20px;
+      color: var(--text-dark);
+    }
+
+    .main-container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header-section {
+      text-align: center;
+      margin-bottom: 40px;
+      padding: 20px;
+    }
+
+    .header-section h2 {
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 2.2rem;
+      margin-bottom: 10px;
+    }
+
+    .header-section p {
+      color: var(--secondary);
+      font-size: 1.1rem;
+    }
+
+    .card {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(106, 13, 173, 0.1);
+      border: none;
+      margin-bottom: 30px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 20px 30px;
+      border: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-header h3 {
+      margin: 0;
+      font-weight: 600;
+      font-size: 1.3rem;
+    }
+
+    .card-body {
+      padding: 30px;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 25px;
+      border-radius: 15px;
+      text-align: center;
+      transition: transform 0.3s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .stat-card i {
+      font-size: 2.5rem;
+      margin-bottom: 15px;
+      opacity: 0.9;
+    }
+
+    .stat-card h4 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .stat-card p {
+      margin: 0;
+      opacity: 0.9;
+      font-size: 0.95rem;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .custom-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0;
+    }
+
+    .custom-table thead {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+    }
+
+    .custom-table th {
+      padding: 16px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border: none;
+    }
+
+    .custom-table td {
+      padding: 16px;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.95rem;
+    }
+
+    .custom-table tbody tr:hover {
+      background: #f8fafc;
+    }
+
+    .custom-table tbody tr:nth-child(even) {
+      background: #f8f9fc;
+    }
+
+    .badge {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .badge-expert {
+      background: #d1fae5;
+      color: var(--success);
+    }
+
+    .badge-beginner {
+      background: #fef3c7;
+      color: var(--warning);
+    }
+
+    .similarity-high {
+      color: var(--success);
+      font-weight: 700;
+    }
+
+    .similarity-medium {
+      color: var(--warning);
+      font-weight: 700;
+    }
+
+    .similarity-low {
+      color: var(--danger);
+      font-weight: 700;
+    }
+
+    .btn-custom {
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+
+    .btn-primary-custom {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+    }
+
+    .btn-primary-custom:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(106, 13, 173, 0.3);
+      color: white;
+    }
+
+    .btn-success-custom {
+      background: linear-gradient(135deg, var(--success), #34d399);
+      color: white;
+    }
+
+    .btn-success-custom:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+      color: white;
+    }
+
+    .btn-danger-custom {
+      background: linear-gradient(135deg, var(--danger), #f87171);
+      color: white;
+      padding: 8px 16px;
+      font-size: 0.85rem;
+    }
+
+    .btn-danger-custom:hover {
+      color: white;
+    }
+
+    .btn-warning-custom {
+      background: linear-gradient(135deg, var(--warning), #fbbf24);
+      color: white;
+      padding: 8px 16px;
+      font-size: 0.85rem;
+    }
+
+    .action-bar {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+
+    .editable-cell {
+      background: #fef9c3;
+      border: 2px solid var(--warning);
+      padding: 10px;
+      border-radius: 8px;
+      min-width: 120px;
+      outline: none;
+      transition: all 0.3s;
+    }
+
+    .editable-cell:focus {
+      background: #fff;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(106, 13, 173, 0.1);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--secondary);
+    }
+
+    .empty-state i {
+      font-size: 4rem;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1050;
+    }
+
+    .toast {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      border: none;
+      min-width: 300px;
+    }
+
+    .toast-header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      border-radius: 12px 12px 0 0;
+    }
+
+    .search-box {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 12px 20px 12px 45px;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 1rem;
+      transition: all 0.3s;
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(106, 13, 173, 0.1);
+    }
+
+    .search-box i {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--secondary);
+    }
+
+    @media print {
+      .no-print { display: none !important; }
+      .card { box-shadow: none; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="main-container">
+
+    <!-- Header -->
+    <div class="header-section">
+      <h2><i class="fas fa-users-cog me-3"></i>Mentor Allocation Result</h2>
+      <p>Manage and allocate mentors to teams efficiently</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <i class="fas fa-users"></i>
+        <h4>{{ allocations|length }}</h4>
+        <p>Total Teams</p>
+      </div>
+      <div class="stat-card">
+        <i class="fas fa-chalkboard-teacher"></i>
+        <h4>{{ allocations|length }}</h4>
+        <p>Mentors Assigned</p>
+      </div>
+      <div class="stat-card">
+        <i class="fas fa-chart-line"></i>
+        <h4>{{ avg_similarity|default:"0" }}%</h4>
+        <p>Avg Similarity</p>
+      </div>
+      <div class="stat-card">
+        <i class="fas fa-check-circle"></i>
+        <h4>{{ allocations|length }}</h4>
+        <p>Successful Matches</p>
+      </div>
+    </div>
+
+    <!-- Allocation Results Card -->
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fas fa-table me-2"></i>Current Allocations</h3>
+        <div class="no-print">
+          <button class="btn-custom btn-success-custom" onclick="exportToExcel('allocationTable', 'mentor_allocations')">
+            <i class="fas fa-file-excel"></i> Export Excel
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        
+        <!-- Search -->
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input type="text" id="searchAllocation" placeholder="Search teams, mentors, or domains..." onkeyup="searchTable('allocationTable', this.value)">
+        </div>
+
+        {% if allocations %}
+        <div class="table-container">
+          <table class="custom-table" id="allocationTable">
+            <thead>
+              <tr>
+                <th>Team</th>
+                <th>Team Domain</th>
+                <th>Mentor</th>
+                <th>Mentor Domain</th>
+                <th>Alt Domains</th>
+                <th>Experience</th>
+                <th>Similarity Score</th>
+                <th>Reason</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in allocations %}
+              <tr>
+                <td><strong>{{ row.team_name }}</strong></td>
+                <td><span class="badge bg-light text-dark">{{ row.team_domain }}</span></td>
+                <td><i class="fas fa-user-tie me-2 text-primary"></i>{{ row.mentor_name }}</td>
+                <td>{{ row.mentor_domain }}</td>
+                <td><small class="text-muted">{{ row.alt_domains|default:"-" }}</small></td>
+                <td>
+                  {% if row.experience == "Expert" %}
+                    <span class="badge badge-expert"><i class="fas fa-star me-1"></i>Expert</span>
+                  {% else %}
+                    <span class="badge badge-beginner"><i class="fas fa-seedling me-1"></i>Beginner</span>
+                  {% endif %}
+                </td>
+                <td class="{% if row.similarity_score >= 80 %}similarity-high{% elif row.similarity_score >= 50 %}similarity-medium{% else %}similarity-low{% endif %}">
+                  {{ row.similarity_score }}%
+                </td>
+                <td><small>{{ row.reason }}</small></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <i class="fas fa-inbox"></i>
+          <h4>No Allocations Found</h4>
+          <p>Start by adding teams and mentors to generate allocations.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Editable Allocation Card -->
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fas fa-edit me-2"></i>Update Mentor Allocation</h3>
+        <div class="no-print">
+          <button class="btn-custom btn-primary-custom" onclick="addRow()">
+            <i class="fas fa-plus"></i> Add Row
+          </button>
+          <button class="btn-custom btn-success-custom ms-2" onclick="exportEditableToExcel()">
+            <i class="fas fa-download"></i> Download Excel
+          </button>
+          <button class="btn-custom btn-success-custom ms-2" onclick="saveChanges()">
+            <i class="fas fa-save"></i> Save Changes
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        
+        <!-- Search -->
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input type="text" id="searchEditable" placeholder="Search in editable table..." onkeyup="searchTable('editTable', this.value)">
+        </div>
+
+        <div class="table-container">
+          <table class="custom-table" id="editTable">
+            <thead>
+              <tr>
+                <th>Team <i class="fas fa-sort ms-1" style="cursor:pointer" onclick="sortTable(0)"></i></th>
+                <th>Team Domain</th>
+                <th>Mentor</th>
+                <th>Mentor Domain</th>
+                <th class="no-print">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in allocations %}
+              <tr data-id="{{ forloop.counter }}">
+                <td contenteditable="true" class="editable-cell" data-field="team_name">{{ row.team_name }}</td>
+                <td contenteditable="true" class="editable-cell" data-field="team_domain">{{ row.team_domain }}</td>
+                <td contenteditable="true" class="editable-cell" data-field="mentor_name">{{ row.mentor_name }}</td>
+                <td contenteditable="true" class="editable-cell" data-field="mentor_domain">{{ row.mentor_domain }}</td>
+                <td class="no-print">
+                  <button class="btn-custom btn-warning-custom me-2" onclick="duplicateRow(this)" title="Duplicate">
+                    <i class="fas fa-copy"></i>
+                  </button>
+                  <button class="btn-custom btn-danger-custom" onclick="removeRow(this)" title="Remove">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% if not allocations %}
+        <div class="empty-state mt-4">
+          <i class="fas fa-edit"></i>
+          <h4>No Data to Edit</h4>
+          <p>Add rows manually or generate allocations first.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="text-center mt-4 mb-4 text-muted">
+      <small>© 2025 Mentor Allocation System. All Rights Reserved.</small>
+    </div>
+
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Add new row to editable table
+    function addRow() {
+      const tbody = document.querySelector("#editTable tbody");
+      const row = tbody.insertRow();
+      const rowId = Date.now();
+      row.setAttribute('data-id', rowId);
+      row.innerHTML = `
+        <td contenteditable="true" class="editable-cell" data-field="team_name">New Team</td>
+        <td contenteditable="true" class="editable-cell" data-field="team_domain">Domain</td>
+        <td contenteditable="true" class="editable-cell" data-field="mentor_name">Mentor Name</td>
+        <td contenteditable="true" class="editable-cell" data-field="mentor_domain">Mentor Domain</td>
+        <td class="no-print">
+          <button class="btn-custom btn-warning-custom me-2" onclick="duplicateRow(this)" title="Duplicate">
+            <i class="fas fa-copy"></i>
+          </button>
+          <button class="btn-custom btn-danger-custom" onclick="removeRow(this)" title="Remove">
+            <i class="fas fa-trash"></i>
+          </button>
+        </td>
+      `;
+      showToast('New row added successfully!', 'success');
+    }
+
+    // Remove row
+    function removeRow(btn) {
+      if (confirm('Are you sure you want to remove this row?')) {
+        btn.closest("tr").remove();
+        showToast('Row removed successfully!', 'info');
+      }
+    }
+
+    // Duplicate row
+    function duplicateRow(btn) {
+      const row = btn.closest("tr");
+      const newRow = row.cloneNode(true);
+      newRow.setAttribute('data-id', Date.now());
+      row.parentNode.insertBefore(newRow, row.nextSibling);
+      showToast('Row duplicated!', 'success');
+    }
+
+    // Export table to Excel
+    function exportToExcel(tableId, filename) {
+      const table = document.getElementById(tableId);
+      let html = table.outerHTML;
+      
+      // Create Excel file
+      const uri = 'data:application/vnd.ms-excel;base64,';
+      const template = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>{worksheet}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table>{table}</table></body></html>';
+      
+      const ctx = {
+        worksheet: filename || 'Worksheet',
+        table: html
+      };
+      
+      const link = document.createElement("a");
+      link.download = filename + ".xls";
+      link.href = uri + base64(format(template, ctx));
+      link.click();
+      
+      showToast('Excel file downloaded!', 'success');
+    }
+
+    // Export editable table to Excel (clean data)
+    function exportEditableToExcel() {
+      const rows = document.querySelectorAll("#editTable tbody tr");
+      let csvContent = "Team,Team Domain,Mentor,Mentor Domain\n";
+      
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td[data-field]");
+        const rowData = Array.from(cells).map(cell => {
+          let data = cell.innerText.replace(/"/g, '""');
+          return `"${data}"`;
+        }).join(",");
+        csvContent += rowData + "\n";
+      });
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", "mentor_allocation_update.csv");
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showToast('CSV file downloaded successfully!', 'success');
+    }
+
+    // Save changes (send to server)
+    function saveChanges() {
+      const rows = document.querySelectorAll("#editTable tbody tr");
+      const data = [];
+      
+      rows.forEach(row => {
+        const rowData = {
+          id: row.getAttribute('data-id'),
+          team_name: row.querySelector('[data-field="team_name"]').innerText,
+          team_domain: row.querySelector('[data-field="team_domain"]').innerText,
+          mentor_name: row.querySelector('[data-field="mentor_name"]').innerText,
+          mentor_domain: row.querySelector('[data-field="mentor_domain"]').innerText
+        };
+        data.push(rowData);
+      });
+      
+      // Send to server
+      fetch('/save-allocations/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ allocations: data })
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.success) {
+          showToast('Changes saved successfully!', 'success');
+        } else {
+          showToast('Error saving changes: ' + result.error, 'error');
+        }
+      })
+      .catch(error => {
+        showToast('Error: ' + error, 'error');
+      });
+    }
+
+    // Search table
+    function searchTable(tableId, query) {
+      const table = document.getElementById(tableId);
+      const rows = table.querySelectorAll("tbody tr");
+      const lowerQuery = query.toLowerCase();
+      
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(lowerQuery) ? "" : "none";
+      });
+    }
+
+    // Sort table
+    function sortTable(n) {
+      const table = document.getElementById("editTable");
+      let switching = true;
+      let dir = "asc";
+      let switchcount = 0;
+      
+      while (switching) {
+        switching = false;
+        const rows = table.rows;
+        
+        for (let i = 1; i < (rows.length - 1); i++) {
+          let shouldSwitch = false;
+          const x = rows[i].getElementsByTagName("TD")[n];
+          const y = rows[i + 1].getElementsByTagName("TD")[n];
+          
+          if (dir == "asc") {
+            if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+              shouldSwitch = true;
+              break;
+            }
+          } else if (dir == "desc") {
+            if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+              shouldSwitch = true;
+              break;
+            }
+          }
+        }
+        
+        if (shouldSwitch) {
+          rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+          switching = true;
+          switchcount++;
+        } else {
+          if (switchcount == 0 && dir == "asc") {
+            dir = "desc";
+            switching = true;
+          }
+        }
+      }
+    }
+
+    // Show toast notification
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'toast show mb-2';
+      
+      const icons = {
+        success: 'check-circle',
+        error: 'exclamation-circle',
+        info: 'info-circle'
+      };
+      
+      const colors = {
+        success: 'bg-success',
+        error: 'bg-danger',
+        info: 'bg-info'
+      };
+      
+      toast.innerHTML = `
+        <div class="toast-header ${colors[type]} text-white">
+          <i class="fas fa-${icons[type]} me-2"></i>
+          <strong class="me-auto">Notification</strong>
+          <button type="button" class="btn-close btn-close-white" onclick="this.closest('.toast').remove()"></button>
+        </div>
+        <div class="toast-body">
+          ${message}
+        </div>
+      `;
+      
+      container.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    }
+
+    // Helper functions
+    function base64(s) {
+      return window.btoa(unescape(encodeURIComponent(s)));
+    }
+
+    function format(template, context) {
+      return template.replace(/{(\w+)}/g, (m, p) => context[p]);
+    }
+
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+      if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        saveChanges();
+      }
+      if (e.ctrlKey && e.key === 'n') {
+        e.preventDefault();
+        addRow();
+      }
+    });
+  </script>
+</body>
+</html>

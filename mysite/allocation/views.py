@@ -223,40 +223,54 @@ def mentor_dashboard(request):
         return redirect("mentor_login")
 
     allocations = AllocationResult.objects.filter(mentor_name=mentor_name)
-
     team_details = []
+
+    # Define review stages mapping
+    review_stages = ["zeroth", "first", "second", "third"]
 
     for alloc in allocations:
         team = Team.objects.filter(project_title__iexact=alloc.team_name).first()
         if not team:
             continue
 
-        # ---- Documents ----
-        documents = ProjectDocument.objects.filter(team_name=team.project_title)
-
-        doc_map = {}
-        for d in documents:
-            doc_map.setdefault(d.review_stage, {})
-            doc_map[d.review_stage][d.doc_type] = d
-
-        # ---- Zeroth Review Remarks ----
-        remarks = ZerothReviewRemark.objects.filter(
-            team_name=team.project_title,
-            mentor_name=mentor_name
-        )
-        remark_map = {r.heading: r for r in remarks}
-
         members = list(zip(
             team.member_names.split(","),
             team.members.split(",")
         ))
 
+        # ---- Documents for ALL review stages ----
+        all_documents = {}
+        
+        for stage in review_stages:
+            # Get documents where review_stage matches the stage name
+            documents = ProjectDocument.objects.filter(
+                team_name=team.project_title,
+                review_stage=stage
+            )
+            doc_map = {}
+            for d in documents:
+                doc_map[d.doc_type] = d
+            all_documents[stage] = doc_map
+
+        # ---- Remarks for ALL review stages ----
+        # Using file_type field to store review stage since no review_stage field exists
+        all_remarks = {}
+        
+        for stage in review_stages:
+            remarks = ZerothReviewRemark.objects.filter(
+                team_name=team.project_title,
+                mentor_name=mentor_name,
+                file_type=stage  # Using existing file_type field to identify review stage
+            )
+            remark_map = {r.heading: r for r in remarks}
+            all_remarks[stage] = remark_map
+
         team_details.append({
             "project_title": team.project_title,
             "domain": team.domain,
             "members": members,
-            "documents": doc_map,
-            "remarks": remark_map,
+            "documents": all_documents,  # All 4 stages: zeroth, first, second, third
+            "remarks": all_remarks,      # All 4 stages
         })
 
     return render(request, "mentor/men_dash.html", {
@@ -264,7 +278,6 @@ def mentor_dashboard(request):
         "username": username,
         "team_details": team_details,
     })
-
 
 def hod_dashboard(request):
     return render(request, "accounts/hod_dash.html")
@@ -829,7 +842,7 @@ def allocate_view(request):
     print("✅ Teams fetched from DB:", teams)
 
     if not teams:
-        return render(request, "accounts/allocation_result.html", {
+        return render(request, "coordinator/men_team_result.html", {
             "allocations": [],
             "error": "No teams available."
         })
@@ -850,7 +863,7 @@ def allocate_view(request):
     print("✅ Mentors fetched from DB:", mentors)
 
     if not mentors:
-        return render(request, "accounts/allocation_result.html", {
+        return render(request, "coordinator/men_team_result.html", {
             "allocations": [],
             "error": "No mentors available."
         })
@@ -903,7 +916,8 @@ def allocate_view(request):
     allocations = allocations_df.to_dict(orient="records")
     print("✅ Allocations list for template:", allocations)
 
-    return render(request, "accounts/allocation_result.html", {"allocations": allocations})
+    return render(request, "coordinator/men_team_result.html", {"allocations": allocations})
+
 
 def zero_men(request):
     mentor_name = request.session.get("mentor_name")
