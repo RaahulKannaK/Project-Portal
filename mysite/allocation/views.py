@@ -918,6 +918,243 @@ def allocate_view(request):
 
     return render(request, "coordinator/men_team_result.html", {"allocations": allocations})
 
+from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.db.models import Avg
+from .models import Team, Mentor, AllocationResult
+
+@login_required
+def student_result_view(request):
+    """
+    View for students to see their assigned mentor.
+    Fetches the team associated with the logged-in student and shows mentor details.
+    """
+    try:
+        # Get the team where current user is a member
+        # Adjust this query based on your Team model's relationship to User
+        team = Team.objects.filter(members=request.user).first() or \
+               Team.objects.filter(leader=request.user).first() or \
+               Team.objects.filter(user=request.user).first()
+        
+        if not team:
+            return render(request, "student/student_result.html", {
+                "allocation": None,
+                "error": "You are not associated with any team."
+            })
+        
+        # Get allocation for this team
+        allocation = AllocationResult.objects.filter(team_name=team.project_title).first()
+        
+        if not allocation:
+            return render(request, "student/student_result.html", {
+                "allocation": None,
+                "error": "Mentor allocation not found for your team."
+            })
+        
+        context = {
+            "allocation": allocation,
+            "team": team
+        }
+        
+        return render(request, "student/student_result.html", context)
+        
+    except Exception as e:
+        return render(request, "student/student_result.html", {
+            "allocation": None,
+            "error": str(e)
+        })
+
+
+@login_required
+def mentor_result_view(request):
+    """
+    View for mentors to see their assigned teams.
+    Fetches all allocations where the logged-in mentor is assigned.
+    """
+    try:
+        # Get mentor profile for current user
+        # Adjust this query based on your Mentor model's relationship to User
+        mentor = Mentor.objects.filter(user=request.user).first() or \
+                 Mentor.objects.filter(email=request.user.email).first() or \
+                 Mentor.objects.filter(name=request.user.get_full_name()).first()
+        
+        if not mentor:
+            return render(request, "mentor/mentor_result.html", {
+                "allocations": [],
+                "error": "Mentor profile not found."
+            })
+        
+        # Get all allocations for this mentor
+        allocations = AllocationResult.objects.filter(mentor_name=mentor.name)
+        
+        # Calculate statistics
+        unique_domains = allocations.values_list('team_domain', flat=True).distinct()
+        avg_similarity = allocations.aggregate(Avg('similarity_score'))['similarity_score__avg'] or 0
+        
+        context = {
+            "allocations": allocations,
+            "unique_domains": list(unique_domains),
+            "avg_similarity": round(avg_similarity, 1),
+            "active_count": allocations.count(),
+            "mentor": mentor
+        }
+        
+        return render(request, "mentor/mentor_result.html", context)
+        
+    except Exception as e:
+        return render(request, "mentor/mentor_result.html", {
+            "allocations": [],
+            "error": str(e)
+        })
+
+# views.py
+
+from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.db.models import Avg
+from django.conf import settings
+from .models import Team, Mentor, AllocationResult, Stu_Login, Mentor_Login
+
+def get_logged_in_student(request):
+    """Helper to get student info from session"""
+    student_id = request.session.get('student_id')
+    student_name = request.session.get('student_name')
+    student_class = request.session.get('student_class')
+    return {
+        'id': student_id,
+        'name': student_name,
+        'class': student_class
+    }
+
+def get_logged_in_mentor(request):
+    """Helper to get mentor info from session"""
+    mentor_username = request.session.get('mentor_username')
+    mentor_name = request.session.get('mentor_name')
+    print("Session keys:", list(request.session.keys()))
+    print("Mentor username from session:", mentor_username)
+    print("Mentor name from session:", mentor_name)
+    return {
+        'username': mentor_username,
+        'name': mentor_name
+    }
+
+def student_result_view(request):
+    """
+    View for students to see their assigned mentor.
+    Uses session data from your custom login system.
+    """
+    # Check if student is logged in (custom auth)
+    student_info = get_logged_in_student(request)
+    
+    if not student_info['id']:
+        # Try Django's auth as fallback
+        if not request.user.is_authenticated:
+            from django.shortcuts import redirect
+            return redirect('/login/')
+        # If using Django auth, get student by username
+        student_name = request.user.get_full_name() or request.user.username
+    else:
+        student_name = student_info['name']
+    
+    try:
+        # Find team where this student is a member
+        # Since members is TextField, we search in it
+        teams = Team.objects.all()
+        student_team = None
+        
+        for team in teams:
+            # Check if student name or ID is in members or member_names
+            member_names = team.member_names or ''
+            members = team.members or ''
+            
+            if (student_name in member_names) or (student_info.get('id') in members):
+                student_team = team
+                break
+        
+        if not student_team:
+            return render(request, "student/student_result.html", {
+                "allocation": None,
+                "error": "You are not associated with any team.",
+                "student": student_info
+            })
+        
+        # Get allocation for this team
+        allocation = AllocationResult.objects.filter(team_name=student_team.project_title).first()
+        
+        if not allocation:
+            return render(request, "student/student_result.html", {
+                "allocation": None,
+                "error": "Mentor allocation not found for your team.",
+                "team": student_team,
+                "student": student_info
+            })
+        
+        return render(request, "student/student_result.html", {
+            "allocation": allocation,
+            "team": student_team,
+            "student": student_info
+        })
+        
+    except Exception as e:
+        return render(request, "student/student_result.html", {
+            "allocation": None,
+            "error": str(e),
+            "student": student_info
+        })
+
+
+def mentor_result_view(request):
+    """
+    View for mentors to see their assigned teams.
+    Uses session data from your custom login system.
+    """
+    # Check if mentor is logged in (custom auth)
+    mentor_info = get_logged_in_mentor(request)
+    
+    if not mentor_info['username']:
+        # Try Django's auth as fallback
+        if not request.user.is_authenticated:
+            from django.shortcuts import redirect
+            return redirect('/login/')
+        mentor_name = request.user.get_full_name() or request.user.username
+    else:
+        mentor_name = mentor_info['name']
+    
+    try:
+        # Get all allocations for this mentor
+        allocations = AllocationResult.objects.filter(mentor_name=mentor_name)
+        
+        # If no allocations found by name, try username
+        if not allocations.exists() and mentor_info['username']:
+            allocations = AllocationResult.objects.filter(
+                mentor_name__icontains=mentor_info['username']
+            )
+        
+        if not allocations.exists():
+            return render(request, "mentor/mentor_result.html", {
+                "allocations": [],
+                "error": "No teams assigned to you yet.",
+                "mentor": mentor_info
+            })
+        
+        # Calculate statistics
+        unique_domains = list(allocations.values_list('team_domain', flat=True).distinct())
+        avg_similarity = allocations.aggregate(Avg('similarity_score'))['similarity_score__avg'] or 0
+        
+        return render(request, "mentor/mentor_result.html", {
+            "allocations": allocations,
+            "unique_domains": unique_domains,
+            "avg_similarity": round(avg_similarity, 1),
+            "active_count": allocations.count(),
+            "mentor": mentor_info
+        })
+        
+    except Exception as e:
+        return render(request, "mentor/mentor_result.html", {
+            "allocations": [],
+            "error": str(e),
+            "mentor": mentor_info
+        })
 
 def zero_men(request):
     mentor_name = request.session.get("mentor_name")

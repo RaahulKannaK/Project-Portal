@@ -14,7 +14,7 @@ from allocation.views import (
     team_list, save_evaluation, clean_text, zero_stu, one_stu, two_stu, three_stu,
     approve_team, modify_team, zero_ma1, download_docx, download_pdf, one_ma,two_ma,three_ma,upload_csv,
     approve_team, modify_team, zero_ma1, download_docx, download_pdf, one_ma,two_ma,three_ma,
-    save_evaluation_review1,save_evaluation_review2,save_evaluation_review3, serve_pdf, save_zeroth_remark, acknowledge_announcement,serve_temp_html
+    save_evaluation_review1,save_evaluation_review2,save_evaluation_review3, serve_pdf, save_zeroth_remark, acknowledge_announcement,serve_temp_html,student_result_view,mentor_result_view
 )
 
 # ✅ Import for serving media files
@@ -80,6 +80,8 @@ urlpatterns = [
     path("coordinator/upload-csv/", upload_csv, name="upload_csv"),
 
     # ---------------- Announcements ----------------
+    path("student/my-mentor/", student_result_view, name="student_mentor"),
+    path("mentor/my-teams/", mentor_result_view, name="mentor_teams"),
     path("student/ack/<int:status_id>/", acknowledge_announcement, name="ack_announcement"),
     path("mentor/temp-html/<str:team>/<str:filename>/",serve_temp_html,name="serve_temp_html"),
 ]
