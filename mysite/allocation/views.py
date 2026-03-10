@@ -1027,14 +1027,17 @@ def get_logged_in_student(request):
     }
 
 def get_logged_in_mentor(request):
-    """Helper to get mentor info from session"""
-    mentor_username = request.session.get('mentor_username')
+    """Helper to get mentor info from session - uses name only"""
+    # Your session has: ['mentor_id', 'mentor_name'] (no username)
+    mentor_id = request.session.get('mentor_id')
     mentor_name = request.session.get('mentor_name')
+    
     print("Session keys:", list(request.session.keys()))
-    print("Mentor username from session:", mentor_username)
+    print("Mentor ID from session:", mentor_id)
     print("Mentor name from session:", mentor_name)
+    
     return {
-        'username': mentor_username,
+        'id': mentor_id,
         'name': mentor_name
     }
 
@@ -1106,55 +1109,69 @@ def student_result_view(request):
 def mentor_result_view(request):
     """
     View for mentors to see their assigned teams.
-    Uses session data from your custom login system.
+    Uses mentor_name from session to match AllocationResult.
     """
-    # Check if mentor is logged in (custom auth)
     mentor_info = get_logged_in_mentor(request)
     
-    if not mentor_info['username']:
-        # Try Django's auth as fallback
-        if not request.user.is_authenticated:
-            from django.shortcuts import redirect
+    # Check if mentor is logged in (by name)
+    if not mentor_info['name']:
+        # Fallback to Django user if available
+        if request.user.is_authenticated:
+            mentor_info['name'] = request.user.get_full_name() or request.user.username
+        else:
             return redirect('/login/')
-        mentor_name = request.user.get_full_name() or request.user.username
-    else:
-        mentor_name = mentor_info['name']
     
     try:
-        # Get all allocations for this mentor
-        allocations = AllocationResult.objects.filter(mentor_name=mentor_name)
+        # Search by mentor_name in AllocationResult
+        search_name = mentor_info['name']
         
-        # If no allocations found by name, try username
-        if not allocations.exists() and mentor_info['username']:
-            allocations = AllocationResult.objects.filter(
-                mentor_name__icontains=mentor_info['username']
-            )
+        # Get all allocations for this mentor
+        allocations = AllocationResult.objects.filter(mentor_name=search_name)
+        
+        # If no allocations found, try case-insensitive search
+        if not allocations.exists():
+            allocations = AllocationResult.objects.filter(mentor_name__iexact=search_name)
+        
+        # If still no allocations, try contains search
+        if not allocations.exists():
+            allocations = AllocationResult.objects.filter(mentor_name__icontains=search_name.split()[0])  # Search by first name
         
         if not allocations.exists():
             return render(request, "mentor/mentor_result.html", {
                 "allocations": [],
                 "error": "No teams assigned to you yet.",
-                "mentor": mentor_info
+                "mentor": mentor_info,
+                "unique_domains": [],
+                "avg_similarity": 0,
+                "active_count": 0
             })
         
         # Calculate statistics
         unique_domains = list(allocations.values_list('team_domain', flat=True).distinct())
         avg_similarity = allocations.aggregate(Avg('similarity_score'))['similarity_score__avg'] or 0
         
-        return render(request, "mentor/mentor_result.html", {
+        context = {
             "allocations": allocations,
             "unique_domains": unique_domains,
             "avg_similarity": round(avg_similarity, 1),
             "active_count": allocations.count(),
-            "mentor": mentor_info
-        })
+            "mentor": mentor_info,
+            "error": None
+        }
+        
+        return render(request, "mentor/mentor_result.html", context)
         
     except Exception as e:
+        print(f"Error in mentor_result_view: {str(e)}")
         return render(request, "mentor/mentor_result.html", {
             "allocations": [],
             "error": str(e),
-            "mentor": mentor_info
+            "mentor": mentor_info,
+            "unique_domains": [],
+            "avg_similarity": 0,
+            "active_count": 0
         })
+
 
 def zero_men(request):
     mentor_name = request.session.get("mentor_name")
