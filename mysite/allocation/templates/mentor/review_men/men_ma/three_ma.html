@@ -87,6 +87,17 @@
     box-shadow: 0 0 5px var(--accent);
   }
 
+  /* View Mode Display */
+  .view-mode-display {
+    display: inline-block;
+    padding: 5px 10px;
+    background: var(--secondary);
+    border-radius: 8px;
+    font-weight: 600;
+    color: var(--primary);
+    min-width: 40px;
+  }
+
   .subheader {
     background-color: var(--accent);
     font-weight: bold;
@@ -127,11 +138,47 @@
     font-weight: 600;
     transition: 0.3s ease;
     box-shadow: 0 4px 12px rgba(106, 13, 173, 0.3);
+    margin: 5px;
   }
 
   .submit-button:hover {
     background: var(--accent);
     box-shadow: 0 6px 18px rgba(106, 13, 173, 0.4);
+  }
+
+  .submit-button.secondary {
+    background: linear-gradient(135deg, #888, #aaa);
+  }
+
+  .submit-button.secondary:hover {
+    background: #999;
+  }
+
+  /* Final Summary Section */
+  #final-summary {
+    display: none;
+    margin-top: 30px;
+    background: var(--text-light);
+    border-radius: 15px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    padding: 15px;
+  }
+
+  #final-summary table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  #final-summary th,
+  #final-summary td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+  }
+
+  #final-summary th {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: var(--text-light);
   }
 
   @media (max-width: 768px) {
@@ -173,9 +220,9 @@
 
   <div class="title-box">Team Members Contribution and Performance Evaluation</div>
 
-  <form method="POST" action="{% url 'save_evaluation_review3' %}" id="evaluation-form">
+  <form method="POST" id="evaluation-form">
     {% csrf_token %}
-    <table>
+    <table id="evaluation-table">
       <thead>
         <tr>
           <th>Evaluation Component</th>
@@ -185,56 +232,56 @@
           {% endfor %}
         </tr>
       </thead>
-      <tbody>
+      <tbody id="table-body">
         <!-- Problem Formulation -->
         <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Problem Formulation</td></tr>
-        <tr><td>Aim of the Project</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-0" min="0" max="5" value="0"></td>{% endfor %}</tr>
-        <tr><td>Justification for Carrying out the Project</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-1" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr data-criteria="aim"><td>Aim of the Project</td><td>5</td>{% for member in team_members %}<td data-member="{{ forloop.counter0 }}" data-criteria="aim"><input type="number" name="marks-{{ member.id }}-0" min="0" max="5" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="aim"></td>{% endfor %}</tr>
+        <tr data-criteria="justification"><td>Justification for Carrying out the Project</td><td>5</td>{% for member in team_members %}<td data-member="{{ forloop.counter0 }}" data-criteria="justification"><input type="number" name="marks-{{ member.id }}-1" min="0" max="5" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="justification"></td>{% endfor %}</tr>
 
         <!-- Knowledge / Understanding -->
         <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Knowledge / Understanding of the Project</td></tr>
-        <tr><td>Review of the Literature - Knowledge about Existing Method</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-2" min="0" max="5" value="0"></td>{% endfor %}</tr>
-        <tr><td>Review of literature is presented in a logical Manner</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-3" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr data-criteria="literature_knowledge"><td>Review of the Literature - Knowledge about Existing Method</td><td>5</td>{% for member in team_members %}<td data-member="{{ forloop.counter0 }}" data-criteria="literature_knowledge"><input type="number" name="marks-{{ member.id }}-2" min="0" max="5" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="literature_knowledge"></td>{% endfor %}</tr>
+        <tr data-criteria="literature_logic"><td>Review of literature is presented in a logical Manner</td><td>5</td>{% for member in team_members %}<td data-member="{{ forloop.counter0 }}" data-criteria="literature_logic"><input type="number" name="marks-{{ member.id }}-3" min="0" max="5" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="literature_logic"></td>{% endfor %}</tr>
 
         <!-- Objectives and Methodology -->
         <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Objectives and Methodology of Proposed Work</td></tr>
-        <tr><td>Problem Identification</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-4" min="0" max="5" value="0"></td>{% endfor %}</tr>
-        <tr><td>Objective of the Project</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-5" min="0" max="5" value="0"></td>{% endfor %}</tr>
-        <tr><td>Selection of appropriate techniques and tools</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-6" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr data-criteria="problem_id"><td>Problem Identification</td><td>5</td>{% for member in team_members %}<td data-member="{{ forloop.counter0 }}" data-criteria="problem_id"><input type="number" name="marks-{{ member.id }}-4" min="0" max="5" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="problem_id"></td>{% endfor %}</tr>
+        <tr data-criteria="objective"><td>Objective of the Project</td><td>5</td>{% for member in team_members %}<td data-member="{{ forloop.counter0 }}" data-criteria="objective"><input type="number" name="marks-{{ member.id }}-5" min="0" max="5" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="objective"></td>{% endfor %}</tr>
+        <tr data-criteria="techniques"><td>Selection of appropriate techniques and tools</td><td>5</td>{% for member in team_members %}<td data-member="{{ forloop.counter0 }}" data-criteria="techniques"><input type="number" name="marks-{{ member.id }}-6" min="0" max="5" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="techniques"></td>{% endfor %}</tr>
 
         <!-- Work Progress -->
         <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Work Progress</td></tr>
-        <tr><td>Technical Design</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-7" min="0" max="5" value="0"></td>{% endfor %}</tr>
-        <tr><td>Test Results & Discussion of Individual Modules</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-8" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr data-criteria="technical_design"><td>Technical Design</td><td>5</td>{% for member in team_members %}<td data-member="{{ forloop.counter0 }}" data-criteria="technical_design"><input type="number" name="marks-{{ member.id }}-7" min="0" max="5" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="technical_design"></td>{% endfor %}</tr>
+        <tr data-criteria="test_results"><td>Test Results & Discussion of Individual Modules</td><td>5</td>{% for member in team_members %}<td data-member="{{ forloop.counter0 }}" data-criteria="test_results"><input type="number" name="marks-{{ member.id }}-8" min="0" max="5" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="test_results"></td>{% endfor %}</tr>
 
         <!-- Society and Environmental Relevance -->
         <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Society and Environmental Relevance</td></tr>
-        <tr><td>Society and Environmental Relevance</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-9" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr data-criteria="society_env"><td>Society and Environmental Relevance</td><td>5</td>{% for member in team_members %}<td data-member="{{ forloop.counter0 }}" data-criteria="society_env"><input type="number" name="marks-{{ member.id }}-9" min="0" max="5" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="society_env"></td>{% endfor %}</tr>
 
         <!-- Presentation -->
         <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Presentation</td></tr>
-        <tr><td>Organization of the Presentation</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-10" min="0" max="5" value="0"></td>{% endfor %}</tr>
-        <tr><td>Communication of Ideas</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-11" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr data-criteria="org_presentation"><td>Organization of the Presentation</td><td>5</td>{% for member in team_members %}<td data-member="{{ forloop.counter0 }}" data-criteria="org_presentation"><input type="number" name="marks-{{ member.id }}-10" min="0" max="5" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="org_presentation"></td>{% endfor %}</tr>
+        <tr data-criteria="communication"><td>Communication of Ideas</td><td>5</td>{% for member in team_members %}<td data-member="{{ forloop.counter0 }}" data-criteria="communication"><input type="number" name="marks-{{ member.id }}-11" min="0" max="5" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="communication"></td>{% endfor %}</tr>
 
         <!-- Team Work -->
         <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Team Work</td></tr>
-        <tr><td>Team Work</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-12" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr data-criteria="teamwork"><td>Team Work</td><td>5</td>{% for member in team_members %}<td data-member="{{ forloop.counter0 }}" data-criteria="teamwork"><input type="number" name="marks-{{ member.id }}-12" min="0" max="5" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="teamwork"></td>{% endfor %}</tr>
 
         <!-- Planning for Future Work -->
         <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Planning for Future Work</td></tr>
-        <tr><td>Estimate of the Proposed Work</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-13" min="0" max="5" value="0"></td>{% endfor %}</tr>
-        <tr><td>Originality of the Proposed Work</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-14" min="0" max="5" value="0"></td>{% endfor %}</tr>
-        <tr><td>Recognize the need for Lifelong Learning</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-15" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr data-criteria="estimate"><td>Estimate of the Proposed Work</td><td>5</td>{% for member in team_members %}<td data-member="{{ forloop.counter0 }}" data-criteria="estimate"><input type="number" name="marks-{{ member.id }}-13" min="0" max="5" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="estimate"></td>{% endfor %}</tr>
+        <tr data-criteria="originality"><td>Originality of the Proposed Work</td><td>5</td>{% for member in team_members %}<td data-member="{{ forloop.counter0 }}" data-criteria="originality"><input type="number" name="marks-{{ member.id }}-14" min="0" max="5" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="originality"></td>{% endfor %}</tr>
+        <tr data-criteria="lifelong_learning"><td>Recognize the need for Lifelong Learning</td><td>5</td>{% for member in team_members %}<td data-member="{{ forloop.counter0 }}" data-criteria="lifelong_learning"><input type="number" name="marks-{{ member.id }}-15" min="0" max="5" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="lifelong_learning"></td>{% endfor %}</tr>
 
         <!-- Viva Voce -->
         <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Viva Voce</td></tr>
-        <tr><td>Answering Questions</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-16" min="0" max="5" value="0"></td>{% endfor %}</tr>
-        <tr><td>Conceptual Understanding</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-17" min="0" max="5" value="0"></td>{% endfor %}</tr>
-        <tr><td>Relevance</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-18" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr data-criteria="answering"><td>Answering Questions</td><td>5</td>{% for member in team_members %}<td data-member="{{ forloop.counter0 }}" data-criteria="answering"><input type="number" name="marks-{{ member.id }}-16" min="0" max="5" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="answering"></td>{% endfor %}</tr>
+        <tr data-criteria="conceptual"><td>Conceptual Understanding</td><td>5</td>{% for member in team_members %}<td data-member="{{ forloop.counter0 }}" data-criteria="conceptual"><input type="number" name="marks-{{ member.id }}-17" min="0" max="5" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="conceptual"></td>{% endfor %}</tr>
+        <tr data-criteria="relevance"><td>Relevance</td><td>5</td>{% for member in team_members %}<td data-member="{{ forloop.counter0 }}" data-criteria="relevance"><input type="number" name="marks-{{ member.id }}-18" min="0" max="5" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="relevance"></td>{% endfor %}</tr>
 
         <!-- Additional Row to make 100 Marks -->
         <tr class="subheader"><td colspan="{{ team_members|length|add:'2' }}">Extra Evaluation</td></tr>
-        <tr><td>Innovation / Creativity</td><td>5</td>{% for member in team_members %}<td><input type="number" name="marks-{{ member.id }}-19" min="0" max="5" value="0"></td>{% endfor %}</tr>
+        <tr data-criteria="innovation"><td>Innovation / Creativity</td><td>5</td>{% for member in team_members %}<td data-member="{{ forloop.counter0 }}" data-criteria="innovation"><input type="number" name="marks-{{ member.id }}-19" min="0" max="5" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="innovation"></td>{% endfor %}</tr>
 
         <!-- Total Row -->
         <tr class="total-row">
@@ -248,25 +295,82 @@
     </table>
 
     <div class="submit-container">
-      <button type="submit" class="submit-button">
-        <i class="fas fa-file-word"></i> Submit & Generate Report
+      <button type="button" id="confirm-btn" class="submit-button">
+        ✅ Confirm Marks
+      </button>
+      <button type="button" id="edit-btn" class="submit-button secondary" style="display:none;">
+        ✏️ Edit Marks
+      </button>
+      <button type="button" id="download-btn" class="submit-button" style="display:none;">
+        <i class="fas fa-file-word"></i> Download DOCX
       </button>
     </div>
   </form>
 
+  <!-- Final Summary Section -->
+  <div id="final-summary" style="display:none;">
+    <h3>Final Evaluation Summary - {{ team_name }}</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Team Member</th>
+          {% for i in "12345678901234567890"|make_list %}
+            <th>C{{ forloop.counter }}</th>
+          {% endfor %}
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody id="summary-body"></tbody>
+    </table>
+  </div>
+
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    const totalInputs = 20; // total criteria
-    const autoFillLimit = 16; // first 16 criteria
+    const MAX_MARK = 5;
+    const MIN_MARK = 0;
+    const totalInputs = 20;
+    const autoFillLimit = 16;
+    const STORAGE_KEY = `review3_evaluation_{{ team_name }}_{{ request.user.id|default:'anonymous' }}`;
+
     const inputs = document.querySelectorAll("input[type='number']");
     const memberCount = {{ team_members|length }};
+    const confirmBtn = document.getElementById("confirm-btn");
+    const editBtn = document.getElementById("edit-btn");
+    const downloadBtn = document.getElementById("download-btn");
+    const finalSummary = document.getElementById("final-summary");
+    const summaryBody = document.getElementById("summary-body");
+
+    /* ---------- TEAM MEMBERS ---------- */
+    const teamMembers = [
+        {% for member in team_members %}
+            "{{ member }}",
+        {% endfor %}
+    ];
+
+    /* ---------- CRITERIA ORDER ---------- */
+    const criteriaList = [
+        "aim", "justification", "literature_knowledge", "literature_logic",
+        "problem_id", "objective", "techniques", "technical_design",
+        "test_results", "society_env", "org_presentation", "communication",
+        "teamwork", "estimate", "originality", "lifelong_learning",
+        "answering", "conceptual", "relevance", "innovation"
+    ];
 
     // Initialize data attributes
     inputs.forEach((inp, idx) => {
-        inp.dataset.manual = "false"; // track manual edits
-        inp.dataset.memberIndex = idx % memberCount; // 0-based member index
+        inp.dataset.manual = "false";
+        inp.dataset.memberIndex = idx % memberCount;
         inp.dataset.criteriaIndex = Math.floor(idx / memberCount);
     });
+
+    /* ---------- SANITIZE INPUT ---------- */
+    function sanitizeInput(input) {
+        let value = parseInt(input.value);
+        if (isNaN(value)) value = 0;
+        if (value > MAX_MARK) value = MAX_MARK;
+        if (value < MIN_MARK) value = MIN_MARK;
+        input.value = value;
+    }
 
     // Function to calculate totals independently
     function calculateTotal() {
@@ -282,9 +386,126 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
+    /* ---------- SAVE TO LOCAL STORAGE ---------- */
+    function saveToStorage() {
+        const data = {
+            isConfirmed: false,
+            marks: {},
+            timestamp: new Date().toISOString()
+        };
+
+        for (let m = 0; m < memberCount; m++) {
+            data.marks[m] = {};
+            criteriaList.forEach((criteria, idx) => {
+                const inp = Array.from(inputs).find(i => 
+                    parseInt(i.dataset.memberIndex) === m && 
+                    parseInt(i.dataset.criteriaIndex) === idx
+                );
+                data.marks[m][criteria] = inp ? inp.value : "0";
+            });
+        }
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    /* ---------- LOAD FROM LOCAL STORAGE ---------- */
+    function loadFromStorage() {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (!stored) return null;
+        return JSON.parse(stored);
+    }
+
+    /* ---------- RESTORE DATA ---------- */
+    function restoreData(data) {
+        if (!data || !data.marks) return;
+
+        for (let m = 0; m < memberCount; m++) {
+            criteriaList.forEach((criteria, idx) => {
+                const inp = Array.from(inputs).find(i => 
+                    parseInt(i.dataset.memberIndex) === m && 
+                    parseInt(i.dataset.criteriaIndex) === idx
+                );
+                if (inp && data.marks[m] && data.marks[m][criteria]) {
+                    inp.value = data.marks[m][criteria];
+                    if (m > 0 && data.marks[m][criteria] !== data.marks[0][criteria]) {
+                        inp.dataset.manual = "true";
+                    }
+                }
+            });
+        }
+        calculateTotal();
+    }
+
+    /* ---------- SWITCH TO VIEW MODE ---------- */
+    function switchToViewMode() {
+        inputs.forEach(inp => {
+            inp.style.display = 'none';
+            const display = document.createElement('span');
+            display.className = 'view-mode-display';
+            display.textContent = inp.value;
+            display.id = `display-${inp.dataset.memberIndex}-${inp.dataset.criteriaIndex}`;
+            inp.parentNode.appendChild(display);
+        });
+
+        confirmBtn.style.display = 'none';
+        editBtn.style.display = 'inline-block';
+        downloadBtn.style.display = 'inline-block';
+        
+        const data = loadFromStorage() || {};
+        data.isConfirmed = true;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        
+        generateSummary();
+        finalSummary.style.display = "block";
+    }
+
+    /* ---------- SWITCH TO EDIT MODE ---------- */
+    function switchToEditMode() {
+        document.querySelectorAll('.view-mode-display').forEach(display => display.remove());
+        inputs.forEach(inp => {
+            inp.style.display = 'inline-block';
+        });
+
+        confirmBtn.style.display = 'inline-block';
+        editBtn.style.display = 'none';
+        downloadBtn.style.display = 'none';
+        finalSummary.style.display = "none";
+        
+        const data = loadFromStorage() || {};
+        data.isConfirmed = false;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    /* ---------- GENERATE SUMMARY ---------- */
+    function generateSummary() {
+        summaryBody.innerHTML = "";
+        for (let m = 0; m < memberCount; m++) {
+            let rowHTML = `<td>${teamMembers[m]}</td>`;
+            let total = 0;
+
+            for (let c = 0; c < totalInputs; c++) {
+                const inp = Array.from(inputs).find(i =>
+                    parseInt(i.dataset.memberIndex) === m &&
+                    parseInt(i.dataset.criteriaIndex) === c
+                );
+                const val = inp ? inp.value : "0";
+                rowHTML += `<td>${val}</td>`;
+                total += parseInt(val) || 0;
+            }
+
+            rowHTML += `<td>${total}</td>`;
+            const row = document.createElement("tr");
+            row.innerHTML = rowHTML;
+            summaryBody.appendChild(row);
+        }
+    }
+
     // Input event delegation for autofill and manual tracking
     inputs.forEach(inp => {
         inp.addEventListener("input", function() {
+            sanitizeInput(this);
+            saveToStorage();
+
             const memberIndex = parseInt(this.dataset.memberIndex);
             const criteriaIndex = parseInt(this.dataset.criteriaIndex);
 
@@ -294,7 +515,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     const otherMember = parseInt(other.dataset.memberIndex);
                     const otherCriteria = parseInt(other.dataset.criteriaIndex);
                     if (otherMember > 0 && otherCriteria === criteriaIndex && other.dataset.manual === "false") {
-                        other.value = this.value; // autofill
+                        other.value = this.value;
                     }
                 });
             }
@@ -306,30 +527,63 @@ document.addEventListener("DOMContentLoaded", function() {
 
             calculateTotal();
         });
+
+        /* ---------- PASTE CONTROL ---------- */
+        inp.addEventListener("paste", function(e) {
+            e.preventDefault();
+            let pasted = parseInt((e.clipboardData || window.clipboardData).getData("text"));
+            if (isNaN(pasted)) pasted = 0;
+            if (pasted > MAX_MARK) pasted = MAX_MARK;
+            if (pasted < MIN_MARK) pasted = MIN_MARK;
+
+            this.value = pasted;
+            this.dispatchEvent(new Event("input"));
+        });
     });
 
-    // Initial total
-    calculateTotal();
+    /* ---------- INITIALIZE ---------- */
+    const savedData = loadFromStorage();
+    if (savedData) {
+        restoreData(savedData);
+        if (savedData.isConfirmed) {
+            switchToViewMode();
+        }
+    } else {
+        calculateTotal();
+    }
 
-    // Form submission
-    document.getElementById('evaluation-form').addEventListener('submit', function(e){
-        e.preventDefault();
+    /* ---------- BUTTON EVENTS ---------- */
+    confirmBtn.addEventListener("click", function() {
+        switchToViewMode();
+        window.scrollTo({
+            top: finalSummary.offsetTop,
+            behavior: "smooth"
+        });
+    });
 
+    editBtn.addEventListener("click", function() {
+        switchToEditMode();
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
+    });
+
+    /* ---------- DOWNLOAD DOCX ---------- */
+    downloadBtn.addEventListener("click", function() {
         const savedEvaluations = {};
+        const data = loadFromStorage();
 
-        // Collect each member's marks independently using data-member-index
         {% for member in team_members %}
-            savedEvaluations["team_member-{{ member }}"] = [];
-            for (let i = 0; i < totalInputs; i++) {
-                const inp = document.querySelector(`input[data-member-index="{{ forloop.counter0 }}"][data-criteria-index="${i}"]`);
-                savedEvaluations["team_member-{{ member }}"].push(inp ? inp.value : 0);
-            }
+        savedEvaluations["team_member-{{ member }}"] = [];
+        for (let i = 0; i < totalInputs; i++) {
+            const criteria = criteriaList[i];
+            savedEvaluations["team_member-{{ member }}"].push(
+                data && data.marks[{{ forloop.counter0 }}] ? 
+                data.marks[{{ forloop.counter0 }}][criteria] : "0"
+            );
+        }
         {% endfor %}
-
-        const dataToSend = {
-            team_name: "{{ team_name }}",
-            evaluations: savedEvaluations
-        };
 
         fetch("{% url 'save_evaluation_review3' %}", {
             method: "POST",
@@ -337,22 +591,29 @@ document.addEventListener("DOMContentLoaded", function() {
                 "Content-Type": "application/json",
                 "X-CSRFToken": "{{ csrf_token }}"
             },
-            body: JSON.stringify(dataToSend)
+            body: JSON.stringify({
+                team_name: "{{ team_name }}",
+                evaluations: savedEvaluations
+            })
         })
-        .then(res => res.json())
-        .then(data => {
-            if (data.status === "success") {
-                alert(`✅ Report generated successfully!\nFile: ${data.file_path}`);
-                calculateTotal();
-            } else {
-                alert(`❌ Error: ${data.message}`);
-            }
+        .then(response => response.blob())
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "{{ team_name }}_Review3.docx";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
         })
-        .catch(err => console.error("Fetch error:", err));
+        .catch(err => {
+            console.error(err);
+            alert("❌ DOCX download failed");
+        });
     });
 });
 </script>
-
 
 </body>
 </html>
