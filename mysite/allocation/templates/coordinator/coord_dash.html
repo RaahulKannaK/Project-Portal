@@ -139,6 +139,60 @@ body{
 
 .section{display:block;}
 .d-none{display:none;}
+
+/* Hamburger Button */
+.hamburger-btn{
+  background:var(--primary);
+  color:white;
+  border:none;
+  width:45px;
+  height:45px;
+  border-radius:8px;
+  font-size:20px;
+  cursor:pointer;
+  display:none;
+}
+
+/* Sidebar Close Button */
+.close-sidebar{
+  background:transparent;
+  border:none;
+  color:white;
+  font-size:20px;
+  cursor:pointer;
+  display:none;
+}
+
+/* Mobile Responsive */
+@media (max-width:992px){
+
+  .sidebar{
+    position:fixed;
+    left:-270px;
+    top:0;
+    height:100%;
+    z-index:1000;
+    transition:0.3s;
+  }
+
+  .sidebar.active{
+    left:0;
+  }
+
+  .hamburger-btn{
+    display:block;
+  }
+
+  .close-sidebar{
+    display:block;
+  }
+
+  .dashboard-wrapper{
+    width:100%;
+    height:100vh;
+  }
+
+}
 </style>
 </head>
 
@@ -147,8 +201,17 @@ body{
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
-  <div class="brand">
-    <i class="fas fa-user"></i><h4>Coordinator Hub</h4>
+  <div class="brand d-flex justify-content-between align-items-center">
+
+    <div>
+      <i class="fas fa-user"></i>
+      <h4 style="display:inline">Coordinator Hub</h4>
+    </div>
+
+    <button class="close-sidebar" id="close-sidebar">
+      <i class="fas fa-times"></i>
+    </button>
+
   </div>
   <div class="nav-item active" onclick="showSection('overview',this)">
     <i class="fas fa-home"></i> Overview
@@ -167,6 +230,10 @@ body{
 
 <!-- TOPBAR -->
 <div class="topbar">
+  <!-- Hamburger -->
+  <button class="hamburger-btn" id="menu-toggle">
+    <i class="fas fa-bars"></i>
+  </button>
   <div class="left-top">
     <div class="avatar">
       {{ coordinator.name|default:"C"|slice:":1" }}
@@ -418,6 +485,23 @@ document.addEventListener("DOMContentLoaded", function () {
     showSection("csvUpload");
   }
 });
+// Hamburger Toggle
+const menuToggle = document.getElementById("menu-toggle");
+const sidebar = document.querySelector(".sidebar");
+
+if(menuToggle){
+  menuToggle.addEventListener("click", function(){
+    sidebar.classList.toggle("active");
+  });
+}
+
+const closeSidebar = document.getElementById("close-sidebar");
+
+if(closeSidebar){
+  closeSidebar.addEventListener("click", function(){
+    sidebar.classList.remove("active");
+  });
+}
 </script>
 
 

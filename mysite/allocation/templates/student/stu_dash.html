@@ -52,7 +52,9 @@ body{
 }
 
 .sidebar-header{
-  text-align:center;
+  display:flex;
+  align-items:center;
+  gap:10px;
   margin-bottom:25px;
   padding-bottom:20px;
   border-bottom:1px solid rgba(255,255,255,.2);
@@ -520,6 +522,31 @@ body{
   background: var(--secondary);
   border-radius: 4px;
 }
+.menu-toggle{
+  display:none;
+}
+
+@media(max-width:768px){
+
+.menu-toggle{
+  display:block;
+}
+
+.sidebar{
+  position:fixed;
+  left:-280px;
+  top:0;
+  height:100%;
+  z-index:1050;
+  transition:0.3s;
+}
+
+.sidebar.active{
+  left:0;
+}
+
+}
+
 </style>
 </head>
 
@@ -528,9 +555,17 @@ body{
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
-  <div class="sidebar-header">
-    <h4><i class="fas fa-graduation-cap me-2"></i>Student Hub</h4>
-  </div>
+    <div class="sidebar-header d-flex align-items-center">
+      <button class="menu-toggle me-2" onclick="toggleSidebar()">
+       <i class="fas fa-bars"></i>
+      </button>
+      
+
+      <h4 class="m-0">
+        <i class="fas fa-graduation-cap me-2"></i>Student Hub
+      </h4>
+
+    </div>
 
   <nav class="sidebar-nav">
     <a class="nav-item active"><i class="fas fa-home"></i>Overview</a>
@@ -548,6 +583,10 @@ body{
 
   <!-- TOP HEADER -->
   <div class="top-header">
+    <!-- MENU BUTTON -->
+   <button id="topMenuBtn" class="menu-toggle me-2" onclick="toggleSidebar()">
+    <i class="fas fa-bars"></i>
+   </button>
     <div class="user-greeting">
       <div class="profile-avatar">{{ student_name|slice:":1" }}</div>
       <div class="welcome-text">Welcome, {{ student_name }}!</div>
@@ -722,7 +761,7 @@ body{
 
 <!-- SETTINGS VIEW -->
 <div id="settingsView" style="display:none;">
-  <div class="top-header">
+  
     <h3>Settings</h3>
   </div>
 
@@ -793,6 +832,20 @@ document.addEventListener('keydown', function(e) {
     closeAnnouncementsPanel();
   }
 });
+function toggleSidebar(){
+
+  const sidebar = document.querySelector(".sidebar");
+  const menuBtn = document.getElementById("topMenuBtn");
+
+  sidebar.classList.toggle("active");
+
+  if(sidebar.classList.contains("active")){
+      menuBtn.style.display="none";   // sidebar open → menu hide
+  }else{
+      menuBtn.style.display="block";  // sidebar close → menu show
+  }
+
+}
 </script>
 </body>
 </html>
