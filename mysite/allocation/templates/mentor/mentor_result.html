@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Assigned Teams - Mentor Dashboard</title>
+  <title>My Assigned Teams - Mentor Hub</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
   <style>
     :root {
       --primary: #6A0DAD;
@@ -16,40 +15,75 @@
       --background: #F8F9FC;
       --text-dark: #2E2E2E;
       --text-light: #ffffff;
-      --success: #10b981;
-      --warning: #f59e0b;
-      --danger: #ef4444;
     }
 
     body {
       font-family: 'Montserrat', sans-serif;
-      background: linear-gradient(135deg, var(--background), #ffffff);
-      min-height: 100vh;
-      padding: 30px 20px;
+      background: var(--background);
       color: var(--text-dark);
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: white;
+      padding: 20px 40px;
+      margin-bottom: 35px;
+      box-shadow: 0 10px 15px -3px rgba(106, 13, 173, 0.1);
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .brand-avatar {
+      width: 45px;
+      height: 45px;
+      border-radius: 12px;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.25rem;
+      font-weight: 700;
+      box-shadow: 0 4px 6px rgba(106, 13, 173, 0.2);
+    }
+
+    .brand-text {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .more-options-btn {
+      background: var(--primary);
+      color: var(--text-light);
+      border: none;
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .more-options-btn:hover {
+      background: var(--secondary);
     }
 
     .main-container {
       max-width: 1400px;
       margin: 0 auto;
-    }
-
-    .header-section {
-      text-align: center;
-      margin-bottom: 40px;
-      padding: 20px;
-    }
-
-    .header-section h2 {
-      color: var(--primary);
-      font-weight: 700;
-      font-size: 2.2rem;
-      margin-bottom: 10px;
-    }
-
-    .header-section p {
-      color: var(--secondary);
-      font-size: 1.1rem;
+      padding: 0 30px 50px;
     }
 
     .stats-row {
@@ -63,230 +97,72 @@
       background: linear-gradient(135deg, var(--primary), var(--secondary));
       color: white;
       padding: 25px;
-      border-radius: 15px;
+      border-radius: 20px;
       text-align: center;
-      transition: transform 0.3s;
+      box-shadow: 0 10px 20px rgba(106, 13, 173, 0.15);
     }
 
-    .stat-card:hover {
-      transform: translateY(-5px);
-    }
-
-    .stat-card i {
-      font-size: 2.5rem;
-      margin-bottom: 15px;
-      opacity: 0.9;
-    }
-
-    .stat-card h4 {
-      font-size: 2rem;
-      font-weight: 700;
-      margin-bottom: 5px;
-    }
-
-    .stat-card p {
-      margin: 0;
-      opacity: 0.9;
-      font-size: 0.95rem;
-    }
+    .stat-card i { font-size: 2rem; margin-bottom: 15px; opacity: 0.8; }
+    .stat-card h4 { font-size: 1.8rem; font-weight: 700; margin-bottom: 5px; }
+    .stat-card p { font-size: 0.9rem; opacity: 0.9; margin: 0; }
 
     .card {
       background: white;
-      border-radius: 20px;
-      box-shadow: 0 10px 40px rgba(106, 13, 173, 0.1);
-      border: none;
-      margin-bottom: 30px;
-      overflow: hidden;
-    }
-
-    .card-header {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: white;
-      padding: 20px 30px;
-      border: none;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .card-header h3 {
-      margin: 0;
-      font-weight: 600;
-      font-size: 1.3rem;
-    }
-
-    .card-body {
+      border-radius: 24px;
       padding: 30px;
+      border: none;
+      box-shadow: 0 20px 25px -5px rgba(106, 13, 173, 0.1);
+      margin-bottom: 30px;
     }
 
     .team-card {
-      background: #f8f9fc;
-      border-radius: 15px;
+      background: #fcfaff;
+      border-radius: 20px;
       padding: 25px;
       margin-bottom: 20px;
       border-left: 5px solid var(--primary);
-      transition: all 0.3s;
+      transition: 0.3s;
     }
 
-    .team-card:hover {
-      transform: translateX(5px);
-      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-    }
+    .team-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px rgba(0,0,0,0.1); }
 
-    .team-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: start;
-      margin-bottom: 15px;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .team-name {
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: var(--primary);
-      margin: 0;
-    }
-
-    .team-domain {
-      background: white;
-      padding: 5px 15px;
-      border-radius: 20px;
-      font-size: 0.9rem;
-      color: var(--text-dark);
-      font-weight: 500;
-      border: 1px solid #e2e8f0;
-    }
-
-    .team-details {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px;
-      margin-top: 15px;
-    }
-
-    .detail-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      color: #64748b;
-      font-size: 0.95rem;
-    }
-
-    .detail-item i {
-      color: var(--primary);
-      width: 20px;
-    }
+    .team-name { font-size: 1.3rem; font-weight: 700; color: var(--primary); margin-bottom: 10px; }
+    .team-domain { font-weight: 600; color: var(--secondary); font-size: 0.9rem; margin-bottom: 15px; }
 
     .similarity-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 5px 12px;
+      display: inline-block;
+      padding: 6px 12px;
       border-radius: 15px;
-      font-weight: 600;
-      font-size: 0.85rem;
+      font-weight: 700;
+      font-size: 0.8rem;
     }
+    .similarity-high { background: #d1fae5; color: #10b981; }
 
-    .similarity-high {
-      background: #d1fae5;
-      color: var(--success);
-    }
-
-    .similarity-medium {
-      background: #fef3c7;
-      color: var(--warning);
-    }
-
-    .similarity-low {
-      background: #fee2e2;
-      color: var(--danger);
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--secondary);
-    }
-
-    .empty-state i {
-      font-size: 4rem;
-      margin-bottom: 20px;
-      opacity: 0.5;
-    }
-
-    .search-box {
-      position: relative;
-      margin-bottom: 20px;
-    }
-
-    .search-box input {
-      width: 100%;
-      padding: 12px 20px 12px 45px;
-      border: 2px solid #e2e8f0;
-      border-radius: 12px;
-      font-size: 1rem;
-      transition: all 0.3s;
-    }
-
-    .search-box input:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(106, 13, 173, 0.1);
-    }
-
-    .search-box i {
-      position: absolute;
-      left: 16px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--secondary);
-    }
-
-    .btn-action {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: white;
-      padding: 8px 20px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-size: 0.9rem;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.3s;
-      border: none;
-      cursor: pointer;
-    }
-
-    .btn-action:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(106, 13, 173, 0.3);
-      color: white;
-    }
-
-    .reason-text {
-      margin-top: 15px;
-      padding-top: 15px;
-      border-top: 1px dashed #cbd5e1;
-      font-size: 0.9rem;
-      color: #64748b;
-      font-style: italic;
-    }
+    .dropdown-menu { border-radius: 15px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.1); padding: 10px; }
+    .dropdown-item { border-radius: 8px; padding: 10px 15px; font-weight: 500; }
+    .dropdown-item:hover { background: var(--background); color: var(--primary); }
   </style>
 </head>
-
 <body>
-  <div class="main-container">
-
-    <!-- Header -->
-    <div class="header-section">
-      <h2><i class="fas fa-chalkboard-teacher me-3"></i>My Assigned Teams</h2>
-      <p>View and manage teams assigned to your mentorship</p>
+  <div class="top-header">
+    <div class="brand-section">
+      <div class="brand-avatar"><i class="fas fa-chalkboard-teacher"></i></div>
+      <span class="brand-text">Mentor Hub</span>
     </div>
 
-    <!-- Stats -->
+    <div class="dropdown">
+      <button class="more-options-btn" type="button" data-bs-toggle="dropdown">
+        <i class="fas fa-ellipsis-v"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="{% url 'men_dash' %}"><i class="fas fa-home me-2"></i>Dashboard</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="main-container">
     <div class="stats-row">
       <div class="stat-card">
         <i class="fas fa-users"></i>
@@ -295,7 +171,7 @@
       </div>
       <div class="stat-card">
         <i class="fas fa-project-diagram"></i>
-        <h4>{{ unique_domains|length }}</h4>
+        <h4>{{ unique_domains|length|default:"0" }}</h4>
         <p>Domains Covered</p>
       </div>
       <div class="stat-card">
@@ -303,113 +179,37 @@
         <h4>{{ avg_similarity|default:"0" }}%</h4>
         <p>Avg Match Score</p>
       </div>
-      <div class="stat-card">
-        <i class="fas fa-check-circle"></i>
-        <h4>{{ active_count|default:allocations|length }}</h4>
-        <p>Active Mentorships</p>
-      </div>
     </div>
 
-    <!-- Teams List -->
     <div class="card">
-      <div class="card-header">
-        <h3><i class="fas fa-list me-2"></i>Assigned Teams</h3>
-        <span class="badge bg-light text-dark">{{ allocations|length }} Teams</span>
-      </div>
-      <div class="card-body">
-        
-        <!-- Search -->
-        <div class="search-box">
-          <i class="fas fa-search"></i>
-          <input type="text" id="searchTeams" placeholder="Search teams or domains..." onkeyup="filterTeams()">
-        </div>
-
-        {% if allocations %}
-        <div id="teamsContainer">
-          {% for allocation in allocations %}
-          <div class="team-card" data-search="{{ allocation.team_name|lower }} {{ allocation.team_domain|lower }}">
-            <div class="team-header">
-              <div>
-                <h4 class="team-name"><i class="fas fa-users me-2"></i>{{ allocation.team_name }}</h4>
-              </div>
-              <div class="d-flex gap-2 align-items-center">
-                <span class="team-domain">{{ allocation.team_domain }}</span>
-                <span class="similarity-badge {% if allocation.similarity_score >= 80 %}similarity-high{% elif allocation.similarity_score >= 50 %}similarity-medium{% else %}similarity-low{% endif %}">
-                  <i class="fas fa-percentage"></i>
-                  {{ allocation.similarity_score }}% Match
-                </span>
-              </div>
-            </div>
-            
-            <div class="team-details">
-              <div class="detail-item">
-                <i class="fas fa-tag"></i>
-                <span>Domain: {{ allocation.team_domain }}</span>
-              </div>
-              <div class="detail-item">
-                <i class="fas fa-star"></i>
-                <span>Your Expertise: {{ allocation.mentor_domain }}</span>
-              </div>
-              <div class="detail-item">
-                <i class="fas fa-layer-group"></i>
-                <span>Alt Domains: {{ allocation.alt_domains|default:"None" }}</span>
-              </div>
-            </div>
-
-            <div class="reason-text">
-              <i class="fas fa-quote-left me-2"></i>
-              {{ allocation.reason }}
-            </div>
-
-            <div class="mt-3">
-              <button class="btn-action" onclick="viewTeamDetails('{{ allocation.team_name }}')">
-                <i class="fas fa-eye"></i> View Details
-              </button>
-              <button class="btn-action ms-2" onclick="contactTeam('{{ allocation.team_name }}')">
-                <i class="fas fa-envelope"></i> Contact Team
-              </button>
-            </div>
+      <h3 class="mb-4 fw-bold" style="color:var(--primary)"><i class="fas fa-clipboard-list me-2"></i>Current Assignments</h3>
+      
+      {% for allocation in allocations %}
+      <div class="team-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <h4 class="team-name">{{ allocation.team_name }}</h4>
+            <p class="team-domain">Domain: {{ allocation.team_domain }}</p>
           </div>
-          {% endfor %}
+          <span class="similarity-badge similarity-high">
+            {{ allocation.similarity_score }}% Match
+          </span>
         </div>
-        {% else %}
-        <div class="empty-state">
-          <i class="fas fa-inbox"></i>
-          <h4>No Teams Assigned</h4>
-          <p>You don't have any teams assigned to your mentorship yet. Please contact the coordinator for assignments.</p>
+        <p class="text-muted"><i class="fas fa-info-circle me-2"></i>Reason: {{ allocation.reason }}</p>
+        <div class="mt-3">
+          <button class="btn btn-sm btn-primary px-3 rounded-pill">View Details</button>
+          <button class="btn btn-sm btn-outline-primary ms-2 px-3 rounded-pill">Contact Team</button>
         </div>
-        {% endif %}
       </div>
+      {% empty %}
+      <div class="text-center py-5">
+        <i class="fas fa-folder-open fa-3x opacity-20 mb-3"></i>
+        <p class="fw-bold text-muted">No teams assigned yet.</p>
+      </div>
+      {% endfor %}
     </div>
-
-    <!-- Footer -->
-    <div class="text-center mt-4 mb-4 text-muted">
-      <small>© 2025 Mentor Allocation System. All Rights Reserved.</small>
-    </div>
-
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    function filterTeams() {
-      const query = document.getElementById('searchTeams').value.toLowerCase();
-      const cards = document.querySelectorAll('.team-card');
-      
-      cards.forEach(card => {
-        const searchData = card.getAttribute('data-search');
-        card.style.display = searchData.includes(query) ? 'block' : 'none';
-      });
-    }
-
-    function viewTeamDetails(teamName) {
-      alert('Viewing details for: ' + teamName);
-      // Implement navigation to team details page
-    }
-
-    function contactTeam(teamName) {
-      alert('Opening contact form for: ' + teamName);
-      // Implement contact functionality
-    }
-  </script>
 </body>
 </html>

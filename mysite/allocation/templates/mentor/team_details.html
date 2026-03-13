@@ -148,16 +148,23 @@
     }
 
     .menu-btn {
-      width: 40px;
-      height: 40px;
+      width: 45px;
+      height: 45px;
       border-radius: 50%;
-      background: var(--primary);
-      color: white;
-      border: none;
+      background: #f8fafc;
+      color: var(--primary);
+      border: 1px solid #e2e8f0;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .menu-btn:hover {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
     }
 
     /* Content Card */
@@ -422,9 +429,14 @@
           <h2>Welcome, {{ mentor_name }}!</h2>
         </div>
       </div>
-      <button class="menu-btn">
-        <i class="fas fa-ellipsis-h"></i>
-      </button>
+      <div class="dropdown">
+        <button class="menu-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          <i class="fas fa-ellipsis-v"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-2" style="border-radius: 12px;">
+          <li><a class="dropdown-item rounded-3 py-2" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2 text-danger"></i>Logout</a></li>
+        </ul>
+      </div>
     </div>
 
     <!-- Team Selector (if multiple teams) -->

@@ -2,508 +2,409 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Coordinator Hub — Dashboard</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coordinator Hub - Dashboard</title>
 
-  <!-- Bootstrap + Font Awesome -->
+  <!-- Bootstrap & Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<style>
-:root{
-  --primary:#1c1c1c;
-  --secondary:#555;
-  --accent:#cccccc;
-  --background:#F8F9FC;
-  --text-dark:#2E2E2E;
-  --text-light:#fff;
-}
+  <style>
+    :root {
+      --primary: #4C1D95;
+      --secondary: #DDD6FE;
+      --accent: #A78BFA;
+      --background: #F5F3FF;
+      --text-dark: #3730A3;
+      --text-light: #FFFFFF;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
 
-*{box-sizing:border-box;}
-body{
-  margin:0;
-  font-family:Montserrat,sans-serif;
-  background:linear-gradient(120deg,var(--background),#fff);
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  min-height:100vh;
-}
+    body {
+      margin: 0;
+      font-family: 'Montserrat', sans-serif;
+      background: linear-gradient(120deg, var(--background), #ffffff);
+      color: var(--text-dark);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
 
-.dashboard-wrapper{
-  width:95%;
-  max-width:1400px;
-  height:90vh;
-  border-radius:20px;
-  overflow:hidden;
-  display:flex;
-  background:var(--primary);
-  box-shadow:0 20px 50px rgba(0,0,0,.25);
-}
+    .dashboard-wrapper {
+      display: flex;
+      width: 95%;
+      max-width: 1400px;
+      height: 90vh;
+      background: var(--primary);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+    }
 
-/* Sidebar */
-.sidebar{
-  width:270px;
-  padding:26px 18px;
-  background:linear-gradient(180deg,var(--primary),var(--secondary));
-  color:var(--text-light);
-}
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      padding: 30px 20px;
+      background: linear-gradient(180deg, var(--primary), var(--secondary));
+      color: var(--text-light);
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar-header { text-align: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.2); }
+    .sidebar-header h4 { font-weight: 600; color: var(--accent); }
+    .sidebar-nav { flex-grow: 1; }
+    .sidebar-nav .nav-item {
+      display: flex; align-items: center; padding: 14px 18px; margin-bottom: 12px;
+      text-decoration: none; font-weight: 500; color: var(--text-light);
+      border-radius: 12px; transition: 0.3s; cursor: pointer;
+    }
+    .sidebar-nav .nav-item i { margin-right: 14px; font-size: 1.2rem; }
+    .sidebar-nav .nav-item:hover { background: rgba(255,255,255,0.15); transform: translateX(6px); }
+    .sidebar-nav .nav-item.active { background: linear-gradient(90deg, var(--accent), var(--secondary)); color: var(--text-dark); font-weight: 600; }
 
-.brand{
-  display:flex;
-  gap:10px;
-  border-bottom:1px solid rgba(255,255,255,.15);
-  padding-bottom:12px;
-  margin-bottom:14px;
-}
-.brand h4{margin:0;color:var(--accent);}
+    /* Main Content */
+    .main-content { flex-grow: 1; background: var(--background); padding: 30px; display: flex; flex-direction: column; overflow-y: auto; }
 
-.nav-item{
-  padding:12px 14px;
-  border-radius:12px;
-  cursor:pointer;
-  display:flex;
-  gap:12px;
-  align-items:center;
-  transition:.25s;
-}
-.nav-item:hover{background:rgba(255,255,255,.15);transform:translateX(6px);}
-.nav-item.active{
-  background:linear-gradient(90deg,var(--accent),var(--secondary));
-  color:#000;
-}
+    .top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 35px; }
+    .user-greeting { display: flex; align-items: center; }
+    .profile-avatar {
+      width: 50px; height: 50px; border-radius: 50%; background: var(--secondary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem; font-weight: 700; color: var(--text-dark); margin-right: 15px;
+    }
+    .welcome-text { font-size: 1.5rem; font-weight: 600; color: var(--text-dark); }
+    .more-options-btn {
+      background: var(--primary); color: var(--text-light); border: none;
+      width: 45px; height: 45px; border-radius: 50%; display: flex;
+      justify-content: center; align-items: center; cursor: pointer; transition: 0.3s;
+    }
+    .more-options-btn:hover { background: var(--secondary); }
 
-/* Main */
-.main-content{
-  flex:1;
-  padding:26px;
-  background:var(--background);
-  overflow:auto;
-}
+    /* Content Grid */
+    .content-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-rows: auto;
+      gap: 25px;
+      flex-grow: 1;
+    }
 
-.topbar{
-  display:flex;
-  justify-content:space-between;
-  margin-bottom:25px;
-}
+    /* Cards */
+    .main-card {
+      padding: 25px; border-radius: 16px; position: relative;
+      color: var(--text-light); box-shadow: 0 8px 25px rgba(0,0,0,0.2); transition: 0.3s ease; overflow: hidden;
+    }
+    .main-card:hover { transform: translateY(-5px); box-shadow: 0 12px 35px rgba(0,0,0,0.3); }
+    .main-card h6 { font-size: 1.4rem; font-weight: 600; margin-bottom: 10px; position: relative; z-index: 1; }
+    .main-card p { font-size: 0.95rem; opacity: 0.9; margin-bottom: 20px; position: relative; z-index: 1; }
+    .main-card i { position: absolute; top: 20px; right: 20px; font-size: 3rem; opacity: 0.15; z-index: 0; }
 
-.left-top{
-  display:flex;
-  align-items:center;
-  gap:12px;
-}
+    .gradient-purple { background: linear-gradient(135deg, var(--primary), var(--accent)); }
+    .gradient-light { background: linear-gradient(135deg, var(--accent), var(--secondary)); color: var(--text-dark); }
 
-.avatar{
-  width:50px;height:50px;border-radius:50%;
-  background:var(--secondary);
-  display:flex;align-items:center;justify-content:center;
-  color:#fff;font-weight:700;
-}
+    .glass-btn {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: 0.3s;
+    }
+    .gradient-light .glass-btn { background: rgba(0, 0, 0, 0.05); color: var(--text-dark); border: 1px solid rgba(0, 0, 0, 0.1); }
+    .glass-btn:hover { background: rgba(255, 255, 255, 0.3); transform: scale(1.05); }
 
-.content-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-  gap:20px;
-}
+    .section { display: block; }
+    .d-none { display: none; }
 
-.card-lg{
-  background:linear-gradient(135deg,var(--primary),var(--secondary));
-  color:#fff;
-  padding:20px;
-  border-radius:14px;
-  position:relative;
-}
+    /* Form Styles */
+    .form-section { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    .form-control, .form-select { border-radius: 10px; padding: 12px; border: 1.5px solid #e2e8f0; }
+    .form-control:focus, .form-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.2); }
+    .btn-primary { background: var(--primary); border: none; padding: 12px 25px; border-radius: 10px; font-weight: 600; }
+    .btn-primary:hover { background: var(--text-dark); }
 
-.card-lg.alt{
-  background:linear-gradient(135deg,var(--accent),var(--secondary));
-  color:#000;
-}
-
-.card-lg i{
-  position:absolute;
-  right:12px;top:12px;
-  font-size:2rem;opacity:.15;
-}
-
-.card-action{
-  display:inline-block;
-  background:var(--accent);
-  color:#000;
-  padding:8px 16px;
-  border-radius:8px;
-  font-weight:600;
-  text-decoration:none;
-}
-
-.section{display:block;}
-.d-none{display:none;}
-
-/* Hamburger Button */
-.hamburger-btn{
-  background:var(--primary);
-  color:white;
-  border:none;
-  width:45px;
-  height:45px;
-  border-radius:8px;
-  font-size:20px;
-  cursor:pointer;
-  display:none;
-}
-
-/* Sidebar Close Button */
-.close-sidebar{
-  background:transparent;
-  border:none;
-  color:white;
-  font-size:20px;
-  cursor:pointer;
-  display:none;
-}
-
-/* Mobile Responsive */
-@media (max-width:992px){
-
-  .sidebar{
-    position:fixed;
-    left:-270px;
-    top:0;
-    height:100%;
-    z-index:1000;
-    transition:0.3s;
-  }
-
-  .sidebar.active{
-    left:0;
-  }
-
-  .hamburger-btn{
-    display:block;
-  }
-
-  .close-sidebar{
-    display:block;
-  }
-
-  .dashboard-wrapper{
-    width:100%;
-    height:100vh;
-  }
-
-}
-</style>
+    #clock { font-weight: 600; font-size: 1.1rem; color: var(--primary); }
+  </style>
 </head>
 
 <body>
-<div class="dashboard-wrapper">
-
-<!-- SIDEBAR -->
-<aside class="sidebar">
-  <div class="brand d-flex justify-content-between align-items-center">
-
-    <div>
-      <i class="fas fa-user"></i>
-      <h4 style="display:inline">Coordinator Hub</h4>
-    </div>
-
-    <button class="close-sidebar" id="close-sidebar">
-      <i class="fas fa-times"></i>
-    </button>
-
-  </div>
-  <div class="nav-item active" onclick="showSection('overview',this)">
-    <i class="fas fa-home"></i> Overview
-  </div>
-  <div class="nav-item" onclick="showSection('announce',this)">
-    <i class="fas fa-bullhorn"></i> Announcements
-  </div>
-  <div class="nav-item" onclick="showSection('csvUpload',this)">
-    <i class="fas fa-file-csv"></i> Student CSV Upload
-  </div>
-
-</aside>
-
-<!-- MAIN -->
-<main class="main-content">
-
-<!-- TOPBAR -->
-<div class="topbar">
-  <!-- Hamburger -->
-  <button class="hamburger-btn" id="menu-toggle">
-    <i class="fas fa-bars"></i>
-  </button>
-  <div class="left-top">
-    <div class="avatar">
-      {{ coordinator.name|default:"C"|slice:":1" }}
-    </div>
-    <div>
-      <div style="font-weight:700">
-        Welcome, {{ coordinator.name|default:"Coordinator" }}
+  <div class="dashboard-wrapper">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h4><i class="fas fa-user-tie me-2"></i> Coordinator Hub</h4>
       </div>
-      <div style="font-size:.85rem">KGISL Institute</div>
+      <nav class="sidebar-nav">
+        <a class="nav-item active" id="overview-btn" onclick="showSection('overview', this)"><i class="fas fa-home"></i> Overview</a>
+        <a class="nav-item" onclick="showSection('announce', this)"><i class="fas fa-bullhorn"></i> Announcements</a>
+        <a class="nav-item" onclick="showSection('csvUpload', this)"><i class="fas fa-file-csv"></i> Student CSV Upload</a>
+      </nav>
     </div>
-    <div id="clock" style="margin-left:12px;font-weight:600"></div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Header -->
+      <div class="top-header">
+        <div class="user-greeting">
+          <div class="profile-avatar">{{ coordinator.name|default:"C"|slice:":1" }}</div>
+          <div>
+            <span class="welcome-text">Welcome, {{ coordinator.name|default:"Coordinator" }}!</span>
+            <div style="font-size: 0.85rem; opacity: 0.8;">KGISL Institute</div>
+          </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-4">
+          <div id="clock"></div>
+          <div class="dropdown">
+            <button class="more-options-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <i class="fas fa-ellipsis-v"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="#"><i class="fas fa-user-circle me-2"></i>Profile</a></li>
+              <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overview -->
+      <div id="overview" class="section">
+        <div class="content-grid">
+          <div class="main-card gradient-purple">
+            <i class="fas fa-bullhorn"></i>
+            <h6>Post Announcement</h6>
+            <p>Share deadlines, schedules & instructions with others.</p>
+            <a class="glass-btn" onclick="showSection('announce')">Create Now</a>
+          </div>
+
+          <div class="main-card gradient-light">
+            <i class="fas fa-user-graduate"></i>
+            <h6>Mentor List</h6>
+            <p>View and manage all registered mentors in the system.</p>
+            <a class="glass-btn" href="{% url 'men_list' %}">Open List</a>
+          </div>
+
+          <div class="main-card gradient-purple">
+            <i class="fas fa-users"></i>
+            <h6>Team List</h6>
+            <p>Monitor project teams and their current status.</p>
+            <a class="glass-btn" href="{% url 'team_list' %}">View Teams</a>
+          </div>
+
+          <div class="main-card gradient-light">
+            <i class="fas fa-user-tie"></i>
+            <h6>Allocate Mentor</h6>
+            <p>Run the automated mentor allocation process.</p>
+            <a class="glass-btn" href="{% url 'run_allocation' %}">Start Allocation</a>
+          </div>
+
+          <div class="main-card gradient-purple">
+            <i class="fas fa-book"></i>
+            <h6>Circulate Rubrics</h6>
+            <p>Distribute evaluation criteria to all mentors.</p>
+            <a class="glass-btn" href="#">Share Details</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Announcements -->
+      <div id="announce" class="section d-none">
+        <div class="form-section">
+          <h4 class="mb-4">📢 Create Announcement</h4>
+          <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label">Announcement Title</label>
+              <input class="form-control" name="title" placeholder="Enter title...">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Type</label>
+              <select class="form-select" name="ann_type" id="annType" onchange="toggleFields()">
+                <option value="">Select Announcement Type</option>
+                <option value="deadline">Deadline</option>
+                <option value="schedule">Schedule</option>
+                <option value="instruction">Instruction</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Target Audience</label>
+              <select class="form-select" name="target">
+                <option value="student">Students</option>
+                <option value="mentor">Mentors</option>
+                <option value="both">Students & Mentors</option>
+              </select>
+            </div>
+
+            <div id="deadlineFields" class="d-none">
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">Date</label>
+                  <input type="date" name="deadline_date" class="form-control">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Time</label>
+                  <input type="time" name="deadline_time" class="form-control">
+                </div>
+              </div>
+            </div>
+
+            <div id="scheduleFields" class="d-none">
+              <div class="row mb-3">
+                <div class="col-md-4">
+                  <label class="form-label">Date</label>
+                  <input type="date" name="schedule_date" class="form-control">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Time Slot</label>
+                  <input class="form-control" name="schedule_time" placeholder="e.g. 10:00 AM">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Venue / Mode</label>
+                  <input class="form-control" name="venue" placeholder="e.g. Lab 1 / Online">
+                </div>
+              </div>
+            </div>
+
+            <div id="instructionFields" class="d-none">
+              <div class="mb-3">
+                <label class="form-label">Detailed Instructions</label>
+                <textarea class="form-control" name="message" rows="4" placeholder="Type instructions here..."></textarea>
+              </div>
+            </div>
+
+            <button class="btn btn-primary w-100 mt-2">Send Announcement</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- CSV Upload -->
+      <div id="csvUpload" class="section d-none">
+        <div class="form-section">
+          <h4 class="mb-4">📤 Student CSV Upload</h4>
+          
+          <div class="alert alert-info border-0 mb-4" style="background: rgba(167, 139, 250, 0.1); color: var(--primary);">
+            <strong><i class="fas fa-info-circle me-2"></i>CSV Format Required:</strong>
+            <div class="table-responsive mt-2">
+              <table class="table table-sm" style="color: inherit;">
+                <thead>
+                  <tr><th>student_id</th><th>name</th><th>cgpa</th><th>class</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>24UCS201</td><td>Salis</td><td>8.5</td><td>CSE-B</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <form method="post" enctype="multipart/form-data" action="{% url 'upload_csv' %}">
+            {% csrf_token %}
+            <div class="mb-4">
+              <label class="form-label">Select CSV File</label>
+              <input type="file" name="file" accept=".csv" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Upload to System</button>
+          </form>
+
+          {% if error %}
+            <div class="alert alert-danger mt-4">{{ error }}</div>
+          {% endif %}
+
+          {% if show_results %}
+            <div class="mt-5">
+              {% if allowed %}
+                <div class="mb-4">
+                  <h6 class="text-success"><i class="fas fa-check-circle me-2"></i>Imported Successfully ({{ allowed|length }})</h6>
+                  <div class="table-responsive">
+                    <table class="table table-hover table-bordered bg-white">
+                      <thead class="table-light">
+                        <tr><th>ID</th><th>Name</th><th>CGPA</th><th>Class</th></tr>
+                      </thead>
+                      <tbody>
+                        {% for s in allowed %}
+                        <tr><td>{{ s.student_id }}</td><td>{{ s.name }}</td><td>{{ s.cgpa }}</td><td>{{ s.class }}</td></tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              {% endif %}
+
+              {% if not_allowed %}
+                <div>
+                  <h6 class="text-danger"><i class="fas fa-times-circle me-2"></i>Failed Records ({{ not_allowed|length }})</h6>
+                  <div class="table-responsive">
+                    <table class="table table-hover table-bordered bg-white">
+                      <thead class="table-light">
+                        <tr><th>ID</th><th>Name</th><th>Reason</th></tr>
+                      </thead>
+                      <tbody>
+                        {% for s in not_allowed %}
+                        <tr><td>{{ s.student_id }}</td><td>{{ s.name }}</td><td>{{ s.reason }}</td></tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
   </div>
-</div>
 
-<!-- OVERVIEW -->
-<section id="overview" class="section">
-<h5>Overview</h5>
-<div class="content-grid">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function showSection(id, el) {
+      document.querySelectorAll('.section').forEach(s => s.classList.add('d-none'));
+      const activeSection = document.getElementById(id);
+      if (activeSection) activeSection.classList.remove('d-none');
 
-<div class="card-lg">
-<i class="fas fa-bullhorn"></i>
-<h6>Post Announcement</h6>
-<p>Deadlines, schedules & instructions</p>
-<a class="card-action" onclick="showSection('announce')">Create</a>
-</div>
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      if (el) el.classList.add('active');
+    }
 
-<div class="card-lg alt">
-<i class="fas fa-user-graduate"></i>
-<h6>Mentor List</h6>
-<a class="card-action" href="{% url 'men_list' %}">Open</a>
-</div>
+    const clock = document.getElementById("clock");
+    if (clock) {
+      setInterval(() => { clock.innerText = new Date().toLocaleTimeString(); }, 1000);
+    }
 
-<div class="card-lg">
-<i class="fas fa-users"></i>
-<h6>Team List</h6>
-<a class="card-action" href="{% url 'team_list' %}">View</a>
-</div>
+    function toggleFields() {
+      const annType = document.getElementById("annType");
+      const deadlineFields = document.getElementById("deadlineFields");
+      const scheduleFields = document.getElementById("scheduleFields");
+      const instructionFields = document.getElementById("instructionFields");
 
-<div class="card-lg alt">
-<i class="fas fa-user-tie"></i>
-<h6>Allocate Mentor</h6>
-<a class="card-action" href="{% url 'run_allocation' %}">Allocate</a>
-</div>
+      if (!annType) return;
+      deadlineFields.classList.add("d-none");
+      scheduleFields.classList.add("d-none");
+      instructionFields.classList.add("d-none");
 
-<div class="card-lg">
-<i class="fas fa-book"></i>
-<h6>Circulate Rubrics</h6>
-<a class="card-action" href="#">Share</a>
-</div>
+      if (annType.value === "deadline") deadlineFields.classList.remove("d-none");
+      if (annType.value === "schedule") scheduleFields.classList.remove("d-none");
+      if (annType.value === "instruction") instructionFields.classList.remove("d-none");
+    }
 
-</div>
-</section>
-
-<!-- ANNOUNCEMENTS -->
-<section id="announce" class="section d-none">
-<h5>📢 Create Announcement</h5>
-
-<form method="post">
-{% csrf_token %}
-
-<div class="mb-2">
-  <input class="form-control" name="title" placeholder="Announcement Title">
-</div>
-
-<div class="mb-2">
-  <select class="form-select" name="ann_type" id="annType" onchange="toggleFields()">
-    <option value="">Select Announcement Type</option>
-    <option value="deadline">Deadline</option>
-    <option value="schedule">Schedule</option>
-    <option value="instruction">Instruction</option>
-  </select>
-</div>
-
-<div class="mb-2">
-  <select class="form-select" name="target">
-    <option value="student">Students</option>
-    <option value="mentor">Mentors</option>
-    <option value="both">Students & Mentors</option>
-  </select>
-</div>
-
-<div id="deadlineFields" class="d-none">
-  <input type="date" name="deadline_date" class="form-control mb-2">
-  <input type="time" name="deadline_time" class="form-control mb-2">
-</div>
-
-<div id="scheduleFields" class="d-none">
-  <input type="date" name="schedule_date" class="form-control mb-2">
-  <input class="form-control mb-2" name="schedule_time" placeholder="Time Slot">
-  <input class="form-control mb-2" name="venue" placeholder="Venue / Mode">
-</div>
-
-<div id="instructionFields" class="d-none">
-  <textarea class="form-control mb-2" name="message" placeholder="Detailed Instructions"></textarea>
-</div>
-
-<button class="btn btn-primary">Send Announcement</button>
-</form>
-</section>
-
-<section id="csvUpload" class="section d-none">
-<h5>📤 Student CSV Upload</h5>
-
-<div class="card-lg alt" style="background:#fff">
-
-  <div class="info mb-3" style="background:#e8f1ff;padding:15px;border-left:4px solid #0d6efd">
-    <strong>CSV Format Required:</strong>
-    <table class="table table-sm mt-2">
-      <thead>
-        <tr>
-          <th>student_id</th>
-          <th>name</th>
-          <th>cgpa</th>
-          <th>class</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>24UCS201</td>
-          <td>Salis</td>
-          <td>8.5</td>
-          <td>CSE-B</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <form method="post" enctype="multipart/form-data" action="{% url 'upload_csv' %}">
-    
-    {% csrf_token %}
-    <input type="file" name="file" accept=".csv" class="form-control mb-3" required>
-    <button type="submit" class="btn btn-success">Upload CSV</button>
-  </form>
-
-  {% if error %}
-    <div class="alert alert-danger mt-3">{{ error }}</div>
-  {% endif %}
-
-  {% if show_results %}
-    {% if allowed %}
-    <div class="alert alert-success mt-4">
-      <h6>✅ Imported Successfully ({{ allowed|length }})</h6>
-      <table class="table table-bordered mt-2">
-        <tr>
-          <th>ID</th><th>Name</th><th>CGPA</th><th>Class</th>
-        </tr>
-        {% for s in allowed %}
-        <tr>
-          <td>{{ s.student_id }}</td>
-          <td>{{ s.name }}</td>
-          <td>{{ s.cgpa }}</td>
-          <td>{{ s.class }}</td>
-        </tr>
-        {% endfor %}
-      </table>
-    </div>
-    {% endif %}
-
-    {% if not_allowed %}
-    <div class="alert alert-danger mt-4">
-      <h6>❌ Failed Records ({{ not_allowed|length }})</h6>
-      <table class="table table-bordered mt-2">
-        <tr>
-          <th>ID</th><th>Name</th><th>Reason</th>
-        </tr>
-        {% for s in not_allowed %}
-        <tr>
-          <td>{{ s.student_id }}</td>
-          <td>{{ s.name }}</td>
-          <td>{{ s.reason }}</td>
-        </tr>
-        {% endfor %}
-      </table>
-    </div>
-    {% endif %}
-  {% endif %}
-
-</div>
-</section>
-
-
-</main>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-<script>
-/* =========================
-   SECTION SWITCHING
-========================= */
-function showSection(id, el) {
-  document.querySelectorAll('.section').forEach(s => s.classList.add('d-none'));
-
-  const activeSection = document.getElementById(id);
-  if (activeSection) {
-    activeSection.classList.remove('d-none');
-  }
-
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  if (el) el.classList.add('active');
-}
-
-/* =========================
-   LIVE CLOCK (SAFE)
-========================= */
-const clock = document.getElementById("clock");
-if (clock) {
-  setInterval(() => {
-    clock.innerText = new Date().toLocaleTimeString();
-  }, 1000);
-}
-
-/* =========================
-   ANNOUNCEMENT FIELD TOGGLE
-========================= */
-function toggleFields() {
-  const annType = document.getElementById("annType");
-  const deadlineFields = document.getElementById("deadlineFields");
-  const scheduleFields = document.getElementById("scheduleFields");
-  const instructionFields = document.getElementById("instructionFields");
-
-  if (!annType) return;
-
-  deadlineFields?.classList.add("d-none");
-  scheduleFields?.classList.add("d-none");
-  instructionFields?.classList.add("d-none");
-
-  if (annType.value === "deadline") {
-    deadlineFields?.classList.remove("d-none");
-  }
-  if (annType.value === "schedule") {
-    scheduleFields?.classList.remove("d-none");
-  }
-  if (annType.value === "instruction") {
-    instructionFields?.classList.remove("d-none");
-  }
-}
-
-/* =========================
-   AUTO-OPEN CSV SECTION
-   (AFTER POST RESULT)
-========================= */
-document.addEventListener("DOMContentLoaded", function () {
-  const hasResults =
-    document.querySelector(".alert-success") ||
-    document.querySelector(".alert-danger");
-
-  if (hasResults) {
-    showSection("csvUpload");
-  }
-});
-// Hamburger Toggle
-const menuToggle = document.getElementById("menu-toggle");
-const sidebar = document.querySelector(".sidebar");
-
-if(menuToggle){
-  menuToggle.addEventListener("click", function(){
-    sidebar.classList.toggle("active");
-  });
-}
-
-const closeSidebar = document.getElementById("close-sidebar");
-
-if(closeSidebar){
-  closeSidebar.addEventListener("click", function(){
-    sidebar.classList.remove("active");
-  });
-}
-</script>
-
-
+    document.addEventListener("DOMContentLoaded", function () {
+      const hasResults = document.querySelector(".text-success") || document.querySelector(".text-danger");
+      if (hasResults) showSection("csvUpload");
+    });
+  </script>
 </body>
 </html>
