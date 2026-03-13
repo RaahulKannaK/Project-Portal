@@ -219,28 +219,99 @@
     .review-content.active { display: block; }
 
     .footer { text-align: center; color: var(--text-muted); margin-top: 20px; font-size: 0.9rem; }
+  /* Hamburger Button */
+.hamburger-btn{
+  background: var(--primary);
+  color:white;
+  border:none;
+  width:45px;
+  height:45px;
+  border-radius:8px;
+  font-size:20px;
+  cursor:pointer;
+  display:none;
+}
+
+/* Mobile Sidebar */
+@media (max-width: 992px){
+
+  .sidebar{
+    position:fixed;
+    left:-280px;
+    top:0;
+    height:100%;
+    z-index:1000;
+    transition:0.3s;
+  }
+
+  .sidebar.active{
+    left:0;
+  }
+
+  .hamburger-btn{
+    display:block;
+  }
+
+  .dashboard-wrapper{
+    width:100%;
+    height:100vh;
+  }
+
+}
+/* Sidebar close button */
+.close-sidebar{
+  background:transparent;
+  border:none;
+  color:white;
+  font-size:20px;
+  cursor:pointer;
+  display:none;
+}
+
+/* Mobile */
+@media (max-width:992px){
+
+  .close-sidebar{
+    display:block;
+  }
+
+}
+
   </style>
 </head>
 
 <body>
-  <div class="dashboard-wrapper">
-    <!-- Sidebar -->
-    <div class="sidebar">
-      <div class="sidebar-header">
-        <h4><i class="fas fa-graduation-cap me-2"></i> Mentor Hub</h4>
-      </div>
-      <nav class="sidebar-nav">
-        <a class="nav-item active" id="overview-btn"><i class="fas fa-file-alt"></i> Overview</a>
-        <a class="nav-item" id="review-btn"><i class="fas fa-trophy"></i> Review</a>
-        <a class="nav-item" id="team-btn"><i class="fas fa-chart-line"></i> Team Details</a>
-        <a class="nav-item"><i class="fas fa-cog"></i> Settings</a>
-      </nav>
+<div class="dashboard-wrapper">
+
+  <div class="sidebar">
+
+    <div class="sidebar-header d-flex justify-content-between align-items-center">
+      <h4 class="mb-0">
+        <i class="fas fa-graduation-cap me-2"></i> Mentor Hub
+      </h4>
+
+      <button class="close-sidebar" id="close-sidebar">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
+
+    <nav class="sidebar-nav">
+      <a class="nav-item active" id="overview-btn"><i class="fas fa-file-alt"></i> Overview</a>
+      <a class="nav-item" id="review-btn"><i class="fas fa-trophy"></i> Review</a>
+      <a class="nav-item" id="team-btn"><i class="fas fa-chart-line"></i> Team Details</a>
+      <a class="nav-item"><i class="fas fa-cog"></i> Settings</a>
+    </nav>
+
+  </div>
 
     <!-- Main Content -->
     <div class="main-content">
       <!-- Header -->
       <div class="top-header">
+      <!-- Hamburger Menu -->
+      <button class="hamburger-btn" id="menu-toggle">
+        <i class="fas fa-bars"></i>
+      </button>
         <div class="user-greeting">
           <div class="profile-avatar">{{ request.session.mentor_name|slice:":1" }}</div>
           <span class="welcome-text">Welcome, {{ mentor_name }}!</span>
@@ -798,6 +869,19 @@
       }
       return cookieValue;
     }
+    // Hamburger toggle
+const menuToggle = document.getElementById("menu-toggle");
+const sidebar = document.querySelector(".sidebar");
+
+menuToggle.addEventListener("click", function(){
+  sidebar.classList.toggle("active");
+});
+
+const closeSidebar = document.getElementById("close-sidebar");
+
+closeSidebar.addEventListener("click", function(){
+  sidebar.classList.remove("active");
+});
   </script>
 </body>
 </html>

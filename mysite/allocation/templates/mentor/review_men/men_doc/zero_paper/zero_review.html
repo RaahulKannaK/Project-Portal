@@ -505,7 +505,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let eraser = false;
   let sending = false;
   let highlightCounter = 0;
-  let isHighlighting = false; // Prevent concurrent operations
+  let isHighlighting = false;
 
   const STORAGE_KEY = "zero_review_annotations_v2";
   
@@ -571,11 +571,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // FIXED: Text selection with robust validation
-  elements.reviewContent.addEventListener("mouseup", (e) => {
+  // FIXED: Text selection with proper capture
+  elements.reviewContent.addEventListener("mouseup", handleTextSelection);
+  elements.reviewContent.addEventListener("keyup", handleTextSelection);
+  
+  function handleTextSelection(e) {
     if (eraser || isHighlighting) return;
     
-    // Small delay to ensure selection is complete
     setTimeout(() => {
       const sel = window.getSelection();
       
@@ -585,118 +587,69 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       
       const selectedText = sel.toString().trim();
-      if (selectedText.length === 0) {
+      if (selectedText.length < 2) {
         selectedRange = null;
         return;
       }
       
-      // Validate selection is within reviewContent and not too complex
       try {
         const range = sel.getRangeAt(0);
         
-        // Check if selection spans multiple block elements (problematic)
-        if (isSelectionCrossingBlocks(range)) {
-          console.warn("Selection spans multiple blocks, simplifying...");
-          // Try to use only the text node portion
-          const safeRange = createSafeRange(range);
-          if (!safeRange) {
-            alert("Please select text within a single paragraph or section");
-            window.getSelection().removeAllRanges();
-            return;
-          }
-          selectedRange = safeRange;
-          elements.selectedText.value = safeRange.toString().trim();
-        } else {
-          selectedRange = range.cloneRange(); // Clone to preserve
-          elements.selectedText.value = selectedText;
+        if (!elements.reviewContent.contains(range.commonAncestorContainer)) {
+          selectedRange = null;
+          return;
         }
+        
+        // Store both range and selection object for later
+        selectedRange = range.cloneRange();
+        elements.selectedText.value = selectedText;
         
         detectHeading(sel);
         updateStats();
         
-        // Visual feedback
-        showSelectionFeedback(e.clientX, e.clientY);
+        showSelectionFeedback(e.clientX || window.innerWidth/2, e.clientY || window.innerHeight/2);
         
       } catch (err) {
         console.error("Selection error:", err);
         selectedRange = null;
       }
-    }, 10);
-  });
-
-  // NEW: Check if selection crosses block-level elements
-  function isSelectionCrossingBlocks(range) {
-    const startContainer = range.startContainer;
-    const endContainer = range.endContainer;
-    
-    if (startContainer === endContainer) return false;
-    
-    // Check if they're in the same text node parent
-    const startBlock = getBlockParent(startContainer);
-    const endBlock = getBlockParent(endContainer);
-    
-    return startBlock !== endBlock;
+    }, 50);
   }
 
-  // NEW: Get closest block-level parent
-  function getBlockParent(node) {
-    const blockElements = ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'TD', 'TH', 'SECTION', 'ARTICLE'];
-    let current = node.nodeType === 3 ? node.parentElement : node;
-    
-    while (current && current !== elements.reviewContent) {
-      if (blockElements.includes(current.tagName)) {
-        return current;
-      }
-      current = current.parentElement;
-    }
-    return current;
-  }
-
-  // NEW: Create a safe range within single text node or element
-  function createSafeRange(originalRange) {
-    try {
-      // Try to limit to start container if it's a text node
-      const startNode = originalRange.startContainer;
-      if (startNode.nodeType === 3) { // Text node
-        const text = startNode.textContent;
-        const startOffset = originalRange.startOffset;
-        const endOffset = Math.min(originalRange.endOffset, text.length);
-        
-        const newRange = document.createRange();
-        newRange.setStart(startNode, startOffset);
-        newRange.setEnd(startNode, endOffset);
-        return newRange;
-      }
-      return originalRange.cloneRange();
-    } catch (e) {
-      return null;
-    }
-  }
-
-  // NEW: Visual feedback for selection
   function showSelectionFeedback(x, y) {
+    const existing = document.querySelector('.selection-feedback');
+    if (existing) existing.remove();
+    
     const feedback = document.createElement('div');
-    feedback.textContent = '✓ Selected';
+    feedback.className = 'selection-feedback';
+    feedback.textContent = `✓ Selected ${elements.selectedText.value.length} chars`;
     feedback.style.cssText = `
       position: fixed;
       background: #69db7c;
       color: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
       pointer-events: none;
       z-index: 10000;
-      left: ${x}px;
-      top: ${y - 30}px;
+      left: ${Math.min(x, window.innerWidth - 150)}px;
+      top: ${Math.max(y - 50, 10)}px;
       opacity: 0;
-      transition: opacity 0.3s;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     `;
     document.body.appendChild(feedback);
-    requestAnimationFrame(() => feedback.style.opacity = '1');
+    
+    requestAnimationFrame(() => {
+      feedback.style.opacity = '1';
+      feedback.style.transform = 'translateY(-5px)';
+    });
+    
     setTimeout(() => {
       feedback.style.opacity = '0';
       setTimeout(() => feedback.remove(), 300);
-    }, 1000);
+    }, 1500);
   }
 
   function detectHeading(selection) {
@@ -706,23 +659,21 @@ document.addEventListener("DOMContentLoaded", () => {
     let element = node.nodeType === 3 ? node.parentElement : node;
     let detected = false;
     
-    // Walk up DOM to find heading
     while (element && element !== elements.reviewContent) {
       const text = element.textContent.trim();
       const tagName = element.tagName.toLowerCase();
       
-      // Check for heading tags or short bold text
       if (tagName.match(/^h[1-6]$/) || 
           (text.length > 0 && text.length < 100 && 
            (element.style.fontWeight === 'bold' || 
             tagName === 'b' || 
-            tagName === 'strong'))) {
+            tagName === 'strong' ||
+            element.classList.contains('font-bold')))) {
         elements.detectedHeading.value = text.substring(0, 100);
         detected = true;
         break;
       }
       
-      // Check for capitalized short lines
       if (text.length > 3 && text.length < 80 && 
           text === text.toUpperCase() && 
           text.split(' ').length <= 6) {
@@ -734,20 +685,14 @@ document.addEventListener("DOMContentLoaded", () => {
       element = element.parentElement;
     }
     
-    // If no heading found, use first few words of selection
     if (!detected) {
-      const words = elements.selectedText.value.split(' ').slice(0, 5).join(' ');
-      if (words.length > 10) {
-        elements.detectedHeading.value = words + "...";
-      } else {
-        elements.detectedHeading.value = words;
-      }
+      const words = elements.selectedText.value.split(/\s+/).slice(0, 5).join(' ');
+      elements.detectedHeading.value = words.length > 50 ? words.substring(0, 50) + "..." : words;
     }
   }
 
   window.setHeading = (heading) => {
     elements.detectedHeading.value = heading;
-    // Visual feedback
     const btn = event.target;
     btn.style.background = "var(--primary)";
     btn.style.color = "#fff";
@@ -757,16 +702,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 300);
   };
 
-  // FIXED: Highlight with robust DOM handling
+  // CRITICAL FIX: Multi-element highlight by splitting into text nodes
   window.applyHighlight = () => {
-    if (isHighlighting) return; // Prevent double-clicks
-    if (!selectedRange) {
-      alert("Please select text from the document first");
+    if (isHighlighting) return;
+    
+    const fallbackText = elements.selectedText.value.trim();
+    
+    if (!selectedRange && fallbackText.length < 2) {
+      alert("Please select text from the document first (click and drag to select)");
       return;
     }
     
-    const selected = elements.selectedText.value;
-    if (selected.length < 2) {
+    if (fallbackText.length < 2) {
       alert("Please select at least 2 characters");
       return;
     }
@@ -774,89 +721,225 @@ document.addEventListener("DOMContentLoaded", () => {
     isHighlighting = true;
     
     try {
-      // Validate range is still valid
-      if (!isRangeValid(selectedRange)) {
-        alert("Selection lost. Please re-select the text.");
-        selectedRange = null;
+      let rangeToUse = selectedRange;
+      
+      // If range is invalid but we have text, try to find it
+      if (!rangeToUse || !isRangeValid(rangeToUse)) {
+        if (fallbackText.length >= 2) {
+          rangeToUse = findTextRange(fallbackText);
+        }
+        
+        if (!rangeToUse) {
+          alert("Selection lost. Please re-select the text.");
+          isHighlighting = false;
+          return;
+        }
+      }
+      
+      // CRITICAL: Get all text nodes in the selection and highlight each
+      const textNodes = getTextNodesInRange(rangeToUse);
+      
+      if (textNodes.length === 0) {
+        alert("Cannot highlight this selection. Try selecting simpler text.");
         isHighlighting = false;
         return;
       }
       
-      // Create highlight span
-      const span = document.createElement("span");
-      span.className = "highlighted";
-      span.style.backgroundColor = selectedColor;
-      span.style.transition = "all 0.3s ease";
-      span.title = "Click to remove";
-      span.dataset.highlightId = `hl_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      // NEW: Safer text extraction using surroundContents if possible
-      let contents;
-      try {
-        // Try surroundContents first (cleanest method)
-        if (selectedRange.canSurroundContents()) {
-          selectedRange.surroundContents(span);
-        } else {
-          // Fallback: extract and re-insert
-          contents = selectedRange.extractContents();
-          if (!contents || !contents.textContent.trim()) {
-            throw new Error("Empty extraction");
+      // Highlight each text node individually
+      let appliedCount = 0;
+      textNodes.forEach(nodeInfo => {
+        try {
+          const span = createHighlightSpan();
+          const range = document.createRange();
+          range.setStart(nodeInfo.node, nodeInfo.start);
+          range.setEnd(nodeInfo.node, nodeInfo.end);
+          
+          if (highlightTextNode(range, span)) {
+            appliedCount++;
           }
-          span.appendChild(contents);
-          selectedRange.insertNode(span);
+        } catch (e) {
+          console.warn("Failed to highlight text node:", e);
         }
-      } catch (surroundErr) {
-        // Final fallback: text node manipulation
-        console.warn("Surround failed, using text node method:", surroundErr);
-        const textNode = selectedRange.startContainer;
-        if (textNode.nodeType !== 3) {
-          throw new Error("Cannot highlight this selection type");
-        }
-        
-        const text = textNode.textContent;
-        const start = selectedRange.startOffset;
-        const end = selectedRange.endOffset;
-        
-        const before = text.substring(0, start);
-        const selected = text.substring(start, end);
-        const after = text.substring(end);
-        
-        const parent = textNode.parentNode;
-        
-        // Insert parts
-        if (before) parent.insertBefore(document.createTextNode(before), textNode);
-        span.textContent = selected;
-        parent.insertBefore(span, textNode);
-        if (after) parent.insertBefore(document.createTextNode(after), textNode);
-        
-        parent.removeChild(textNode);
-      }
-      
-      // Animate
-      span.style.opacity = "0";
-      requestAnimationFrame(() => {
-        span.style.opacity = "1";
       });
       
-      // Clear selection safely
+      if (appliedCount === 0) {
+        throw new Error("Could not apply any highlights");
+      }
+      
+      // Clear selection
       window.getSelection().removeAllRanges();
       selectedRange = null;
       elements.selectedText.value = "";
-      highlightCounter++;
+      highlightCounter += appliedCount;
       updateStats();
       persistData();
       
+      showSuccessFeedback();
+      
     } catch (e) {
       console.error("Highlight error:", e);
-      alert("Unable to highlight this selection. Try selecting smaller text within one paragraph.");
+      alert("Unable to highlight this selection. Try selecting text within a single paragraph, or select smaller portions.");
     } finally {
       isHighlighting = false;
     }
   };
 
-  // NEW: Validate range is still in document
+  // NEW: Get all text nodes within a range with their start/end offsets
+  function getTextNodesInRange(range) {
+    const textNodes = [];
+    const commonAncestor = range.commonAncestorContainer;
+    
+    // If it's a single text node
+    if (commonAncestor.nodeType === 3) {
+      const text = commonAncestor.textContent;
+      const start = range.startOffset;
+      const end = Math.min(range.endOffset, text.length);
+      
+      if (end > start) {
+        textNodes.push({
+          node: commonAncestor,
+          start: start,
+          end: end
+        });
+      }
+      return textNodes;
+    }
+    
+    // For multi-node selections, walk the tree
+    const treeWalker = document.createTreeWalker(
+      commonAncestor,
+      NodeFilter.SHOW_TEXT,
+      null,
+      false
+    );
+    
+    let node;
+    let startFound = false;
+    
+    while (node = treeWalker.nextNode()) {
+      // Check if this node is within the range
+      if (!range.intersectsNode(node)) continue;
+      
+      let start = 0;
+      let end = node.textContent.length;
+      
+      // Adjust start for the first node
+      if (!startFound && node === range.startContainer) {
+        start = range.startOffset;
+        startFound = true;
+      }
+      
+      // Adjust end for the last node
+      if (node === range.endContainer) {
+        end = range.endOffset;
+      }
+      
+      // Only add if there's actual content to highlight
+      if (end > start && node.textContent.substring(start, end).trim().length > 0) {
+        textNodes.push({
+          node: node,
+          start: start,
+          end: end
+        });
+      }
+      
+      // Stop if we've reached the end
+      if (node === range.endContainer) break;
+    }
+    
+    return textNodes;
+  }
+
+  // NEW: Create a fresh highlight span
+  function createHighlightSpan() {
+    const span = document.createElement("span");
+    span.className = "highlighted";
+    span.style.backgroundColor = selectedColor;
+    span.style.transition = "all 0.3s ease";
+    span.style.padding = "2px 4px";
+    span.style.borderRadius = "3px";
+    span.style.cursor = "pointer";
+    span.style.display = "inline";
+    span.title = "Click to remove (eraser mode)";
+    span.dataset.highlightId = `hl_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return span;
+  }
+
+  // NEW: Highlight a specific text node range
+  function highlightTextNode(range, span) {
+    try {
+      // Try surroundContents first (cleanest)
+      if (range.canSurroundContents()) {
+        range.surroundContents(span);
+        return true;
+      }
+    } catch (e) {
+      // Fall back to manual split
+    }
+    
+    try {
+      const textNode = range.startContainer;
+      if (textNode.nodeType !== 3) return false;
+      
+      const text = textNode.textContent;
+      const start = range.startOffset;
+      const end = range.endOffset;
+      
+      const before = text.substring(0, start);
+      const selected = text.substring(start, end);
+      const after = text.substring(end);
+      
+      const parent = textNode.parentNode;
+      
+      // Insert before text
+      if (before) {
+        parent.insertBefore(document.createTextNode(before), textNode);
+      }
+      
+      // Insert highlighted span
+      span.textContent = selected;
+      parent.insertBefore(span, textNode);
+      
+      // Insert after text
+      if (after) {
+        parent.insertBefore(document.createTextNode(after), textNode);
+      }
+      
+      // Remove original
+      parent.removeChild(textNode);
+      
+      return true;
+    } catch (e) {
+      console.error("Text node highlight failed:", e);
+      return false;
+    }
+  }
+
+  // NEW: Find text range by searching
+  function findTextRange(text) {
+    const walker = document.createTreeWalker(
+      elements.reviewContent,
+      NodeFilter.SHOW_TEXT,
+      null,
+      false
+    );
+    
+    let node;
+    while (node = walker.nextNode()) {
+      const index = node.textContent.indexOf(text);
+      if (index !== -1) {
+        const range = document.createRange();
+        range.setStart(node, index);
+        range.setEnd(node, index + text.length);
+        return range;
+      }
+    }
+    return null;
+  }
+
   function isRangeValid(range) {
     try {
+      if (!range) return false;
       const container = range.commonAncestorContainer;
       return elements.reviewContent.contains(container);
     } catch (e) {
@@ -864,48 +947,66 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function showSuccessFeedback() {
+    const btn = document.querySelector('[onclick="applyHighlight()"]');
+    if (!btn) return;
+    
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check me-2"></i>Highlighted!';
+    btn.style.background = "#69db7c";
+    btn.style.color = "#fff";
+    
+    setTimeout(() => {
+      btn.innerHTML = originalHTML;
+      btn.style.background = "";
+      btn.style.color = "";
+    }, 1200);
+  }
+
   // Eraser mode
   window.toggleEraser = () => {
     eraser = !eraser;
-    elements.eraserBtn.classList.toggle("btn-warning", !eraser);
-    elements.eraserBtn.classList.toggle("btn-danger", eraser);
-    elements.eraserBtn.innerHTML = eraser ? 
-      '<i class="fas fa-eraser me-1"></i>ON' : 
-      '<i class="fas fa-eraser"></i>';
-    elements.reviewContent.style.cursor = eraser ? "not-allowed" : "text";
     
-    if (eraser) {
-      elements.reviewContent.classList.add("eraser-active");
-    } else {
-      elements.reviewContent.classList.remove("eraser-active");
+    if (elements.eraserBtn) {
+      elements.eraserBtn.classList.toggle("btn-warning", !eraser);
+      elements.eraserBtn.classList.toggle("btn-danger", eraser);
+      elements.eraserBtn.innerHTML = eraser ? 
+        '<i class="fas fa-eraser me-1"></i>ON' : 
+        '<i class="fas fa-eraser"></i>';
     }
+    
+    elements.reviewContent.style.cursor = eraser ? "not-allowed" : "text";
+    elements.reviewContent.classList.toggle("eraser-active", eraser);
   };
 
-  // FIXED: Eraser with animation and proper cleanup
+  // FIXED: Eraser click handling
   elements.reviewContent.addEventListener("click", (e) => {
     if (!eraser) return;
     
     const target = e.target.closest('.highlighted');
-    if (target) {
-      e.preventDefault();
-      e.stopPropagation();
+    if (!target) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    target.style.opacity = "0";
+    target.style.transform = "scale(0.9)";
+    
+    setTimeout(() => {
+      const parent = target.parentNode;
+      if (!parent) return;
       
-      target.style.opacity = "0";
-      target.style.transform = "scale(0.95)";
+      const fragment = document.createDocumentFragment();
+      while (target.firstChild) {
+        fragment.appendChild(target.firstChild);
+      }
       
-      setTimeout(() => {
-        // Safely unwrap
-        const parent = target.parentNode;
-        while (target.firstChild) {
-          parent.insertBefore(target.firstChild, target);
-        }
-        parent.removeChild(target);
-        
-        highlightCounter = Math.max(0, highlightCounter - 1);
-        updateStats();
-        persistData();
-      }, 200);
-    }
+      parent.replaceChild(fragment, target);
+      
+      highlightCounter = Math.max(0, highlightCounter - 1);
+      updateStats();
+      persistData();
+    }, 200);
   });
 
   // Clear all highlights
@@ -915,11 +1016,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const highlights = elements.reviewContent.querySelectorAll(".highlighted");
     highlights.forEach(h => {
       const parent = h.parentNode;
+      if (!parent) return;
+      
+      const fragment = document.createDocumentFragment();
       while (h.firstChild) {
-        parent.insertBefore(h.firstChild, h);
+        fragment.appendChild(h.firstChild);
       }
-      parent.removeChild(h);
+      parent.replaceChild(fragment, h);
     });
+    
     highlightCounter = 0;
     updateStats();
     persistData();
@@ -937,17 +1042,23 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   function applyZoom() {
-    elements.reviewWrapper.style.transform = `scale(${zoom})`;
-    elements.reviewWrapper.style.transformOrigin = "top left";
+    if (elements.reviewWrapper) {
+      elements.reviewWrapper.style.transform = `scale(${zoom})`;
+      elements.reviewWrapper.style.transformOrigin = "top left";
+    }
   }
 
   // Update statistics
   function updateStats() {
-    elements.highlightCount.textContent = highlightCounter;
-    elements.remarkCount.textContent = tags.length;
+    if (elements.highlightCount) {
+      elements.highlightCount.textContent = highlightCounter;
+    }
+    if (elements.remarkCount) {
+      elements.remarkCount.textContent = tags.length;
+    }
   }
 
-  // Tag management with duplicate check
+  // Tag management
   window.saveTag = () => {
     const heading = elements.detectedHeading.value.trim();
     const remark = elements.remarkText.value.trim();
@@ -965,14 +1076,12 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Check for exact duplicate
     const exactDup = tags.findIndex(t => t.heading === heading && t.remark === remark);
     if (exactDup !== -1) {
       alert("This exact remark already exists");
       return;
     }
 
-    // Check for heading collision
     const existingIndex = tags.findIndex(t => t.heading === heading);
     if (existingIndex !== -1) {
       if (!confirm(`A remark for "${heading.substring(0, 30)}..." already exists. Replace it?`)) {
@@ -988,7 +1097,6 @@ document.addEventListener("DOMContentLoaded", () => {
       timestamp: new Date().toISOString()
     });
 
-    // Clear inputs
     elements.detectedHeading.value = "";
     elements.remarkText.value = "";
     elements.selectedText.value = "";
@@ -998,7 +1106,6 @@ document.addEventListener("DOMContentLoaded", () => {
     updateStats();
     persistData();
     
-    // Visual feedback
     const btn = event.target;
     const originalHTML = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-check me-2"></i>Saved!';
@@ -1010,6 +1117,8 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   function renderTags() {
+    if (!elements.savedTags) return;
+    
     if (tags.length === 0) {
       elements.savedTags.innerHTML = '<small class="text-muted">No remarks added yet. Select text and add remarks.</small>';
       return;
@@ -1056,7 +1165,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  // Storage with metadata
+  // Storage
   function persistData() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -1064,7 +1173,7 @@ document.addEventListener("DOMContentLoaded", () => {
         content: elements.reviewContent.innerHTML,
         teamName: "{{ team_name|escapejs }}",
         timestamp: new Date().toISOString(),
-        version: "2.1" // Bumped version for new format
+        version: "2.3"
       }));
     } catch (e) {
       console.error("Storage error:", e);
@@ -1075,7 +1184,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function restoreData() {
-    // Start with DB remarks
     tags = DB_SAVED_REMARKS.map(r => ({
       heading: r.heading,
       remark: r.remark,
@@ -1083,21 +1191,18 @@ document.addEventListener("DOMContentLoaded", () => {
       timestamp: r.created_at || new Date().toISOString()
     }));
     
-    // Check for local unsaved changes
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       try {
         const data = JSON.parse(raw);
         const currentTeam = "{{ team_name|escapejs }}";
         
-        // Only restore if same team and recent (< 24 hours)
         if (data.teamName === currentTeam && data.tags && data.tags.length > 0) {
           const age = Date.now() - new Date(data.timestamp).getTime();
           const hoursOld = age / (1000 * 60 * 60);
           
-          if (hoursOld < 24 && data.content && data.content.includes(elements.reviewContent.textContent.substring(0, 50))) {
+          if (hoursOld < 24 && data.content) {
             if (confirm(`You have ${data.tags.length} unsaved remark(s) from earlier. Load them?`)) {
-              // Merge DB and local, local takes precedence for same headings
               const localHeadings = new Set(data.tags.map(t => t.heading));
               tags = tags.filter(t => !localHeadings.has(t.heading));
               tags = [...tags, ...data.tags];
@@ -1111,13 +1216,12 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
     
-    // Count existing highlights
     highlightCounter = elements.reviewContent.querySelectorAll(".highlighted").length;
     renderTags();
     updateStats();
   }
 
-  // FIXED: Apply DB highlights with deduplication and better matching
+  // Apply DB highlights
   function applyDBHighlights() {
     if (!DB_SAVED_REMARKS || DB_SAVED_REMARKS.length === 0) return;
     
@@ -1129,27 +1233,18 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!r.heading || r.heading.length < 3) return;
       if (processed.has(r.heading)) return;
       
-      // Escape special regex characters
       const safe = r.heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      
-      // Create regex that avoids HTML tags
       const regex = new RegExp(`(${safe})(?![^<]*>)`, "gi");
       
-      // Check if already highlighted
-      const alreadyHighlighted = html.includes(`data-heading="${escapeHtml(r.heading)}"`) ||
-                                html.includes(`title="${escapeHtml(r.remark)}"`);
+      const alreadyHighlighted = html.includes(`data-heading="${escapeHtml(r.heading)}"`);
       
       if (!alreadyHighlighted) {
         const before = html;
-        let replaced = false;
-        
         html = html.replace(regex, (match) => {
-          // Additional check: don't replace inside existing highlights
-          replaced = true;
           return `<span class="highlighted" style="background-color:${r.color};" data-heading="${escapeHtml(r.heading)}" title="${escapeHtml(r.remark)}">${match}</span>`;
         });
         
-        if (replaced && html !== before) {
+        if (html !== before) {
           applied++;
           processed.add(r.heading);
         }
@@ -1159,11 +1254,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (applied > 0) {
       elements.reviewContent.innerHTML = html;
       highlightCounter = elements.reviewContent.querySelectorAll(".highlighted").length;
-      console.log(`Applied ${applied} highlights from database`);
     }
   }
 
-  // Send to backend with loading state
+  // Send to backend
   window.sendRemarksToStudent = () => {
     if (sending) return;
     if (tags.length === 0) {
@@ -1253,7 +1347,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Warn before leaving with unsaved changes
+  // Warn before leaving
   window.addEventListener("beforeunload", (e) => {
     if (tags.length > 0 && !sending) {
       e.preventDefault();
@@ -1263,6 +1357,5 @@ document.addEventListener("DOMContentLoaded", () => {
 
 });
 </script>
-
 </body>
 </html>
