@@ -2,181 +2,206 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Mentor List</title>
-    <style>
-  :root {
-    --primary: #1c1c1c;
-    --secondary: #555555;
-    --accent: #cccccc;
-    --background: #F8F9FC;
-    --text-dark: #2E2E2E;
-    --text-light: #ffffff;
-  }
-
-  body {
-    font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(120deg, var(--background), #ffffff);
-    margin: 0;
-    padding: 0;
-    color: var(--text-dark);
-  }
-
-  .container {
-    max-width: 900px;
-    margin: 60px auto;
-    background: var(--text-light);
-    padding: 40px 50px;
-    border-radius: 16px;
-    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
-    transition: 0.3s ease;
-  }
-
-  .container:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.2);
-  }
-
-  h2 {
-    text-align: center;
-    color: var(--primary);
-    font-size: 1.8rem;
-    margin-bottom: 30px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    border-radius: 10px;
-    overflow: hidden;
-  }
-
-  th, td {
-    padding: 14px 16px;
-    text-align: center;
-    border-bottom: 1px solid var(--accent);
-    font-size: 0.95rem;
-  }
-
-  th {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: var(--text-light);
-    font-weight: 600;
-    letter-spacing: 0.5px;
-  }
-
-  td {
-    background-color: #f9f9fb;
-    color: var(--text-dark);
-    transition: background 0.3s;
-  }
-
-  tr:hover td {
-    background: rgba(0, 0, 0, 0.04);
-  }
-
-  .experience {
-    font-weight: 600;
-    color: var(--secondary);
-  }
-
-  .alt-domains {
-    font-style: italic;
-    color: var(--accent);
-  }
-
-  /* Button-like styling for optional table actions */
-  .table-btn {
-    background: var(--accent);
-    color: var(--primary);
-    border: none;
-    border-radius: 8px;
-    padding: 8px 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: 0.3s;
-  }
-
-  .table-btn:hover {
-    background: var(--primary);
-    color: var(--text-light);
-  }
-
-  /* Responsive Design */
-  @media (max-width: 700px) {
-    table, thead, tbody, th, td, tr {
-      display: block;
-      width: 100%;
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mentor List - Coordinator Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --primary: #4C1D95;
+        --secondary: #DDD6FE;
+        --accent: #A78BFA;
+        --background: #F5F3FF;
+        --text-dark: #3730A3;
+        --text-light: #FFFFFF;
     }
 
-    thead {
-      display: none;
+    body {
+        font-family: 'Montserrat', sans-serif;
+        background: var(--background);
+        margin: 0;
+        padding: 0;
+        color: var(--text-dark);
+        min-height: 100vh;
     }
 
-    tr {
-      background: var(--text-light);
-      margin-bottom: 15px;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      overflow: hidden;
-    }
-
-    td {
+    .top-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      text-align: left;
-      padding: 12px 16px;
+      background: white;
+      padding: 20px 40px;
+      margin-bottom: 35px;
+      box-shadow: 0 10px 15px -3px rgba(76, 29, 149, 0.1);
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .brand-avatar {
+      width: 45px;
+      height: 45px;
+      border-radius: 12px;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.25rem;
+      font-weight: 700;
+      box-shadow: 0 4px 6px rgba(76, 29, 149, 0.2);
+    }
+
+    .brand-text {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .more-options-btn {
+      background: var(--secondary);
+      color: var(--text-dark);
       border: none;
-      border-bottom: 1px solid var(--accent);
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: 0.3s;
     }
 
-    td:last-child {
-      border-bottom: none;
+    .more-options-btn:hover {
+      background: var(--primary);
+      color: white;
     }
 
-    td::before {
-      content: attr(data-label);
-      font-weight: 600;
-      color: var(--secondary);
+    .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 0 20px 50px;
     }
-  }
+
+    .table-card {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 15px 35px rgba(76, 29, 149, 0.1);
+        overflow-x: auto;
+    }
+
+    h2 {
+        color: var(--primary);
+        margin-bottom: 25px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 10px;
+    }
+
+    th {
+        background: transparent;
+        color: var(--primary);
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 1px;
+        padding: 15px 20px;
+        border: none;
+        text-align: center;
+    }
+
+    td {
+        background: #fcfaff;
+        padding: 20px;
+        text-align: center;
+        border: none;
+        font-size: 0.95rem;
+    }
+
+    td:first-child { border-top-left-radius: 15px; border-bottom-left-radius: 15px; font-weight: 700; }
+    td:last-child { border-top-right-radius: 15px; border-bottom-right-radius: 15px; }
+
+    .domain-badge {
+        font-weight: 700;
+        color: var(--primary);
+        background: var(--secondary);
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 0.85rem;
+    }
+
+    .experience { font-weight: 600; color: #4b5563; }
+    .alt-domains { font-style: italic; color: #6b7280; font-size: 0.85rem; }
+
+    .dropdown-menu { border-radius: 15px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.1); padding: 10px; }
+    .dropdown-item { border-radius: 8px; padding: 10px 15px; font-weight: 500; }
+    .dropdown-item:hover { background: var(--background); color: var(--primary); }
 </style>
-
 </head>
 <body>
-    <div class="container">
-        <h2>Mentor List</h2>
-
-        {% if mentors %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Username</th>
-                        <th>Name</th>
-                        <th>Primary Domain</th>
-                        <th>Alternative Domains</th>
-                        <th>Experience (Years)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for m in mentors %}
-                        <tr>
-                            <td data-label="Username">{{ m.username }}</td>
-                            <td data-label="Name">{{ m.name }}</td>
-                            <td data-label="Primary Domain">{{ m.primary_domain }}</td>
-                            <td data-label="Alternative Domains" class="alt-domains">
-                                {{ m.alternative_domains|default:"-" }}
-                            </td>
-                            <td data-label="Experience" class="experience">{{ m.experience }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p style="text-align:center; color:#e84118; font-weight:bold;">No mentors available.</p>
-        {% endif %}
+  <div class="top-header">
+    <div class="brand-section">
+      <div class="brand-avatar"><i class="fas fa-chalkboard-teacher"></i></div>
+      <span class="brand-text">Coordinator Hub</span>
     </div>
+
+    <div class="dropdown">
+      <button class="more-options-btn" type="button" data-bs-toggle="dropdown">
+        <i class="fas fa-ellipsis-v"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="{% url 'coord_dash' %}"><i class="fas fa-home me-2"></i>Dashboard</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+      </ul>
+    </div>
+  </div>
+
+<div class="container">
+    <h2><i class="fas fa-user-friends"></i> Mentor List</h2>
+
+    <div class="table-card">
+    {% if mentors %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Name</th>
+                    <th>Primary Domain</th>
+                    <th>Alternative Domains</th>
+                    <th>Experience (Years)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in mentors %}
+                    <tr>
+                        <td>{{ m.username }}</td>
+                        <td>{{ m.name }}</td>
+                        <td><span class="domain-badge">{{ m.primary_domain }}</span></td>
+                        <td class="alt-domains">{{ m.alternative_domains|default:"-" }}</td>
+                        <td class="experience">{{ m.experience }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="text-center py-5 fw-bold text-muted">No mentors available.</p>
+    {% endif %}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

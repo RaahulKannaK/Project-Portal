@@ -1,75 +1,243 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Final Mentor Allocation</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 30px;
-            background: #f4f6f9;
-        }
-        h1 {
-            text-align: center;
-            color: #2c3e50;
-        }
-        table {
-            width: 95%;
-            margin: 20px auto;
-            border-collapse: collapse;
-            background: #fff;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-        th, td {
-            padding: 12px 15px;
-            border: 1px solid #ddd;
-            text-align: center;
-        }
-        th {
-            background: #34495e;
-            color: white;
-        }
-        tr:nth-child(even) {
-            background: #f9f9f9;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Final Mentor Allocation - HOD Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0891B2;
+      --secondary: #164E63;
+      --accent: #22D3EE;
+      --background: #ECFEFF;
+      --text-dark: #164E63;
+      --text-light: #FFFFFF;
+    }
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background: var(--background);
+      color: var(--text-dark);
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: white;
+      padding: 20px 40px;
+      margin-bottom: 40px;
+      box-shadow: 0 10px 15px -3px rgba(8, 145, 178, 0.1);
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .brand-avatar {
+      width: 45px;
+      height: 45px;
+      border-radius: 12px;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.25rem;
+      font-weight: 700;
+      box-shadow: 0 4px 6px rgba(8, 145, 178, 0.2);
+    }
+
+    .brand-text {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .more-options-btn {
+      background: #f8fafc;
+      color: var(--primary);
+      border: 1.5px solid #CFFAFE;
+      width: 45px;
+      height: 45px;
+      border-radius: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .more-options-btn:hover {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .main-container {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 0 30px 50px;
+    }
+
+    .table-card {
+      background: white;
+      border-radius: 24px;
+      padding: 30px;
+      border: 1px solid #CFFAFE;
+      box-shadow: 0 20px 25px -5px rgba(8, 145, 178, 0.1);
+      overflow-x: auto;
+    }
+
+    .custom-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 8px;
+    }
+
+    .custom-table th {
+      background: transparent;
+      color: var(--secondary);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      letter-spacing: 1px;
+      padding: 15px 20px;
+      border: none;
+    }
+
+    .custom-table tr {
+      transition: transform 0.2s;
+    }
+
+    .custom-table tr:hover {
+      transform: scale(1.01);
+    }
+
+    .custom-table td {
+      background: #f8fafc;
+      padding: 20px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      border: none;
+    }
+
+    .custom-table td:first-child {
+      border-top-left-radius: 15px;
+      border-bottom-left-radius: 15px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .custom-table td:last-child {
+      border-top-right-radius: 15px;
+      border-bottom-right-radius: 15px;
+    }
+
+    .badge-domain {
+      background: #CFFAFE;
+      color: var(--primary);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .similarity-val {
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .dropdown-menu {
+      border-radius: 15px;
+      border: none;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      padding: 10px;
+    }
+
+    .dropdown-item {
+      border-radius: 8px;
+      padding: 10px 15px;
+      font-weight: 500;
+      transition: 0.2s;
+    }
+
+    .dropdown-item:hover {
+      background: var(--background);
+      color: var(--primary);
+    }
+
+    .dropdown-item.text-danger:hover {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+  </style>
 </head>
 <body>
-    <h1>📊 Final Mentor Allocation</h1>
+  <div class="top-header">
+    <div class="brand-section">
+      <div class="brand-avatar"><i class="fas fa-chart-pie"></i></div>
+      <span class="brand-text">Final Mentor Allocation</span>
+    </div>
 
-    <table>
+    <div class="dropdown">
+      <button class="more-options-btn" type="button" data-bs-toggle="dropdown">
+        <i class="fas fa-ellipsis-v"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="{% url 'hod_dash' %}"><i class="fas fa-home me-2"></i>Dashboard</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div class="table-card">
+      <table class="custom-table">
         <thead>
-            <tr>
-                <th>Team</th>
-                <th>Team Domain</th>
-                <th>Mentor</th>
-                <th>Mentor Domain</th>
-                <th>Mentor Alt Domains</th>
-                <th>Experience</th>
-                <th>Similarity Score</th>
-                <th>Reason</th>
-                <th>Allocated At</th>
-            </tr>
+          <tr>
+            <th>Team</th>
+            <th>Team Domain</th>
+            <th>Mentor</th>
+            <th>Mentor Domain</th>
+            <th>Experience</th>
+            <th>Similarity</th>
+            <th>Allocated At</th>
+          </tr>
         </thead>
         <tbody>
-            {% for alloc in allocations %}
-            <tr>
-                <td>{{ alloc.team.team_name }}</td>
-                <td>{{ alloc.team_domain }}</td>
-                <td>{{ alloc.mentor.name }}</td>
-                <td>{{ alloc.mentor_domain }}</td>
-                <td>{{ alloc.mentor_alt_domains|default:"-" }}</td>
-                <td>{{ alloc.mentor_experience }}</td>
-                <td>{{ alloc.similarity_score }}</td>
-                <td>{{ alloc.reason }}</td>
-                <td>{{ alloc.allocated_at|date:"Y-m-d H:i" }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="9">No allocations yet.</td>
-            </tr>
-            {% endfor %}
+          {% for alloc in allocations %}
+          <tr>
+            <td>{{ alloc.team.team_name }}</td>
+            <td><span class="badge-domain">{{ alloc.team_domain }}</span></td>
+            <td><i class="fas fa-user-tie me-2"></i>{{ alloc.mentor.name }}</td>
+            <td>{{ alloc.mentor_domain }}</td>
+            <td>{{ alloc.mentor_experience }} Yrs</td>
+            <td><span class="similarity-val">{{ alloc.similarity_score }}%</span></td>
+            <td><small class="text-muted">{{ alloc.allocated_at|date:"Y-m-d H:i" }}</small></td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center py-5">
+              <i class="fas fa-inbox fa-3x mb-3 d-block opacity-20"></i>
+              No allocations yet.
+            </td>
+          </tr>
+          {% endfor %}
         </tbody>
-    </table>
+      </table>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

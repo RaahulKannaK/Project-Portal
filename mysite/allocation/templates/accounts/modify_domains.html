@@ -2,29 +2,202 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Modify Domains</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modify Domains - HOD Portal</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0891B2;
+      --secondary: #164E63;
+      --accent: #22D3EE;
+      --background: #ECFEFF;
+      --text-dark: #164E63;
+      --text-light: #FFFFFF;
+    }
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background: var(--background);
+      color: var(--text-dark);
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+
+    .main-container {
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: white;
+      padding: 20px 40px;
+      margin-bottom: 40px;
+      box-shadow: 0 10px 15px -3px rgba(8, 145, 178, 0.1);
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .brand-avatar {
+      width: 45px;
+      height: 45px;
+      border-radius: 12px;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.25rem;
+      font-weight: 700;
+      box-shadow: 0 4px 6px rgba(8, 145, 178, 0.2);
+    }
+
+    .brand-text {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .more-options-btn {
+      background: #f8fafc;
+      color: var(--primary);
+      border: 1.5px solid #CFFAFE;
+      width: 45px;
+      height: 45px;
+      border-radius: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .more-options-btn:hover {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .card {
+      background: white;
+      border-radius: 24px;
+      padding: 40px;
+      border: 1px solid #CFFAFE;
+      box-shadow: 0 20px 25px -5px rgba(8, 145, 178, 0.1);
+    }
+
+    .form-label {
+      font-weight: 600;
+      color: var(--secondary);
+      margin-bottom: 8px;
+    }
+
+    .form-control {
+      border-radius: 12px;
+      padding: 12px 18px;
+      border: 1.5px solid #CFFAFE;
+      background: #f8fafc;
+      transition: 0.3s;
+    }
+
+    .form-control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.1);
+      background: white;
+    }
+
+    .btn-update {
+      background: var(--primary);
+      color: white;
+      padding: 12px 30px;
+      border-radius: 12px;
+      font-weight: 700;
+      width: 100%;
+      border: none;
+      transition: 0.3s;
+      margin-top: 10px;
+    }
+
+    .btn-update:hover {
+      background: var(--secondary);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px rgba(8, 145, 178, 0.3);
+    }
+
+    .dropdown-menu {
+      border-radius: 15px;
+      border: none;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      padding: 10px;
+    }
+
+    .dropdown-item {
+      border-radius: 8px;
+      padding: 10px 15px;
+      font-weight: 500;
+      transition: 0.2s;
+    }
+
+    .dropdown-item:hover {
+      background: var(--background);
+      color: var(--primary);
+    }
+
+    .dropdown-item.text-danger:hover {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+  </style>
 </head>
-<body class="bg-light p-5">
-  <div class="container">
-    <h2 class="mb-4">📝 Modify Domains</h2>
-    <div class="card shadow-sm p-4">
+<body>
+  <div class="top-header">
+    <div class="brand-section">
+      <div class="brand-avatar"><i class="fas fa-edit"></i></div>
+      <span class="brand-text">Modify Domains</span>
+    </div>
+
+    <div class="dropdown">
+      <button class="more-options-btn dropdown-toggle-split" type="button" data-bs-toggle="dropdown">
+        <i class="fas fa-ellipsis-v"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="{% url 'hod_dash' %}"><i class="fas fa-home me-2"></i>Dashboard</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div class="card">
       <form>
-        <div class="mb-3">
+        <div class="mb-4">
           <label class="form-label">Team ID</label>
           <input type="text" class="form-control" placeholder="Enter your team ID">
         </div>
-        <div class="mb-3">
+        <div class="mb-4">
           <label class="form-label">Current Domain</label>
-          <input type="text" class="form-control" value="AI">
+          <input type="text" class="form-control" value="AI" readonly>
         </div>
-        <div class="mb-3">
+        <div class="mb-4">
           <label class="form-label">New Domain</label>
           <input type="text" class="form-control" placeholder="Enter new domain">
         </div>
-        <button class="btn btn-warning">Update Domain</button>
+        <button type="submit" class="btn-update">Update Domain</button>
       </form>
     </div>
   </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
