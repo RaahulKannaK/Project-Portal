@@ -2472,13 +2472,68 @@ def save_zeroth_remark(request):
     try:
         data = json.loads(request.body)
         remarks = data.get("remarks", [])
-        file_type = data.get("file_type") or "pdf"   # ✅ DEFAULT TO PDF
+        deleted = data.get("deleted", [])
+        file_type = data.get("file_type") or "pdf"
         print("Remarks count:", len(remarks))
+        print("Deleted count:", len(deleted))
         print("File type:", file_type)
     except Exception as e:
         print("❌ JSON error:", e)
         return JsonResponse({"status": "fail", "message": "Invalid JSON"})
 
+    inserted = 0
+    updated = 0
+    deleted_count = 0
+
+    # 🔥 FIXED: Handle deletions - try without file_type filter first
+    if deleted and len(deleted) > 0:
+        for heading in deleted:
+            heading = heading.strip()
+            if not heading:
+                continue
+                
+            print(f"Attempting to delete: '{heading}'")
+            
+            # Try exact match first with file_type
+            query = ZerothReviewRemark.objects.filter(
+                team_name=team_name,
+                mentor_name=mentor_name,
+                heading=heading,
+                file_type=file_type
+            )
+            
+            if query.exists():
+                count, _ = query.delete()
+                deleted_count += count
+                print(f"🗑️ Deleted (exact): {heading} ({count} rows)")
+            else:
+                # Try without file_type (in case it was saved as NULL or different value)
+                query2 = ZerothReviewRemark.objects.filter(
+                    team_name=team_name,
+                    mentor_name=mentor_name,
+                    heading=heading
+                )
+                
+                if query2.exists():
+                    count, _ = query2.delete()
+                    deleted_count += count
+                    print(f"🗑️ Deleted (no file_type): {heading} ({count} rows)")
+                else:
+                    # Try case-insensitive contains match (for truncated headings)
+                    query3 = ZerothReviewRemark.objects.filter(
+                        team_name=team_name,
+                        mentor_name=mentor_name,
+                        heading__icontains=heading[:50]  # First 50 chars
+                    )
+                    
+                    if query3.exists():
+                        count, _ = query3.delete()
+                        deleted_count += count
+                        print(f"🗑️ Deleted (icontains): {heading[:50]}... ({count} rows)")
+                    else:
+                        print(f"❌ Not found: {heading}")
+
+    # Handle upserts
     for r in remarks:
         heading = (r.get("heading") or "").strip()
         remark = (r.get("remark") or "").strip()
@@ -2493,7 +2548,7 @@ def save_zeroth_remark(request):
             team_name=team_name,
             mentor_name=mentor_name,
             heading=heading,
-            file_type=file_type,   # ✅ INCLUDE IN UNIQUE CHECK
+            file_type=file_type,
             defaults={
                 "remark": remark,
                 "color": color,
@@ -2501,12 +2556,19 @@ def save_zeroth_remark(request):
         )
 
         if created:
+            inserted += 1
             print("🆕 Inserted:", heading)
         else:
-            print("🔁 Updated (no duplicate):", heading)
+            updated += 1
+            print("🔁 Updated:", heading)
 
-    print("✅ Remarks saved successfully")
-    return JsonResponse({"status": "success"})
+    print(f"✅ Done: {inserted} inserted, {updated} updated, {deleted_count} deleted")
+    return JsonResponse({
+        "status": "success",
+        "inserted": inserted,
+        "updated": updated,
+        "deleted": deleted_count
+    })
 
 def clean_text(text):
     return re.sub(r'\(.*?\)', '', text).strip().lower()

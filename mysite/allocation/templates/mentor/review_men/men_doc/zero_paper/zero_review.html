@@ -497,18 +497,20 @@ const DB_SAVED_REMARKS = [
 ];
 
 document.addEventListener("DOMContentLoaded", () => {
-  
+
   let selectedRange = null;
   let selectedColor = "#ffe066";
   let tags = [];
+  let deletedHeadings = [];
   let zoom = 1;
   let eraser = false;
   let sending = false;
   let highlightCounter = 0;
   let isHighlighting = false;
 
-  const STORAGE_KEY = "zero_review_annotations_v2";
-  
+  // 🔥 UNIQUE STORAGE KEY PER TEAM
+  const HIGHLIGHT_KEY = "zero_review_highlight_{{ team_name|escapejs }}";
+
   const elements = {
     splitView: document.getElementById("splitView"),
     openBtn: document.getElementById("openReviewBtn"),
@@ -526,836 +528,335 @@ document.addEventListener("DOMContentLoaded", () => {
     headingContainer: document.getElementById("headingContainer")
   };
 
-  // Initialize
-  if (elements.openBtn) {
-    elements.openBtn.addEventListener("click", openViewer);
-  }
+  // 🔥 Restore highlights immediately
+  restoreHighlights();
 
-  // Character counter
-  if (elements.remarkText) {
-    elements.remarkText.addEventListener("input", () => {
-      const len = elements.remarkText.value.length;
-      elements.charCount.textContent = len;
-      if (len > 500) {
-        elements.charCount.classList.add("text-danger");
-        elements.remarkText.value = elements.remarkText.value.substring(0, 500);
-      } else {
-        elements.charCount.classList.remove("text-danger");
-      }
-    });
-  }
+  initializeTags();
+  updateStats();
 
-  function openViewer() {
-    elements.splitView.classList.add("active");
-    restoreData();
-    updateStats();
-    setTimeout(() => {
-      applyDBHighlights();
-      updateStats();
-    }, 100);
-  }
+  // ---------------------------
+  // SAVE HIGHLIGHTS
+  // ---------------------------
+  function saveHighlights() {
+    try {
+      const html = elements.reviewContent.innerHTML;
 
-  window.closeViewer = () => {
-    if (tags.length > 0) {
-      if (!confirm("You have unsaved remarks. Close anyway?")) return;
+      localStorage.setItem(HIGHLIGHT_KEY, html);
+
+      console.log("✅ Highlights saved");
+    } catch (e) {
+      console.error("Save error:", e);
     }
-    elements.splitView.classList.remove("active");
-  };
+  }
 
-  // Color picker
-  document.querySelectorAll(".color-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".color-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      selectedColor = btn.dataset.color;
-    });
-  });
+  // ---------------------------
+  // RESTORE HIGHLIGHTS
+  // ---------------------------
+  function restoreHighlights() {
+    try {
 
-  // FIXED: Text selection with proper capture
-  elements.reviewContent.addEventListener("mouseup", handleTextSelection);
-  elements.reviewContent.addEventListener("keyup", handleTextSelection);
-  
-  function handleTextSelection(e) {
-    if (eraser || isHighlighting) return;
-    
-    setTimeout(() => {
-      const sel = window.getSelection();
-      
-      if (!sel || sel.isCollapsed) {
-        selectedRange = null;
+      const storedHTML = localStorage.getItem(HIGHLIGHT_KEY);
+
+      if (!storedHTML) {
+        console.log("No stored highlights");
         return;
       }
-      
-      const selectedText = sel.toString().trim();
-      if (selectedText.length < 2) {
-        selectedRange = null;
-        return;
-      }
-      
-      try {
-        const range = sel.getRangeAt(0);
-        
-        if (!elements.reviewContent.contains(range.commonAncestorContainer)) {
-          selectedRange = null;
-          return;
-        }
-        
-        // Store both range and selection object for later
-        selectedRange = range.cloneRange();
-        elements.selectedText.value = selectedText;
-        
-        detectHeading(sel);
-        updateStats();
-        
-        showSelectionFeedback(e.clientX || window.innerWidth/2, e.clientY || window.innerHeight/2);
-        
-      } catch (err) {
-        console.error("Selection error:", err);
-        selectedRange = null;
-      }
-    }, 50);
-  }
 
-  function showSelectionFeedback(x, y) {
-    const existing = document.querySelector('.selection-feedback');
-    if (existing) existing.remove();
-    
-    const feedback = document.createElement('div');
-    feedback.className = 'selection-feedback';
-    feedback.textContent = `✓ Selected ${elements.selectedText.value.length} chars`;
-    feedback.style.cssText = `
-      position: fixed;
-      background: #69db7c;
-      color: white;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 600;
-      pointer-events: none;
-      z-index: 10000;
-      left: ${Math.min(x, window.innerWidth - 150)}px;
-      top: ${Math.max(y - 50, 10)}px;
-      opacity: 0;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    `;
-    document.body.appendChild(feedback);
-    
-    requestAnimationFrame(() => {
-      feedback.style.opacity = '1';
-      feedback.style.transform = 'translateY(-5px)';
-    });
-    
-    setTimeout(() => {
-      feedback.style.opacity = '0';
-      setTimeout(() => feedback.remove(), 300);
-    }, 1500);
-  }
+      elements.reviewContent.innerHTML = storedHTML;
 
-  function detectHeading(selection) {
-    const node = selection.anchorNode;
-    if (!node) return;
-    
-    let element = node.nodeType === 3 ? node.parentElement : node;
-    let detected = false;
-    
-    while (element && element !== elements.reviewContent) {
-      const text = element.textContent.trim();
-      const tagName = element.tagName.toLowerCase();
-      
-      if (tagName.match(/^h[1-6]$/) || 
-          (text.length > 0 && text.length < 100 && 
-           (element.style.fontWeight === 'bold' || 
-            tagName === 'b' || 
-            tagName === 'strong' ||
-            element.classList.contains('font-bold')))) {
-        elements.detectedHeading.value = text.substring(0, 100);
-        detected = true;
-        break;
-      }
-      
-      if (text.length > 3 && text.length < 80 && 
-          text === text.toUpperCase() && 
-          text.split(' ').length <= 6) {
-        elements.detectedHeading.value = text;
-        detected = true;
-        break;
-      }
-      
-      element = element.parentElement;
-    }
-    
-    if (!detected) {
-      const words = elements.selectedText.value.split(/\s+/).slice(0, 5).join(' ');
-      elements.detectedHeading.value = words.length > 50 ? words.substring(0, 50) + "..." : words;
-    }
-  }
+      highlightCounter =
+        elements.reviewContent.querySelectorAll(".highlighted").length;
 
-  window.setHeading = (heading) => {
-    elements.detectedHeading.value = heading;
-    const btn = event.target;
-    btn.style.background = "var(--primary)";
-    btn.style.color = "#fff";
-    setTimeout(() => {
-      btn.style.background = "";
-      btn.style.color = "";
-    }, 300);
-  };
+      console.log("✅ Highlights restored");
 
-  // CRITICAL FIX: Multi-element highlight by splitting into text nodes
-  window.applyHighlight = () => {
-    if (isHighlighting) return;
-    
-    const fallbackText = elements.selectedText.value.trim();
-    
-    if (!selectedRange && fallbackText.length < 2) {
-      alert("Please select text from the document first (click and drag to select)");
-      return;
-    }
-    
-    if (fallbackText.length < 2) {
-      alert("Please select at least 2 characters");
-      return;
-    }
-    
-    isHighlighting = true;
-    
-    try {
-      let rangeToUse = selectedRange;
-      
-      // If range is invalid but we have text, try to find it
-      if (!rangeToUse || !isRangeValid(rangeToUse)) {
-        if (fallbackText.length >= 2) {
-          rangeToUse = findTextRange(fallbackText);
-        }
-        
-        if (!rangeToUse) {
-          alert("Selection lost. Please re-select the text.");
-          isHighlighting = false;
-          return;
-        }
-      }
-      
-      // CRITICAL: Get all text nodes in the selection and highlight each
-      const textNodes = getTextNodesInRange(rangeToUse);
-      
-      if (textNodes.length === 0) {
-        alert("Cannot highlight this selection. Try selecting simpler text.");
-        isHighlighting = false;
-        return;
-      }
-      
-      // Highlight each text node individually
-      let appliedCount = 0;
-      textNodes.forEach(nodeInfo => {
-        try {
-          const span = createHighlightSpan();
-          const range = document.createRange();
-          range.setStart(nodeInfo.node, nodeInfo.start);
-          range.setEnd(nodeInfo.node, nodeInfo.end);
-          
-          if (highlightTextNode(range, span)) {
-            appliedCount++;
-          }
-        } catch (e) {
-          console.warn("Failed to highlight text node:", e);
-        }
-      });
-      
-      if (appliedCount === 0) {
-        throw new Error("Could not apply any highlights");
-      }
-      
-      // Clear selection
-      window.getSelection().removeAllRanges();
-      selectedRange = null;
-      elements.selectedText.value = "";
-      highlightCounter += appliedCount;
-      updateStats();
-      persistData();
-      
-      showSuccessFeedback();
-      
     } catch (e) {
-      console.error("Highlight error:", e);
-      alert("Unable to highlight this selection. Try selecting text within a single paragraph, or select smaller portions.");
-    } finally {
-      isHighlighting = false;
-    }
-  };
-
-  // NEW: Get all text nodes within a range with their start/end offsets
-  function getTextNodesInRange(range) {
-    const textNodes = [];
-    const commonAncestor = range.commonAncestorContainer;
-    
-    // If it's a single text node
-    if (commonAncestor.nodeType === 3) {
-      const text = commonAncestor.textContent;
-      const start = range.startOffset;
-      const end = Math.min(range.endOffset, text.length);
-      
-      if (end > start) {
-        textNodes.push({
-          node: commonAncestor,
-          start: start,
-          end: end
-        });
-      }
-      return textNodes;
-    }
-    
-    // For multi-node selections, walk the tree
-    const treeWalker = document.createTreeWalker(
-      commonAncestor,
-      NodeFilter.SHOW_TEXT,
-      null,
-      false
-    );
-    
-    let node;
-    let startFound = false;
-    
-    while (node = treeWalker.nextNode()) {
-      // Check if this node is within the range
-      if (!range.intersectsNode(node)) continue;
-      
-      let start = 0;
-      let end = node.textContent.length;
-      
-      // Adjust start for the first node
-      if (!startFound && node === range.startContainer) {
-        start = range.startOffset;
-        startFound = true;
-      }
-      
-      // Adjust end for the last node
-      if (node === range.endContainer) {
-        end = range.endOffset;
-      }
-      
-      // Only add if there's actual content to highlight
-      if (end > start && node.textContent.substring(start, end).trim().length > 0) {
-        textNodes.push({
-          node: node,
-          start: start,
-          end: end
-        });
-      }
-      
-      // Stop if we've reached the end
-      if (node === range.endContainer) break;
-    }
-    
-    return textNodes;
-  }
-
-  // NEW: Create a fresh highlight span
-  function createHighlightSpan() {
-    const span = document.createElement("span");
-    span.className = "highlighted";
-    span.style.backgroundColor = selectedColor;
-    span.style.transition = "all 0.3s ease";
-    span.style.padding = "2px 4px";
-    span.style.borderRadius = "3px";
-    span.style.cursor = "pointer";
-    span.style.display = "inline";
-    span.title = "Click to remove (eraser mode)";
-    span.dataset.highlightId = `hl_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    return span;
-  }
-
-  // NEW: Highlight a specific text node range
-  function highlightTextNode(range, span) {
-    try {
-      // Try surroundContents first (cleanest)
-      if (range.canSurroundContents()) {
-        range.surroundContents(span);
-        return true;
-      }
-    } catch (e) {
-      // Fall back to manual split
-    }
-    
-    try {
-      const textNode = range.startContainer;
-      if (textNode.nodeType !== 3) return false;
-      
-      const text = textNode.textContent;
-      const start = range.startOffset;
-      const end = range.endOffset;
-      
-      const before = text.substring(0, start);
-      const selected = text.substring(start, end);
-      const after = text.substring(end);
-      
-      const parent = textNode.parentNode;
-      
-      // Insert before text
-      if (before) {
-        parent.insertBefore(document.createTextNode(before), textNode);
-      }
-      
-      // Insert highlighted span
-      span.textContent = selected;
-      parent.insertBefore(span, textNode);
-      
-      // Insert after text
-      if (after) {
-        parent.insertBefore(document.createTextNode(after), textNode);
-      }
-      
-      // Remove original
-      parent.removeChild(textNode);
-      
-      return true;
-    } catch (e) {
-      console.error("Text node highlight failed:", e);
-      return false;
+      console.error("Restore error:", e);
     }
   }
 
-  // NEW: Find text range by searching
-  function findTextRange(text) {
-    const walker = document.createTreeWalker(
-      elements.reviewContent,
-      NodeFilter.SHOW_TEXT,
-      null,
-      false
-    );
-    
-    let node;
-    while (node = walker.nextNode()) {
-      const index = node.textContent.indexOf(text);
-      if (index !== -1) {
-        const range = document.createRange();
-        range.setStart(node, index);
-        range.setEnd(node, index + text.length);
-        return range;
-      }
-    }
-    return null;
-  }
+  // ---------------------------
+  // INITIALIZE TAGS
+  // ---------------------------
+  function initializeTags() {
 
-  function isRangeValid(range) {
-    try {
-      if (!range) return false;
-      const container = range.commonAncestorContainer;
-      return elements.reviewContent.contains(container);
-    } catch (e) {
-      return false;
-    }
-  }
-
-  function showSuccessFeedback() {
-    const btn = document.querySelector('[onclick="applyHighlight()"]');
-    if (!btn) return;
-    
-    const originalHTML = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-check me-2"></i>Highlighted!';
-    btn.style.background = "#69db7c";
-    btn.style.color = "#fff";
-    
-    setTimeout(() => {
-      btn.innerHTML = originalHTML;
-      btn.style.background = "";
-      btn.style.color = "";
-    }, 1200);
-  }
-
-  // Eraser mode
-  window.toggleEraser = () => {
-    eraser = !eraser;
-    
-    if (elements.eraserBtn) {
-      elements.eraserBtn.classList.toggle("btn-warning", !eraser);
-      elements.eraserBtn.classList.toggle("btn-danger", eraser);
-      elements.eraserBtn.innerHTML = eraser ? 
-        '<i class="fas fa-eraser me-1"></i>ON' : 
-        '<i class="fas fa-eraser"></i>';
-    }
-    
-    elements.reviewContent.style.cursor = eraser ? "not-allowed" : "text";
-    elements.reviewContent.classList.toggle("eraser-active", eraser);
-  };
-
-  // FIXED: Eraser click handling
-  elements.reviewContent.addEventListener("click", (e) => {
-    if (!eraser) return;
-    
-    const target = e.target.closest('.highlighted');
-    if (!target) return;
-    
-    e.preventDefault();
-    e.stopPropagation();
-    
-    target.style.opacity = "0";
-    target.style.transform = "scale(0.9)";
-    
-    setTimeout(() => {
-      const parent = target.parentNode;
-      if (!parent) return;
-      
-      const fragment = document.createDocumentFragment();
-      while (target.firstChild) {
-        fragment.appendChild(target.firstChild);
-      }
-      
-      parent.replaceChild(fragment, target);
-      
-      highlightCounter = Math.max(0, highlightCounter - 1);
-      updateStats();
-      persistData();
-    }, 200);
-  });
-
-  // Clear all highlights
-  window.clearAllHighlights = () => {
-    if (!confirm("Remove all highlights? This cannot be undone.")) return;
-    
-    const highlights = elements.reviewContent.querySelectorAll(".highlighted");
-    highlights.forEach(h => {
-      const parent = h.parentNode;
-      if (!parent) return;
-      
-      const fragment = document.createDocumentFragment();
-      while (h.firstChild) {
-        fragment.appendChild(h.firstChild);
-      }
-      parent.replaceChild(fragment, h);
-    });
-    
-    highlightCounter = 0;
-    updateStats();
-    persistData();
-  };
-
-  // Zoom controls
-  window.zoomIn = () => {
-    zoom = Math.min(zoom + 0.1, 2.5);
-    applyZoom();
-  };
-  
-  window.zoomOut = () => {
-    zoom = Math.max(zoom - 0.1, 0.4);
-    applyZoom();
-  };
-
-  function applyZoom() {
-    if (elements.reviewWrapper) {
-      elements.reviewWrapper.style.transform = `scale(${zoom})`;
-      elements.reviewWrapper.style.transformOrigin = "top left";
-    }
-  }
-
-  // Update statistics
-  function updateStats() {
-    if (elements.highlightCount) {
-      elements.highlightCount.textContent = highlightCounter;
-    }
-    if (elements.remarkCount) {
-      elements.remarkCount.textContent = tags.length;
-    }
-  }
-
-  // Tag management
-  window.saveTag = () => {
-    const heading = elements.detectedHeading.value.trim();
-    const remark = elements.remarkText.value.trim();
-    
-    if (!heading) {
-      alert("Please select or enter a heading");
-      return;
-    }
-    if (!remark) {
-      alert("Please enter a remark");
-      return;
-    }
-    if (remark.length < 5) {
-      alert("Remark must be at least 5 characters");
-      return;
-    }
-
-    const exactDup = tags.findIndex(t => t.heading === heading && t.remark === remark);
-    if (exactDup !== -1) {
-      alert("This exact remark already exists");
-      return;
-    }
-
-    const existingIndex = tags.findIndex(t => t.heading === heading);
-    if (existingIndex !== -1) {
-      if (!confirm(`A remark for "${heading.substring(0, 30)}..." already exists. Replace it?`)) {
-        return;
-      }
-      tags.splice(existingIndex, 1);
-    }
-
-    tags.push({
-      heading: heading,
-      remark: remark,
-      color: selectedColor,
-      timestamp: new Date().toISOString()
-    });
-
-    elements.detectedHeading.value = "";
-    elements.remarkText.value = "";
-    elements.selectedText.value = "";
-    elements.charCount.textContent = "0";
-    
-    renderTags();
-    updateStats();
-    persistData();
-    
-    const btn = event.target;
-    const originalHTML = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-check me-2"></i>Saved!';
-    btn.style.background = "#69db7c";
-    setTimeout(() => {
-      btn.innerHTML = originalHTML;
-      btn.style.background = "";
-    }, 1000);
-  };
-
-  function renderTags() {
-    if (!elements.savedTags) return;
-    
-    if (tags.length === 0) {
-      elements.savedTags.innerHTML = '<small class="text-muted">No remarks added yet. Select text and add remarks.</small>';
-      return;
-    }
-
-    elements.savedTags.innerHTML = tags.map((t, i) => `
-      <div class="tag-item" style="border-left-color: ${t.color}; animation: fadeIn 0.3s ease ${i * 0.05}s both;">
-        <button class="btn btn-sm btn-outline-danger float-end py-0 px-2" 
-                onclick="deleteTag(${i})" title="Remove remark">
-          <i class="fas fa-times"></i>
-        </button>
-        <b>${escapeHtml(t.heading)}</b>
-        <span>${escapeHtml(t.remark)}</span>
-        <small class="text-muted">
-          <i class="fas fa-clock me-1"></i>${formatTime(t.timestamp)}
-        </small>
-      </div>
-    `).join('');
-  }
-
-  function formatTime(timestamp) {
-    if (!timestamp) return "Just now";
-    const date = new Date(timestamp);
-    return date.toLocaleString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  }
-
-  function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
-  window.deleteTag = (index) => {
-    if (confirm("Remove this remark?")) {
-      tags.splice(index, 1);
-      renderTags();
-      updateStats();
-      persistData();
-    }
-  };
-
-  // Storage
-  function persistData() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        tags: tags,
-        content: elements.reviewContent.innerHTML,
-        teamName: "{{ team_name|escapejs }}",
-        timestamp: new Date().toISOString(),
-        version: "2.3"
-      }));
-    } catch (e) {
-      console.error("Storage error:", e);
-      if (e.name === 'QuotaExceededError') {
-        alert("Storage full. Please send remarks to clear space.");
-      }
-    }
-  }
-
-  function restoreData() {
     tags = DB_SAVED_REMARKS.map(r => ({
       heading: r.heading,
       remark: r.remark,
       color: r.color,
-      timestamp: r.created_at || new Date().toISOString()
+      timestamp: r.created_at || new Date().toISOString(),
+      fromDB: true
     }));
-    
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try {
-        const data = JSON.parse(raw);
-        const currentTeam = "{{ team_name|escapejs }}";
-        
-        if (data.teamName === currentTeam && data.tags && data.tags.length > 0) {
-          const age = Date.now() - new Date(data.timestamp).getTime();
-          const hoursOld = age / (1000 * 60 * 60);
-          
-          if (hoursOld < 24 && data.content) {
-            if (confirm(`You have ${data.tags.length} unsaved remark(s) from earlier. Load them?`)) {
-              const localHeadings = new Set(data.tags.map(t => t.heading));
-              tags = tags.filter(t => !localHeadings.has(t.heading));
-              tags = [...tags, ...data.tags];
-              
-              if (data.content) elements.reviewContent.innerHTML = data.content;
-            }
-          }
-        }
-      } catch (e) {
-        console.error("Restore error:", e);
-      }
-    }
-    
-    highlightCounter = elements.reviewContent.querySelectorAll(".highlighted").length;
+
     renderTags();
-    updateStats();
+
+    highlightCounter =
+      elements.reviewContent.querySelectorAll(".highlighted").length;
   }
 
-  // Apply DB highlights
-  function applyDBHighlights() {
-    if (!DB_SAVED_REMARKS || DB_SAVED_REMARKS.length === 0) return;
-    
-    let html = elements.reviewContent.innerHTML;
-    let applied = 0;
-    const processed = new Set();
-    
-    DB_SAVED_REMARKS.forEach(r => {
-      if (!r.heading || r.heading.length < 3) return;
-      if (processed.has(r.heading)) return;
-      
-      const safe = r.heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const regex = new RegExp(`(${safe})(?![^<]*>)`, "gi");
-      
-      const alreadyHighlighted = html.includes(`data-heading="${escapeHtml(r.heading)}"`);
-      
-      if (!alreadyHighlighted) {
-        const before = html;
-        html = html.replace(regex, (match) => {
-          return `<span class="highlighted" style="background-color:${r.color};" data-heading="${escapeHtml(r.heading)}" title="${escapeHtml(r.remark)}">${match}</span>`;
-        });
-        
-        if (html !== before) {
-          applied++;
-          processed.add(r.heading);
-        }
-      }
+  // ---------------------------
+  // COLOR SELECT
+  // ---------------------------
+  document.querySelectorAll(".color-btn").forEach(btn => {
+
+    btn.addEventListener("click", () => {
+
+      document.querySelectorAll(".color-btn")
+        .forEach(b => b.classList.remove("active"));
+
+      btn.classList.add("active");
+
+      selectedColor = btn.dataset.color;
+
     });
-    
-    if (applied > 0) {
-      elements.reviewContent.innerHTML = html;
-      highlightCounter = elements.reviewContent.querySelectorAll(".highlighted").length;
+
+  });
+
+  // ---------------------------
+  // TEXT SELECTION
+  // ---------------------------
+  elements.reviewContent.addEventListener("mouseup", handleTextSelection);
+
+  function handleTextSelection() {
+
+    if (eraser || isHighlighting) return;
+
+    const sel = window.getSelection();
+
+    if (!sel || sel.isCollapsed) {
+      selectedRange = null;
+      return;
     }
+
+    const text = sel.toString().trim();
+
+    if (text.length < 2) return;
+
+    selectedRange = sel.getRangeAt(0).cloneRange();
+
+    elements.selectedText.value = text;
+
+    detectHeading(sel);
   }
 
-  // Send to backend
-  window.sendRemarksToStudent = () => {
-    if (sending) return;
-    if (tags.length === 0) {
-      alert("No remarks to send. Please add some remarks first.");
-      return;
-    }
-    
-    const unsaved = tags.filter(t => !t.id);
-    if (unsaved.length === 0) {
-      alert("All remarks are already saved.");
-      return;
-    }
-    
-    if (!confirm(`Send ${unsaved.length} new remark(s) to student?`)) return;
-    
-    sending = true;
-    elements.sendBtn.disabled = true;
-    elements.sendBtn.innerHTML = '<span class="loading-spinner me-2"></span>Sending...';
+  // ---------------------------
+  // HEADING DETECTION
+  // ---------------------------
+  function detectHeading(selection) {
 
-    fetch("{% url 'zero_review' %}", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": "{{ csrf_token }}"
-      },
-      body: JSON.stringify({ remarks: tags })
-    })
-    .then(async r => {
-      if (!r.ok) {
-        const text = await r.text();
-        throw new Error(`HTTP ${r.status}: ${text}`);
+    const node = selection.anchorNode;
+
+    let element = node.nodeType === 3
+      ? node.parentElement
+      : node;
+
+    while (element && element !== elements.reviewContent) {
+
+      const tag = element.tagName.toLowerCase();
+
+      if (tag.match(/^h[1-6]$/)) {
+
+        elements.detectedHeading.value =
+          element.textContent.substring(0,100);
+
+        return;
       }
-      return r.json();
-    })
-    .then(d => {
-      sending = false;
-      elements.sendBtn.disabled = false;
-      elements.sendBtn.innerHTML = '<i class="fa fa-paper-plane me-2"></i>Send to Student';
-      
-      if (d.status === "success") {
-        alert(`✅ Success!\n${d.inserted || 0} new remarks added\n${d.updated || 0} remarks updated`);
-        tags = [];
-        renderTags();
-        updateStats();
-        localStorage.removeItem(STORAGE_KEY);
-        window.location.reload();
-      } else {
-        alert("❌ Failed: " + (d.message || "Unknown server error"));
-      }
-    })
-    .catch(err => {
-      sending = false;
-      elements.sendBtn.disabled = false;
-      elements.sendBtn.innerHTML = '<i class="fa fa-paper-plane me-2"></i>Send to Student';
-      console.error("Send error:", err);
-      alert("❌ Error: " + err.message);
-    });
+
+      element = element.parentElement;
+    }
+
+    elements.detectedHeading.value =
+      elements.selectedText.value.substring(0,50);
+  }
+
+  // ---------------------------
+  // APPLY HIGHLIGHT
+  // ---------------------------
+  window.applyHighlight = () => {
+
+    if (!selectedRange) {
+      alert("Select text first");
+      return;
+    }
+
+    try {
+
+      const span = document.createElement("span");
+
+      span.className = "highlighted";
+
+      span.style.background = selectedColor;
+
+      span.style.padding = "2px 4px";
+
+      span.style.borderRadius = "3px";
+
+      selectedRange.surroundContents(span);
+
+      window.getSelection().removeAllRanges();
+
+      highlightCounter++;
+
+      updateStats();
+
+      saveHighlights();
+
+    } catch (err) {
+
+      console.error("Highlight failed:", err);
+
+      alert("Highlight failed");
+
+    }
   };
 
-  // Keyboard shortcuts
-  document.addEventListener("keydown", (e) => {
-    if (!elements.splitView.classList.contains("active")) return;
-    
-    if (e.ctrlKey || e.metaKey) {
-      switch(e.key) {
-        case '=':
-        case '+':
-          e.preventDefault();
-          zoomIn();
-          break;
-        case '-':
-          e.preventDefault();
-          zoomOut();
-          break;
-        case 's':
-          e.preventDefault();
-          saveTag();
-          break;
-        case 'e':
-          e.preventDefault();
-          toggleEraser();
-          break;
-      }
+  // ---------------------------
+  // ERASER
+  // ---------------------------
+  window.toggleEraser = () => {
+
+    eraser = !eraser;
+
+    elements.reviewContent.style.cursor =
+      eraser ? "not-allowed" : "text";
+
+  };
+
+  elements.reviewContent.addEventListener("click", (e) => {
+
+    if (!eraser) return;
+
+    const target = e.target.closest(".highlighted");
+
+    if (!target) return;
+
+    const parent = target.parentNode;
+
+    while (target.firstChild) {
+
+      parent.insertBefore(target.firstChild, target);
+
     }
-    if (e.key === "Escape") {
-      closeViewer();
-    }
+
+    parent.removeChild(target);
+
+    highlightCounter--;
+
+    updateStats();
+
+    saveHighlights();
+
   });
 
-  // Warn before leaving
-  window.addEventListener("beforeunload", (e) => {
-    if (tags.length > 0 && !sending) {
-      e.preventDefault();
-      e.returnValue = "You have unsaved remarks. Are you sure you want to leave?";
+  // ---------------------------
+  // CLEAR ALL
+  // ---------------------------
+  window.clearAllHighlights = () => {
+
+    if (!confirm("Remove all highlights?")) return;
+
+    document.querySelectorAll(".highlighted").forEach(h => {
+
+      const parent = h.parentNode;
+
+      while (h.firstChild) {
+
+        parent.insertBefore(h.firstChild, h);
+
+      }
+
+      parent.removeChild(h);
+
+    });
+
+    highlightCounter = 0;
+
+    updateStats();
+
+    saveHighlights();
+
+  };
+
+  // ---------------------------
+  // STATS
+  // ---------------------------
+  function updateStats() {
+
+    if (elements.highlightCount)
+      elements.highlightCount.textContent = highlightCounter;
+
+    if (elements.remarkCount)
+      elements.remarkCount.textContent = tags.length;
+
+  }
+
+  // ---------------------------
+  // SAVE REMARK
+  // ---------------------------
+  window.saveTag = () => {
+
+    const heading = elements.detectedHeading.value.trim();
+    const remark = elements.remarkText.value.trim();
+
+    if (!heading || !remark) {
+      alert("Enter heading and remark");
+      return;
     }
-  });
+
+    tags.push({
+      heading,
+      remark,
+      color: selectedColor,
+      timestamp: new Date().toISOString(),
+      fromDB: false
+    });
+
+    elements.remarkText.value = "";
+
+    renderTags();
+
+    updateStats();
+  };
+
+  // ---------------------------
+  // TAG RENDER
+  // ---------------------------
+  function renderTags() {
+
+    if (tags.length === 0) {
+
+      elements.savedTags.innerHTML =
+        '<small>No remarks</small>';
+
+      return;
+    }
+
+    elements.savedTags.innerHTML = tags.map((t,i)=>`
+
+      <div style="border-left:4px solid ${t.color};
+      padding:8px;margin:5px 0;background:#f8f9fa">
+
+      <b>${escapeHtml(t.heading)}</b><br>
+
+      <small>${escapeHtml(t.remark)}</small>
+
+      </div>
+
+    `).join("");
+
+  }
+
+  function escapeHtml(text) {
+
+    const div = document.createElement("div");
+
+    div.textContent = text;
+
+    return div.innerHTML;
+
+  }
 
 });
 </script>
+
 </body>
 </html>
