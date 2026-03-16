@@ -221,6 +221,7 @@ class AnnouncementStatus(models.Model):
         return f"{self.receiver_name} → {self.announcement.title}"
     
 class ProjectFile(models.Model):
+
     team_name = models.CharField(max_length=200)  # just team name, no FK
     review_type = models.CharField(max_length=20)  # e.g., "zero"
     file_type = models.CharField(max_length=20)    # e.g., "ppt", "pdf", "abstract"
@@ -229,3 +230,23 @@ class ProjectFile(models.Model):
 
     def __str__(self):
         return f"{self.team_name} - {self.review_type} - {self.file_type}"
+    
+class ProjectRemarks(models.Model):
+    team_name = models.CharField(max_length=200)
+    review_type = models.CharField(max_length=20)      # "zero", "mid", "final"
+    file_type = models.CharField(max_length=20)        # "abstract", "ppt", "report"
+    mentor_name = models.CharField(max_length=100)     # who annotated
+    cloudinary_url = models.URLField()                  # annotated PDF URL
+    original_file = models.ForeignKey(                 # link to source file
+        ProjectFile, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+
+    def __str__(self):
+        return f"{self.team_name} - {self.review_type} - {self.mentor_name}"

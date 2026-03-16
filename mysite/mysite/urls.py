@@ -2,7 +2,7 @@
 URL configuration for mysite project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.0/topics/http/urls/
+    https://docs.djangoproject.com/en/5.0/topics/http/urls/ 
 """
 
 from django.contrib import admin
@@ -14,7 +14,9 @@ from allocation.views import (
     team_list, save_evaluation, clean_text, zero_stu, one_stu, two_stu, three_stu,
     approve_team, modify_team, zero_ma1, download_docx, download_pdf, one_ma,two_ma,three_ma,upload_csv,
     approve_team, modify_team, zero_ma1, download_docx, download_pdf, one_ma,two_ma,three_ma,
-    save_evaluation_review1,save_evaluation_review2,save_evaluation_review3, serve_pdf, save_zeroth_remark, acknowledge_announcement,serve_temp_html,student_result_view,mentor_result_view
+    save_evaluation_review1,save_evaluation_review2,save_evaluation_review3, serve_pdf, save_zeroth_remark, acknowledge_announcement,serve_temp_html,student_result_view,mentor_result_view,
+    # 🔥 NEW: Import highlight views
+    save_highlighted_html, get_highlighted_document
 )
 
 # ✅ Import for serving media files
@@ -59,6 +61,11 @@ urlpatterns = [
     path("mentor/one-review/mark-allocate/<str:team_name>/", one_ma, name="one_ma"),
     path("mentor/two-review/mark-allocate/<str:team_name>/", two_ma, name="two_ma"),
     path("mentor/three-review/mark-allocate/<str:team_name>/", three_ma, name="three_ma"),
+    
+    # 🔥 NEW: Highlight API endpoints (generic for all document types)
+    path("api/save-highlighted-html/", save_highlighted_html, name="save_highlighted_html"),
+    path("api/get-highlighted-doc/", get_highlighted_document, name="get_highlighted_document"),
+
     # ---------------- Student Reviews ----------------
     path("student/zero-review/", zero_stu, name="zero_stu"),
     path("student/zero-review/file-upload/", zero_ma1, name="zero_ma1"),
@@ -76,6 +83,7 @@ urlpatterns = [
     path('download/<str:team_name>/docx/', download_docx, name='download_docx'),
     path('download/<str:team_name>/pdf/', download_pdf, name='download_pdf'),
     path('mentor/pdf/<str:team_name>/<str:pdf_type>/', serve_pdf, name='serve_pdf'),
+    
     # ---------------- CSV Upload ----------------
     path("coordinator/upload-csv/", upload_csv, name="upload_csv"),
 
