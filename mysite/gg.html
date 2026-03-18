@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Coordinator Hub - Dashboard</title>
+  
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#3730A3">
+  <link rel="apple-touch-icon" href="https://res.cloudinary.com/dmwwhifs8/image/upload/v1771318324/WhatsApp_Image_2026-02-17_at_2.18.34_PM_dpur0m.jpg">
+
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -49,7 +54,7 @@
     .sidebar-nav .nav-item.active { background: linear-gradient(90deg, var(--primary), var(--accent)); color: var(--text-dark); font-weight: 600; }
 
     /* Main Content */
-    .main-content { flex-grow: 1; padding: 30px; background: var(--background); display: flex; flex-direction: column; transition: background 0.3s, color 0.3s; }
+    .main-content { flex-grow: 1; padding: 30px; background: var(--background); display: flex; flex-direction: column; transition: background 0.3s, color 0.3s; overflow-y: auto; }
     .main-content.dark-mode { background: #111827; color: #f1f5f9; }
 
     .top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 35px; flex-wrap: wrap; gap:10px; }
@@ -85,118 +90,70 @@
     .footer { text-align: center; padding: 12px; font-size: 0.85rem; color: var(--text-dark); margin-top: 15px; border-top: 1px solid #ddd; }
     body.dark-mode .footer { color: #f1f5f9; border-top: 1px solid #444; }
 
-    /* Search box with right icon */
-    .search-wrapper {
-      position: relative;
-      display: inline-block;
-      margin-left: 15px;
-    }
+    /* Search box */
+    .search-wrapper { position: relative; display: inline-block; margin-left: 15px; }
+    #team-search { padding: 8px 40px 8px 12px; border-radius: 25px; border: 1px solid #ccc; outline: none; transition: all 0.3s ease; width: 220px; }
+    .search-wrapper .search-icon { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; background-color: #A78BFA; color: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; pointer-events: none; }
 
-    #team-search {
-      padding: 8px 40px 8px 12px; /* padding-right for icon */
-      border-radius: 25px;
-      border: 1px solid #ccc;
-      outline: none;
-      transition: all 0.3s ease;
-      width: 220px;
-    }
-
-    #team-search:focus {
-      border-color: #A78BFA;
-      box-shadow: 0 0 8px rgba(167,139,250,0.5);
-      background-color: #fff;
-    }
-
-    .search-wrapper .search-icon {
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 28px;
-      height: 28px;
-      background-color: #A78BFA;
-      color: #fff;
-      border-radius: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 14px;
-      pointer-events: none;
-      transition: all 0.3s;
-    }
-
-    #team-search:focus + .search-icon {
-      background-color: #7c3aed;
-      transform: translateY(-50%) scale(1.1);
-    }
-
-    body.dark-mode #team-search {
-      background-color: #1f2937;
-      color: #f1f5f9;
-      border-color: #555;
-    }
-
-    body.dark-mode #team-search:focus {
-      background-color: #111827;
-      border-color: #A78BFA;
-      box-shadow: 0 0 8px rgba(167,139,250,0.5);
-    }
-
-    body.dark-mode .search-wrapper .search-icon {
-      color: #fff;
-      background-color: #A78BFA;
+    /* --- MOBILE RESPONSIVE UPDATES --- */
+    @media (max-width: 768px) {
+      .dashboard-wrapper { flex-direction: column; height: 100vh; width: 100%; border-radius: 0; }
+      .sidebar { width: 100%; padding: 10px; flex-direction: row; border-bottom: 1px solid rgba(255,255,255,0.1); }
+      .sidebar-header { display: none; }
+      .sidebar-nav { flex-direction: row; gap: 5px; overflow-x: auto; white-space: nowrap; }
+      .nav-item { padding: 8px 15px; margin-bottom: 0; font-size: 0.75rem; flex-shrink: 0; }
+      .nav-item i { margin-right: 5px; font-size: 1rem; }
+      .main-content { padding: 15px; }
+      .welcome-text { font-size: 1.1rem; }
+      #team-search { width: 150px; }
+      .content-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
   <div class="dashboard-wrapper">
-    <!-- Sidebar -->
     <div class="sidebar">
       <div class="sidebar-header">
         <h4><i class="fas fa-user-tie me-2"></i> Coordinator Hub</h4>
       </div>
       <nav class="sidebar-nav">
         <a href="#" class="nav-item active"><i class="fas fa-users"></i> Teams</a>
-        <a href="#" class="nav-item"><i class="fas fa-chalkboard-teacher"></i> Mentor Allocation</a>
-        <a href="#" class="nav-item"><i class="fas fa-book"></i> Assign Class</a>
-        <a href="#" class="nav-item"><i class="fas fa-user-friends"></i> Guide Allocation</a>
+        <a href="#" class="nav-item"><i class="fas fa-chalkboard-teacher"></i> Mentors</a>
+        <a href="#" class="nav-item"><i class="fas fa-book"></i> Classes</a>
+        <a href="#" class="nav-item"><i class="fas fa-user-friends"></i> Guides</a>
         <a href="#" class="nav-item"><i class="fas fa-cogs"></i> Settings</a>
       </nav>
     </div>
 
-    <!-- Main Content -->
     <div class="main-content">
       <div class="top-header">
         <div class="d-flex align-items-center gap-2">
           <div class="profile-avatar">C</div>
-          <span class="welcome-text">Welcome, Coordinator Alex!</span>
+          <span class="welcome-text">Hi, Alex!</span>
 
-          <!-- Search box with icon on right -->
           <div class="search-wrapper">
-            <input type="text" id="team-search" placeholder="Search Teams...">
+            <input type="text" id="team-search" placeholder="Search...">
             <i class="fas fa-magnifying-glass search-icon"></i>
           </div>
-
-          <div id="clock" style="font-weight:600; font-size:1.1rem;"></div>
         </div>
 
         <div class="header-actions">
+          <div id="clock" class="d-none d-md-block" style="font-weight:600; margin-right: 10px;"></div>
           <button id="theme-toggle" title="Toggle Dark Mode">🌙</button>
 
           <div class="dropdown">
-            <button class="notif-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <button class="notif-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
               <i class="fas fa-bell"></i>
               <span class="notif-count">3</span>
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" href="#">Team A submitted report</a></li>
-              <li><a class="dropdown-item" href="#">New meeting scheduled</a></li>
-              <li><a class="dropdown-item" href="#">Task deadline tomorrow</a></li>
+              <li><a class="dropdown-item" href="#">Team A update</a></li>
+              <li><a class="dropdown-item" href="#">Meeting at 3 PM</a></li>
             </ul>
           </div>
 
           <div class="dropdown">
-            <button class="more-options-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <button class="more-options-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
               <i class="fas fa-ellipsis-h"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
@@ -210,47 +167,56 @@
         <div class="main-card gradient-purple">
           <i class="fas fa-users"></i>
           <h6>Teams</h6>
-          <p>Manage and monitor all student teams.</p>
-          <a href="{% url 'coordinator_teams' %}" class="glass-button">View</a>
+          <p>Monitor student progress.</p>
+          <a href="{% url 'coordinator_teams' %}" class="glass-button">View All</a>
         </div>
         <div class="main-card gradient-dark">
           <i class="fas fa-chalkboard-teacher"></i>
           <h6>Mentor Allocation</h6>
-          <p>Assign and track mentor allocations.</p>
+          <p>Assign project mentors.</p>
           <a href="{% url 'coordinator_allocation' %}" class="glass-button">Manage</a>
         </div>
         <div class="main-card gradient-purple">
           <i class="fas fa-book"></i>
           <h6>Assign Class</h6>
-          <p>Allocate a class to yourself for coordination.</p>
+          <p>Set coordination area.</p>
           <a href="{% url 'coordinator_assign_class' %}" class="glass-button">Assign</a>
         </div>
         <div class="main-card gradient-dark">
           <i class="fas fa-user-friends"></i>
           <h6>Guide Allocation</h6>
-          <p>Assign two teams per guide. <br><small>⚠ Teams must share the same domain.</small></p>
+          <p>Link teams to guides.</p>
           <a href="{% url 'coordinator_assign_guide' %}" class="glass-button">Allocate</a>
         </div>
 
         <div class="widget">
-          <i class="fas fa-tasks" style="font-size:2rem; margin-bottom:10px;"></i>
-          <p class="mb-0">Pending Tasks</p>
+          <i class="fas fa-tasks" style="font-size:1.5rem; margin-bottom:5px;"></i>
+          <p class="mb-0">Tasks</p>
           <h6>12</h6>
         </div>
 
         <div class="widget">
-          <i class="fas fa-calendar-alt" style="font-size:2rem; margin-bottom:10px;"></i>
-          <p class="mb-0">Next Deadline:</p>
+          <i class="fas fa-calendar-alt" style="font-size:1.5rem; margin-bottom:5px;"></i>
+          <p class="mb-0">Deadline</p>
           <h6>Oct 30</h6>
         </div>
       </div>
 
-      <div class="footer">© 2025 Your College Name. All Rights Reserved.</div>
+      <div class="footer">© 2026 Coordinator Hub. Built for Mobile.</div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
   <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/static/service-worker.js')
+          .then(reg => console.log('Service Worker Registered'))
+          .catch(err => console.log('Service Worker Failed', err));
+      });
+    }
+
     const body = document.body;
     const mainContent = document.querySelector('.main-content');
     const themeBtn = document.getElementById('theme-toggle');
@@ -263,7 +229,8 @@
 
     setInterval(() => {
       const now = new Date();
-      document.getElementById('clock').innerText = now.toLocaleTimeString();
+      const clockEl = document.getElementById('clock');
+      if(clockEl) clockEl.innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     }, 1000);
   </script>
 </body>
