@@ -279,6 +279,17 @@ body{
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* 🔥 ADDED: Stats counter styles */
+.stats-counter {
+  font-size: 12px;
+  color: #666;
+  margin-left: 5px;
+}
+
+.text-danger {
+  color: #dc3545 !important;
+}
 </style>
 </head>
 
@@ -401,7 +412,7 @@ body{
 
   <!-- Remark Text -->
   <div class="mb-3">
-    <label class="form-label"><i class="fas fa-edit me-1"></i>Remark</label>
+    <label class="form-label"><i class="fas fa-edit me-1"></i>Remark <span id="charCount" class="stats-counter">0</span>/500</label>
     <textarea id="remarkText" class="form-control form-control-sm" rows="3" placeholder="Enter your remark here..."></textarea>
   </div>
 
@@ -412,12 +423,19 @@ body{
   <hr class="my-3">
 
   <!-- Saved Remarks -->
-  <h6><i class="fas fa-list me-2"></i>Saved Remarks (<span id="remarkCount">0</span>)</h6>
+  <h6><i class="fas fa-list me-2"></i>Saved Remarks <span id="remarkCount" class="stats-counter">0</span></h6>
   <div id="savedTags" class="mt-2">
     <small class="text-muted">No remarks added yet</small>
   </div>
 
   <hr class="my-3">
+
+  <!-- Highlights Counter -->
+  <div class="mb-2">
+    <small class="text-muted">
+      <i class="fas fa-highlighter me-1"></i>Highlights: <span id="highlightCount">0</span>
+    </small>
+  </div>
 
   <!-- Send Button -->
   <button class="glass-btn w-100" onclick="sendRemarksToStudent()" id="sendBtn">
@@ -448,12 +466,24 @@ document.addEventListener("DOMContentLoaded", () => {
   let selectedRange = null;
   let selectedColor = "#ffe066";
   let tags = [];
+  let deletedHeadings = [];
   let zoom = 1;
   let eraser = false;
   let sending = false;
+  let highlightCounter = 0;
+  let isHighlighting = false;
 
-  const STORAGE_KEY = "zero_base_annotations_v2";
+  const STORAGE_KEY = "zero_base_highlights_v1";
+  const DELETED_HIGHLIGHTS_KEY = "zero_base_deleted_highlights_v1";
   
+  // 🔥 Document info for Cloudinary save - PDF TYPE
+  const DOC_INFO = {
+    type: "pdf",
+    filename: "{{ team_name|escapejs }}_Report",
+    teamName: "{{ team_name|escapejs }}"
+  };
+  
+  // 🔥 FIXED: Removed headingContainer, added proper element references
   const elements = {
     splitView: document.getElementById("splitView"),
     openBtn: document.getElementById("openReviewBtn"),
@@ -464,26 +494,200 @@ document.addEventListener("DOMContentLoaded", () => {
     remarkText: document.getElementById("remarkText"),
     savedTags: document.getElementById("savedTags"),
     remarkCount: document.getElementById("remarkCount"),
+    highlightCount: document.getElementById("highlightCount"),
     eraserBtn: document.getElementById("eraserBtn"),
-    sendBtn: document.getElementById("sendBtn")
+    sendBtn: document.getElementById("sendBtn"),
+    charCount: document.getElementById("charCount")
   };
 
-  // Initialize
+  // 🔥 Initialize on page load
+  if (elements.reviewContent) {
+    console.log("Initializing zero base system...");
+    console.log("DB_SAVED_REMARKS count:", DB_SAVED_REMARKS.length);
+    setTimeout(() => {
+      initializeSystem();
+    }, 800);
+  }
+
+  function initializeSystem() {
+    // 🔥 Load remarks from DB
+    tags = DB_SAVED_REMARKS.map(r => ({
+      heading: r.heading,
+      remark: r.remark,
+      color: r.color,
+      timestamp: r.created_at || new Date().toISOString(),
+      fromDB: true
+    }));
+    
+    console.log("Loaded tags from DB:", tags.length);
+    
+    // 🔥 Restore any unsaved local changes
+    restoreLocalData();
+    
+    // 🔥 Render tags immediately
+    renderTags();
+    updateStats();
+    
+    // Restore highlights from localStorage
+    restoreHighlightsFromStorage();
+    
+    // Filter out deleted highlights before applying DB highlights
+    const deletedHighlights = getDeletedHighlights();
+    const filteredDBRemarks = DB_SAVED_REMARKS.filter(r => 
+      !deletedHighlights.some(dh => dh.heading === r.heading && dh.remark === r.remark)
+    );
+    
+    // Apply highlights from filtered DB remarks
+    applyDBHighlights(filteredDBRemarks);
+    
+    // Normalize any existing highlights after PDF conversion
+    normalizeHighlights();
+    
+    updateStats();
+    
+    console.log("Initialization complete. Total tags:", tags.length);
+  }
+
+  // 🔥 Restore local unsaved data
+  function restoreLocalData() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      console.log("No local data to restore");
+      return;
+    }
+    
+    try {
+      const data = JSON.parse(raw);
+      const currentTeam = "{{ team_name|escapejs }}";
+      
+      // Only restore if same team and recent (< 24 hours)
+      if (data.teamName === currentTeam && data.tags && data.tags.length > 0) {
+        const age = Date.now() - new Date(data.timestamp).getTime();
+        const hoursOld = age / (1000 * 60 * 60);
+        
+        if (hoursOld < 24) {
+          // Merge DB and local, local takes precedence for same headings
+          const localHeadings = new Set(data.tags.map(t => t.heading));
+          tags = tags.filter(t => !localHeadings.has(t.heading));
+          tags = [...tags, ...data.tags];
+          console.log("✅ Restored unsaved tags from localStorage:", data.tags.length);
+        } else {
+          console.log("Local data too old (>24h), clearing");
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      }
+    } catch (e) {
+      console.error("Restore local data error:", e);
+    }
+  }
+
+  // Get deleted highlights from localStorage
+  function getDeletedHighlights() {
+    try {
+      const stored = localStorage.getItem(DELETED_HIGHLIGHTS_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      console.error("Failed to get deleted highlights:", e);
+      return [];
+    }
+  }
+
+  // Save deleted highlight to localStorage
+  function saveDeletedHighlight(heading, remark, text) {
+    try {
+      const deleted = getDeletedHighlights();
+      deleted.push({
+        heading: heading,
+        remark: remark,
+        text: text,
+        timestamp: new Date().toISOString(),
+        teamName: "{{ team_name|escapejs }}"
+      });
+      localStorage.setItem(DELETED_HIGHLIGHTS_KEY, JSON.stringify(deleted));
+      console.log("✅ Saved deleted highlight:", text.substring(0, 50));
+    } catch (e) {
+      console.error("Failed to save deleted highlight:", e);
+    }
+  }
+
+  // Restore highlights from localStorage
+  function restoreHighlightsFromStorage() {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) return;
+      
+      const data = JSON.parse(stored);
+      const currentTeam = "{{ team_name|escapejs }}";
+      
+      if (data.teamName === currentTeam && data.htmlContent) {
+        const age = Date.now() - new Date(data.timestamp).getTime();
+        const hoursOld = age / (1000 * 60 * 60);
+        
+        if (hoursOld < 24) {
+          elements.reviewContent.innerHTML = data.htmlContent;
+          console.log("✅ Restored highlights from localStorage");
+        }
+      }
+    } catch (e) {
+      console.error("Failed to restore highlights:", e);
+    }
+  }
+
+  // Save highlights to localStorage - TEMPORARY ONLY
+  function saveHighlightsToStorage() {
+    try {
+      const data = {
+        teamName: "{{ team_name|escapejs }}",
+        htmlContent: elements.reviewContent.innerHTML,
+        tags: tags.filter(t => !t.fromDB),
+        timestamp: new Date().toISOString()
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      console.log("✅ Saved to localStorage:", data.tags.length, "unsaved tags");
+    } catch (e) {
+      console.error("Failed to save to localStorage:", e);
+    }
+  }
+
   if (elements.openBtn) {
     elements.openBtn.addEventListener("click", openViewer);
   }
 
+  // 🔥 FIXED: Character counter with proper element check
+  if (elements.remarkText && elements.charCount) {
+    elements.remarkText.addEventListener("input", () => {
+      const len = elements.remarkText.value.length;
+      elements.charCount.textContent = len;
+      if (len > 500) {
+        elements.charCount.classList.add("text-danger");
+        elements.remarkText.value = elements.remarkText.value.substring(0, 500);
+      } else {
+        elements.charCount.classList.remove("text-danger");
+      }
+    });
+  }
+
   function openViewer() {
     elements.splitView.classList.add("active");
-    restoreData();
-    setTimeout(applyDBHighlights, 100);
+    updateStats();
+    setTimeout(() => {
+      const deletedHighlights = getDeletedHighlights();
+      const filteredDBRemarks = DB_SAVED_REMARKS.filter(r => 
+        !deletedHighlights.some(dh => dh.heading === r.heading && dh.remark === r.remark)
+      );
+      applyDBHighlights(filteredDBRemarks);
+      normalizeHighlights();
+      updateStats();
+    }, 300);
   }
 
   window.closeViewer = () => {
+    if (tags.some(t => !t.fromDB)) {
+      if (!confirm("You have unsaved remarks. Close anyway?")) return;
+    }
     elements.splitView.classList.remove("active");
   };
 
-  // Color picker
   document.querySelectorAll(".color-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".color-btn").forEach(b => b.classList.remove("active"));
@@ -492,168 +696,630 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Text selection
-  elements.reviewContent.addEventListener("mouseup", () => {
-    if (eraser) return;
-    const sel = window.getSelection();
-    if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) {
-      selectedRange = sel.getRangeAt(0);
-      elements.selectedText.value = sel.toString().trim();
-      // Auto-detect heading from context
-      detectHeading(sel);
-    }
-  });
+  elements.reviewContent.addEventListener("mouseup", handleTextSelection);
+  elements.reviewContent.addEventListener("keyup", handleTextSelection);
+  
+  function handleTextSelection(e) {
+    if (eraser || isHighlighting) return;
+    
+    setTimeout(() => {
+      const sel = window.getSelection();
+      
+      if (!sel || sel.isCollapsed) {
+        selectedRange = null;
+        return;
+      }
+      
+      const selectedText = sel.toString().trim();
+      if (selectedText.length < 2) {
+        selectedRange = null;
+        return;
+      }
+      
+      try {
+        const range = sel.getRangeAt(0);
+        
+        if (!elements.reviewContent.contains(range.commonAncestorContainer)) {
+          selectedRange = null;
+          return;
+        }
+        
+        selectedRange = range.cloneRange();
+        elements.selectedText.value = selectedText;
+        
+        detectHeading(sel);
+        updateStats();
+        
+        showSelectionFeedback(e.clientX || window.innerWidth/2, e.clientY || window.innerHeight/2);
+        
+      } catch (err) {
+        console.error("Selection error:", err);
+        selectedRange = null;
+      }
+    }, 50);
+  }
+
+  function showSelectionFeedback(x, y) {
+    const existing = document.querySelector('.selection-feedback');
+    if (existing) existing.remove();
+    
+    const feedback = document.createElement('div');
+    feedback.className = 'selection-feedback';
+    feedback.textContent = `✓ Selected ${elements.selectedText.value.length} chars`;
+    feedback.style.cssText = `
+      position: fixed;
+      background: #69db7c;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      pointer-events: none;
+      z-index: 10000;
+      left: ${Math.min(x, window.innerWidth - 150)}px;
+      top: ${Math.max(y - 50, 10)}px;
+      opacity: 0;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+    document.body.appendChild(feedback);
+    
+    requestAnimationFrame(() => {
+      feedback.style.opacity = '1';
+      feedback.style.transform = 'translateY(-5px)';
+    });
+    
+    setTimeout(() => {
+      feedback.style.opacity = '0';
+      setTimeout(() => feedback.remove(), 300);
+    }, 1500);
+  }
 
   function detectHeading(selection) {
-    // Try to find nearest heading
     const node = selection.anchorNode;
     if (!node) return;
     
     let element = node.nodeType === 3 ? node.parentElement : node;
+    let detected = false;
+    
     while (element && element !== elements.reviewContent) {
       const text = element.textContent.trim();
-      if (text.length > 0 && text.length < 100 && 
-          (element.tagName.match(/^H[1-6]$/i) || 
-           text.split(' ').length <= 6)) {
+      const tagName = element.tagName.toLowerCase();
+      
+      if (tagName.match(/^h[1-6]$/) || 
+          (text.length > 0 && text.length < 100 && 
+           (element.style.fontWeight === 'bold' || 
+            tagName === 'b' || 
+            tagName === 'strong' ||
+            element.classList.contains('font-bold')))) {
         elements.detectedHeading.value = text.substring(0, 100);
-        return;
+        detected = true;
+        break;
       }
+      
+      if (text.length > 3 && text.length < 80 && 
+          text === text.toUpperCase() && 
+          text.split(' ').length <= 6) {
+        elements.detectedHeading.value = text;
+        detected = true;
+        break;
+      }
+      
       element = element.parentElement;
+    }
+    
+    if (!detected) {
+      const words = elements.selectedText.value.split(/\s+/).slice(0, 5).join(' ');
+      elements.detectedHeading.value = words.length > 50 ? words.substring(0, 50) + "..." : words;
     }
   }
 
   window.setHeading = (heading) => {
     elements.detectedHeading.value = heading;
+    const btn = event.target;
+    btn.style.background = "var(--primary)";
+    btn.style.color = "#fff";
+    setTimeout(() => {
+      btn.style.background = "";
+      btn.style.color = "";
+    }, 300);
   };
 
-  // Highlight
   window.applyHighlight = () => {
-    if (!selectedRange) {
-      alert("Please select text from the document first");
+    if (isHighlighting) return;
+    
+    const fallbackText = elements.selectedText.value.trim();
+    
+    if (!selectedRange && fallbackText.length < 2) {
+      alert("Please select text from the document first (click and drag to select)");
       return;
     }
+    
+    if (fallbackText.length < 2) {
+      alert("Please select at least 2 characters");
+      return;
+    }
+    
+    isHighlighting = true;
+    
     try {
-      const span = document.createElement("span");
-      span.className = "highlighted";
-      span.style.backgroundColor = selectedColor;
-      span.title = "Click to remove";
+      let rangeToUse = selectedRange;
       
-      const contents = selectedRange.extractContents();
-      if (!contents.textContent.trim()) {
-        alert("Please select valid text");
+      if (!rangeToUse || !isRangeValid(rangeToUse)) {
+        if (fallbackText.length >= 2) {
+          rangeToUse = findTextRange(fallbackText);
+        }
+        
+        if (!rangeToUse) {
+          alert("Selection lost. Please re-select the text.");
+          isHighlighting = false;
+          return;
+        }
+      }
+      
+      const textNodes = getTextNodesInRange(rangeToUse);
+      
+      if (textNodes.length === 0) {
+        alert("Cannot highlight this selection. Try selecting simpler text.");
+        isHighlighting = false;
         return;
       }
       
-      span.appendChild(contents);
-      selectedRange.insertNode(span);
+      let appliedCount = 0;
+      textNodes.forEach(nodeInfo => {
+        try {
+          const span = createHighlightSpan();
+          const range = document.createRange();
+          range.setStart(nodeInfo.node, nodeInfo.start);
+          range.setEnd(nodeInfo.node, nodeInfo.end);
+          
+          if (highlightTextNode(range, span)) {
+            appliedCount++;
+          }
+        } catch (e) {
+          console.warn("Failed to highlight text node:", e);
+        }
+      });
+      
+      if (appliedCount === 0) {
+        throw new Error("Could not apply any highlights");
+      }
       
       window.getSelection().removeAllRanges();
       selectedRange = null;
       elements.selectedText.value = "";
-      persistData();
+      highlightCounter += appliedCount;
+      updateStats();
+      
+      saveHighlightsToStorage();
+      
     } catch (e) {
       console.error("Highlight error:", e);
-      alert("Please select smaller text portion");
+      alert("Unable to highlight this selection. Try selecting text within a single paragraph, or select smaller portions.");
+    } finally {
+      isHighlighting = false;
     }
   };
 
-  // Eraser
+  function getTextNodesInRange(range) {
+    const textNodes = [];
+    const commonAncestor = range.commonAncestorContainer;
+    
+    if (commonAncestor.nodeType === 3) {
+      const text = commonAncestor.textContent;
+      const start = range.startOffset;
+      const end = Math.min(range.endOffset, text.length);
+      
+      if (end > start) {
+        textNodes.push({
+          node: commonAncestor,
+          start: start,
+          end: end
+        });
+      }
+      return textNodes;
+    }
+    
+    const treeWalker = document.createTreeWalker(
+      commonAncestor,
+      NodeFilter.SHOW_TEXT,
+      null,
+      false
+    );
+    
+    let node;
+    let startFound = false;
+    
+    while (node = treeWalker.nextNode()) {
+      if (!range.intersectsNode(node)) continue;
+      
+      let start = 0;
+      let end = node.textContent.length;
+      
+      if (!startFound && node === range.startContainer) {
+        start = range.startOffset;
+        startFound = true;
+      }
+      
+      if (node === range.endContainer) {
+        end = range.endOffset;
+      }
+      
+      if (end > start && node.textContent.substring(start, end).trim().length > 0) {
+        textNodes.push({
+          node: node,
+          start: start,
+          end: end
+        });
+      }
+      
+      if (node === range.endContainer) break;
+    }
+    
+    return textNodes;
+  }
+
+  function createHighlightSpan() {
+    const span = document.createElement("span");
+    span.className = "highlighted";
+    span.style.backgroundColor = selectedColor;
+    span.style.transition = "all 0.3s ease";
+    span.style.padding = "2px 4px";
+    span.style.borderRadius = "3px";
+    span.style.cursor = "pointer";
+    span.style.display = "inline";
+    span.title = "Click to remove (eraser mode)";
+    span.dataset.highlightId = `hl_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    span.dataset.highlightText = elements.selectedText.value.trim();
+    return span;
+  }
+
+  function highlightTextNode(range, span) {
+    try {
+      if (range.canSurroundContents()) {
+        range.surroundContents(span);
+        return true;
+      }
+    } catch (e) {
+      // Fall back to manual split
+    }
+    
+    try {
+      const textNode = range.startContainer;
+      if (textNode.nodeType !== 3) return false;
+      
+      const text = textNode.textContent;
+      const start = range.startOffset;
+      const end = range.endOffset;
+      
+      const before = text.substring(0, start);
+      const selected = text.substring(start, end);
+      const after = text.substring(end);
+      
+      const parent = textNode.parentNode;
+      
+      if (before) {
+        parent.insertBefore(document.createTextNode(before), textNode);
+      }
+      
+      span.textContent = selected;
+      parent.insertBefore(span, textNode);
+      
+      if (after) {
+        parent.insertBefore(document.createTextNode(after), textNode);
+      }
+      
+      parent.removeChild(textNode);
+      
+      return true;
+    } catch (e) {
+      console.error("Text node highlight failed:", e);
+      return false;
+    }
+  }
+
+  function findTextRange(text) {
+    const walker = document.createTreeWalker(
+      elements.reviewContent,
+      NodeFilter.SHOW_TEXT,
+      null,
+      false
+    );
+    
+    let node;
+    while (node = walker.nextNode()) {
+      const index = node.textContent.indexOf(text);
+      if (index !== -1) {
+        const range = document.createRange();
+        range.setStart(node, index);
+        range.setEnd(node, index + text.length);
+        return range;
+      }
+    }
+    return null;
+  }
+
+  function isRangeValid(range) {
+    try {
+      if (!range) return false;
+      const container = range.commonAncestorContainer;
+      return elements.reviewContent.contains(container);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function showSuccessFeedback(message = "Saved!") {
+    const btn = elements.sendBtn;
+    if (!btn) return;
+    
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = `<i class="fas fa-check me-2"></i>${message}`;
+    btn.style.background = "#69db7c";
+    btn.style.color = "#fff";
+    
+    setTimeout(() => {
+      btn.innerHTML = originalHTML;
+      btn.style.background = "";
+      btn.style.color = "";
+    }, 1200);
+  }
+
   window.toggleEraser = () => {
     eraser = !eraser;
-    elements.eraserBtn.classList.toggle("btn-warning", !eraser);
-    elements.eraserBtn.classList.toggle("btn-danger", eraser);
-    elements.eraserBtn.innerHTML = eraser ? 
-      '<i class="fas fa-eraser me-1"></i>ON' : 
-      '<i class="fas fa-eraser"></i>';
+    
+    if (elements.eraserBtn) {
+      elements.eraserBtn.classList.toggle("btn-warning", !eraser);
+      elements.eraserBtn.classList.toggle("btn-danger", eraser);
+      elements.eraserBtn.innerHTML = eraser ? 
+        '<i class="fas fa-eraser me-1"></i>ON' : 
+        '<i class="fas fa-eraser"></i>';
+    }
+    
     elements.reviewContent.style.cursor = eraser ? "not-allowed" : "text";
+    elements.reviewContent.classList.toggle("eraser-active", eraser);
   };
 
   elements.reviewContent.addEventListener("click", (e) => {
     if (!eraser) return;
-    if (e.target.classList.contains("highlighted")) {
-      e.target.replaceWith(...e.target.childNodes);
-      persistData();
+    
+    let target = e.target.closest('.highlighted');
+    
+    if (!target) {
+      let element = e.target;
+      while (element && element !== elements.reviewContent) {
+        const bgColor = element.style.backgroundColor;
+        const hasHighlightColor = bgColor && (
+          bgColor.includes('rgb(255, 224, 102)') ||
+          bgColor.includes('rgb(255, 183, 178)') ||
+          bgColor.includes('rgb(178, 224, 255)') ||
+          bgColor.includes('rgb(178, 255, 178)') ||
+          bgColor.includes('rgb(255, 224, 102)') ||
+          bgColor.includes('yellow') ||
+          bgColor.includes('rgba(255') ||
+          element.dataset.highlightId ||
+          element.className.includes('highlight')
+        );
+        
+        if (hasHighlightColor || element.dataset.highlightId) {
+          target = element;
+          break;
+        }
+        element = element.parentElement;
+      }
     }
+    
+    if (!target) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const removedText = target.textContent;
+    const removedHeading = target.dataset.heading || "";
+    const removedRemark = target.title || "";
+    const highlightId = target.dataset.highlightId || "";
+    
+    console.log("Erasing highlight:", removedText.substring(0, 50));
+    
+    const isDBHighlight = DB_SAVED_REMARKS.some(r => 
+      removedText.includes(r.heading) || r.heading.includes(removedText.substring(0, 20))
+    );
+    
+    if (isDBHighlight) {
+      const matchingRemark = DB_SAVED_REMARKS.find(r => 
+        removedText.includes(r.heading) || r.heading.includes(removedText.substring(0, 20))
+      );
+      if (matchingRemark) {
+        saveDeletedHighlight(matchingRemark.heading, matchingRemark.remark, removedText);
+      }
+    }
+    
+    target.style.opacity = "0";
+    target.style.transform = "scale(0.9)";
+    
+    setTimeout(() => {
+      const parent = target.parentNode;
+      if (!parent) return;
+      
+      const fragment = document.createDocumentFragment();
+      
+      while (target.firstChild) {
+        fragment.appendChild(target.firstChild);
+      }
+      
+      parent.replaceChild(fragment, target);
+      parent.normalize();
+      
+      highlightCounter = Math.max(0, highlightCounter - 1);
+      updateStats();
+      
+      saveHighlightsToStorage();
+    }, 200);
   });
 
-  // Zoom
+  window.clearAllHighlights = () => {
+    if (!confirm("Remove all highlights? This cannot be undone.")) return;
+    
+    const highlights = elements.reviewContent.querySelectorAll(
+      '.highlighted, [data-highlight-id], span[style*="background-color"]'
+    );
+    
+    highlights.forEach(h => {
+      const text = h.textContent;
+      const matchingRemark = DB_SAVED_REMARKS.find(r => 
+        text.includes(r.heading) || r.heading.includes(text.substring(0, 20))
+      );
+      if (matchingRemark) {
+        saveDeletedHighlight(matchingRemark.heading, matchingRemark.remark, text);
+      }
+    });
+    
+    highlights.forEach(h => {
+      const parent = h.parentNode;
+      if (!parent) return;
+      
+      const fragment = document.createDocumentFragment();
+      while (h.firstChild) {
+        fragment.appendChild(h.firstChild);
+      }
+      parent.replaceChild(fragment, h);
+      parent.normalize();
+    });
+    
+    highlightCounter = 0;
+    updateStats();
+    
+    saveHighlightsToStorage();
+  };
+
   window.zoomIn = () => {
-    zoom = Math.min(zoom + 0.1, 2.0);
+    zoom = Math.min(zoom + 0.1, 2.5);
     applyZoom();
   };
   
   window.zoomOut = () => {
-    zoom = Math.max(zoom - 0.1, 0.5);
+    zoom = Math.max(zoom - 0.1, 0.4);
     applyZoom();
   };
 
   function applyZoom() {
-    elements.reviewWrapper.style.transform = `scale(${zoom})`;
+    if (elements.reviewWrapper) {
+      elements.reviewWrapper.style.zoom = zoom;
+      elements.reviewWrapper.style.overflow = "auto";
+      console.log(`Zoom applied: ${zoom}x`);
+    }
   }
 
-  // Tag management
+  function updateStats() {
+    if (elements.highlightCount) {
+      elements.highlightCount.textContent = highlightCounter;
+    }
+    if (elements.remarkCount) {
+      elements.remarkCount.textContent = tags.length;
+    }
+  }
+
   window.saveTag = () => {
     const heading = elements.detectedHeading.value.trim();
     const remark = elements.remarkText.value.trim();
     
-    if (!heading || !remark) {
-      alert("Please provide both heading and remark");
+    if (!heading) {
+      alert("Please select or enter a heading");
+      return;
+    }
+    if (!remark) {
+      alert("Please enter a remark");
+      return;
+    }
+    if (remark.length < 5) {
+      alert("Remark must be at least 5 characters");
       return;
     }
 
-    // Check for duplicates
-    const exists = tags.some(t => t.heading === heading);
-    if (exists) {
-      if (!confirm("A remark for this heading already exists. Replace it?")) {
+    const exactDup = tags.findIndex(t => t.heading === heading && t.remark === remark);
+    if (exactDup !== -1) {
+      alert("This exact remark already exists");
+      return;
+    }
+
+    const existingIndex = tags.findIndex(t => t.heading === heading);
+    if (existingIndex !== -1) {
+      if (!confirm(`A remark for "${heading.substring(0, 30)}..." already exists. Replace it?`)) {
         return;
       }
-      tags = tags.filter(t => t.heading !== heading);
+      if (tags[existingIndex].fromDB) {
+        deletedHeadings.push(tags[existingIndex].heading);
+      }
+      tags.splice(existingIndex, 1);
     }
 
     tags.push({
       heading: heading,
       remark: remark,
       color: selectedColor,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      fromDB: false
     });
 
-    // Clear inputs
     elements.detectedHeading.value = "";
     elements.remarkText.value = "";
     elements.selectedText.value = "";
+    if (elements.charCount) elements.charCount.textContent = "0";
     
     renderTags();
-    persistData();
+    updateStats();
+    
+    saveHighlightsToStorage();
+    
+    const btn = event.target;
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check me-2"></i>Saved!';
+    btn.style.background = "#69db7c";
+    setTimeout(() => {
+      btn.innerHTML = originalHTML;
+      btn.style.background = "";
+    }, 1000);
   };
 
   function renderTags() {
+    if (!elements.savedTags) {
+      console.error("savedTags element not found!");
+      return;
+    }
+    
     if (tags.length === 0) {
-      elements.savedTags.innerHTML = '<small class="text-muted">No remarks added yet</small>';
-      elements.remarkCount.textContent = "0";
+      elements.savedTags.innerHTML = '<small class="text-muted">No remarks added yet. Select text and add remarks.</small>';
       return;
     }
 
     elements.savedTags.innerHTML = tags.map((t, i) => `
-      <div class="tag-item" style="border-left-color: ${t.color}">
-        <b>${escapeHtml(t.heading)}</b>
-        <span>${escapeHtml(t.remark)}</span>
+      <div class="tag-item" style="border-left-color: ${t.color}; animation: fadeIn 0.3s ease ${i * 0.05}s both;">
         <button class="btn btn-sm btn-outline-danger float-end py-0 px-2" 
-                onclick="deleteTag(${i})" title="Remove">
+                onclick="deleteTag(${i})" title="Remove remark">
           <i class="fas fa-times"></i>
         </button>
+        <b>${escapeHtml(t.heading)}</b>
+        <span>${escapeHtml(t.remark)}</span>
+        <small class="text-muted">
+          <i class="fas fa-clock me-1"></i>${formatTime(t.timestamp)}
+          ${t.fromDB ? '<span class="badge bg-success ms-1">saved</span>' : '<span class="badge bg-warning ms-1">unsaved</span>'}
+        </small>
       </div>
     `).join('');
     
-    elements.remarkCount.textContent = tags.length;
+    console.log("Rendered tags:", tags.length, "items");
   }
 
-  window.deleteTag = (index) => {
-    if (confirm("Remove this remark?")) {
-      tags.splice(index, 1);
-      renderTags();
-      persistData();
-    }
-  };
+  function formatTime(timestamp) {
+    if (!timestamp) return "Just now";
+    const date = new Date(timestamp);
+    return date.toLocaleString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  }
 
   function escapeHtml(text) {
     const div = document.createElement('div');
@@ -661,88 +1327,270 @@ document.addEventListener("DOMContentLoaded", () => {
     return div.innerHTML;
   }
 
-  // Storage
-  function persistData() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        tags: tags,
-        content: elements.reviewContent.innerHTML,
-        timestamp: new Date().toISOString()
-      }));
-    } catch (e) {
-      console.error("Storage error:", e);
-    }
-  }
-
-  function restoreData() {
-    // First load from DB
-    tags = DB_SAVED_REMARKS.map(r => ({
-      heading: r.heading,
-      remark: r.remark,
-      color: r.color,
-      timestamp: r.created_at
-    }));
+  window.deleteTag = (index) => {
+    if (!confirm("Remove this remark?")) return;
     
-    // Then check localStorage for unsaved changes
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try {
-        const data = JSON.parse(raw);
-        // Only use localStorage if it's for same content (simple check)
-        if (data.content && data.content.includes(elements.reviewContent.textContent.substring(0, 100))) {
-          if (confirm("You have unsaved remarks from previous session. Load them?")) {
-            tags = data.tags || tags;
-            if (data.content) elements.reviewContent.innerHTML = data.content;
-          }
-        }
-      } catch (e) {
-        console.error("Restore error:", e);
-      }
+    const tagToDelete = tags[index];
+    if (!tagToDelete) return;
+    
+    if (tagToDelete.fromDB) {
+      deletedHeadings.push(tagToDelete.heading);
+      console.log("Marked for deletion:", tagToDelete.heading);
     }
     
+    tags.splice(index, 1);
     renderTags();
-  }
-
-  // Apply DB highlights
-  function applyDBHighlights() {
-    if (!DB_SAVED_REMARKS || DB_SAVED_REMARKS.length === 0) return;
+    updateStats();
     
-    let html = elements.reviewContent.innerHTML;
+    saveHighlightsToStorage();
+  };
+
+  function applyDBHighlights(remarksToApply = DB_SAVED_REMARKS) {
+    if (!remarksToApply || remarksToApply.length === 0) return;
+    
+    console.log(`Applying ${remarksToApply.length} highlights from DB...`);
     let applied = 0;
     
-    DB_SAVED_REMARKS.forEach(r => {
-      if (!r.heading || r.heading.length < 3) return;
-      
-      const safe = r.heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const regex = new RegExp(`(${safe})`, "gi");
-      
-      // Check if already highlighted
-      if (!html.includes(`title="${escapeHtml(r.remark)}"`)) {
-        html = html.replace(regex, (match) => {
-          applied++;
-          return `<span class="highlighted" style="background-color:${r.color};" title="${escapeHtml(r.remark)}">${match}</span>`;
-        });
+    remarksToApply.forEach(r => {
+      if (!r.heading || r.heading.length < 2) return;
+      if (highlightTextInDocument(r.heading, r.color, r.remark)) {
+        applied++;
       }
     });
     
-    if (applied > 0) {
-      elements.reviewContent.innerHTML = html;
-      console.log(`Applied ${applied} highlights`);
+    console.log(`Applied ${applied} highlights`);
+    highlightCounter = elements.reviewContent.querySelectorAll(".highlighted").length;
+  }
+
+  function highlightTextInDocument(searchText, color, remark) {
+    const walker = document.createTreeWalker(
+      elements.reviewContent,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode: function(node) {
+          const parent = node.parentElement;
+          if (parent && (
+            parent.classList.contains('highlighted') ||
+            parent.tagName === 'SCRIPT' ||
+            parent.tagName === 'STYLE'
+          )) {
+            return NodeFilter.FILTER_REJECT;
+          }
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      },
+      false
+    );
+    
+    let node;
+    while (node = walker.nextNode()) {
+      const text = node.textContent;
+      const index = text.indexOf(searchText);
+      
+      if (index !== -1) {
+        try {
+          const range = document.createRange();
+          range.setStart(node, index);
+          range.setEnd(node, index + searchText.length);
+          
+          const span = document.createElement("span");
+          span.className = "highlighted db-highlight";
+          span.style.backgroundColor = color || "#ffe066";
+          span.style.padding = "1px 3px";
+          span.style.borderRadius = "2px";
+          span.dataset.heading = searchText;
+          span.title = remark || "Saved remark";
+          
+          range.surroundContents(span);
+          return true;
+        } catch (e) {
+          return manualHighlight(node, index, searchText.length, color, remark);
+        }
+      }
+    }
+    return false;
+  }
+
+  function manualHighlight(textNode, start, length, color, remark) {
+    try {
+      const text = textNode.textContent;
+      const before = text.substring(0, start);
+      const highlight = text.substring(start, start + length);
+      const after = text.substring(start + length);
+      
+      const parent = textNode.parentNode;
+      if (!parent) return false;
+      
+      const fragment = document.createDocumentFragment();
+      
+      if (before) fragment.appendChild(document.createTextNode(before));
+      
+      const span = document.createElement("span");
+      span.className = "highlighted db-highlight";
+      span.style.backgroundColor = color || "#ffe066";
+      span.style.padding = "1px 3px";
+      span.style.borderRadius = "2px";
+      span.dataset.heading = highlight;
+      span.title = remark || "Saved remark";
+      span.textContent = highlight;
+      
+      fragment.appendChild(span);
+      if (after) fragment.appendChild(document.createTextNode(after));
+      
+      parent.replaceChild(fragment, textNode);
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 
-  // Send to backend
+  function normalizeHighlights() {
+    console.log("Normalizing highlights after potential PDF conversion...");
+    
+    const allSpans = elements.reviewContent.querySelectorAll('span');
+    let normalizedCount = 0;
+    
+    const deletedHighlights = getDeletedHighlights();
+    
+    allSpans.forEach(span => {
+      if (span.classList.contains('highlighted') || span.dataset.highlightId) {
+        const spanText = span.textContent;
+        const wasDeleted = deletedHighlights.some(dh => 
+          spanText.includes(dh.text) || dh.text.includes(spanText.substring(0, 20))
+        );
+        
+        if (wasDeleted) {
+          const parent = span.parentNode;
+          if (parent) {
+            const fragment = document.createDocumentFragment();
+            while (span.firstChild) {
+              fragment.appendChild(span.firstChild);
+            }
+            parent.replaceChild(fragment, span);
+            parent.normalize();
+            console.log("Removed previously deleted highlight:", spanText.substring(0, 50));
+          }
+        }
+        return;
+      }
+      
+      const bgColor = span.style.backgroundColor;
+      const computedStyle = window.getComputedStyle(span);
+      const computedBg = computedStyle.backgroundColor;
+      
+      const isHighlightColor = (color) => {
+        if (!color || color === 'transparent' || color === 'rgba(0, 0, 0, 0)') return false;
+        return color.includes('rgb(255, 224, 102)') ||
+               color.includes('rgb(255, 183, 178)') ||
+               color.includes('rgb(178, 224, 255)') ||
+               color.includes('rgb(178, 255, 178)') ||
+               color.includes('rgb(255, 255, 0)') ||
+               color.includes('rgba(255, 255, 0') ||
+               color.includes('rgba(255, 224, 102') ||
+               color.includes('rgba(255, 183, 178') ||
+               color.includes('rgba(178, 224, 255') ||
+               color.includes('rgba(178, 255, 178');
+      };
+      
+      if (isHighlightColor(bgColor) || isHighlightColor(computedBg)) {
+        const spanText = span.textContent;
+        
+        const wasDeleted = deletedHighlights.some(dh => 
+          spanText.includes(dh.text) || dh.text.includes(spanText.substring(0, 20))
+        );
+        
+        if (wasDeleted) {
+          const parent = span.parentNode;
+          if (parent) {
+            const fragment = document.createDocumentFragment();
+            while (span.firstChild) {
+              fragment.appendChild(span.firstChild);
+            }
+            parent.replaceChild(fragment, span);
+            parent.normalize();
+            console.log("Removed previously deleted highlight from PDF:", spanText.substring(0, 50));
+          }
+        } else {
+          span.classList.add('highlighted');
+          if (!span.dataset.highlightId) {
+            span.dataset.highlightId = `hl_pdf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          }
+          if (!span.dataset.highlightText) {
+            span.dataset.highlightText = spanText;
+          }
+          span.style.cursor = "pointer";
+          span.title = "Click to remove (eraser mode)";
+          normalizedCount++;
+        }
+      }
+    });
+    
+    if (normalizedCount > 0) {
+      console.log(`Normalized ${normalizedCount} highlights from PDF conversion`);
+      highlightCounter = elements.reviewContent.querySelectorAll(".highlighted, [data-highlight-id]").length;
+      updateStats();
+    }
+  }
+
+  function saveHighlightsToCloudinary() {
+    const highlights = [];
+    elements.reviewContent.querySelectorAll(".highlighted").forEach(span => {
+      highlights.push({
+        text: span.dataset.highlightText || span.textContent,
+        color: span.style.backgroundColor
+      });
+    });
+
+    console.log("🔥 Saving to Cloudinary (PDF type)...", highlights.length, "highlights");
+
+    return fetch("/api/save-highlighted-html/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": "{{ csrf_token }}"
+      },
+      body: JSON.stringify({
+        html: elements.reviewContent.innerHTML,
+        highlights: highlights,
+        doc_type: DOC_INFO.type,
+        filename: DOC_INFO.filename,
+        team_name: DOC_INFO.teamName
+      })
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.status === "success") {
+        console.log("✅ Saved to Cloudinary:", d.url);
+        return { success: true, url: d.url };
+      } else {
+        console.error("❌ Cloudinary save failed:", d.message);
+        return { success: false, error: d.message };
+      }
+    })
+    .catch(e => {
+      console.error("❌ Fetch error:", e);
+      return { success: false, error: e.message };
+    });
+  }
+
   window.sendRemarksToStudent = () => {
-    if (sending || tags.length === 0) {
-      alert("No remarks to send");
+    if (sending) return;
+    
+    const unsaved = tags.filter(t => !t.fromDB);
+    const hasDeletions = deletedHeadings.length > 0;
+    
+    if (unsaved.length === 0 && !hasDeletions) {
+      alert("No changes to save.");
       return;
     }
     
-    if (!confirm(`Send ${tags.length} remark(s) to student?`)) return;
+    if (!confirm(`Save ${unsaved.length} new and delete ${deletedHeadings.length} remarks?`)) return;
     
     sending = true;
-    elements.sendBtn.disabled = true;
-    elements.sendBtn.innerHTML = '<span class="loading-spinner me-2"></span>Sending...';
+    if (elements.sendBtn) {
+      elements.sendBtn.disabled = true;
+      elements.sendBtn.innerHTML = '<span class="loading-spinner me-2"></span>Saving...';
+    }
 
     fetch("{% url 'zero_base' %}", {
       method: "POST",
@@ -750,38 +1598,70 @@ document.addEventListener("DOMContentLoaded", () => {
         "Content-Type": "application/json",
         "X-CSRFToken": "{{ csrf_token }}"
       },
-      body: JSON.stringify({ remarks: tags })
+      body: JSON.stringify({ 
+        remarks: unsaved,
+        deleted: deletedHeadings,
+        file_type: "pdf"
+      })
     })
-    .then(r => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    .then(async r => {
+      if (!r.ok) {
+        const text = await r.text();
+        throw new Error(`HTTP ${r.status}: ${text}`);
+      }
       return r.json();
     })
     .then(d => {
-      sending = false;
-      elements.sendBtn.disabled = false;
-      elements.sendBtn.innerHTML = '<i class="fa fa-paper-plane me-2"></i>Send to Student';
-      
       if (d.status === "success") {
-        alert(`✅ Sent ${d.inserted || 0} new, updated ${d.updated || 0} remarks`);
-        tags = [];
-        renderTags();
-        localStorage.removeItem(STORAGE_KEY);
-        // Reload to show updated state
-        window.location.reload();
+        return saveHighlightsToCloudinary().then(cloudResult => {
+          return { ...d, cloudinary: cloudResult };
+        });
       } else {
-        alert("❌ Failed: " + (d.message || "Unknown error"));
+        throw new Error(d.message || "Database save failed");
       }
+    })
+    .then(d => {
+      sending = false;
+      
+      const inserted = d.inserted || 0;
+      const updated = d.updated || 0;
+      const deleted = d.deleted || 0;
+      const totalSaved = inserted + updated;
+      
+      alert(`✅ Success!\n${inserted} new remarks added\n${updated} remarks updated\n${deleted} remarks deleted`);
+      
+      tags.forEach(t => t.fromDB = true);
+      deletedHeadings = [];
+      
+      renderTags();
+      updateStats();
+      
+      localStorage.removeItem(DELETED_HIGHLIGHTS_KEY);
+      localStorage.removeItem(STORAGE_KEY);
+      
+      console.log("✅ Database save:", d);
+      if (d.cloudinary && d.cloudinary.success) {
+        console.log("✅ Cloudinary save:", d.cloudinary.url);
+      }
+      
+      if (elements.sendBtn) {
+        elements.sendBtn.disabled = false;
+        elements.sendBtn.innerHTML = '<i class="fa fa-paper-plane me-2"></i>Send to Student';
+      }
+      
     })
     .catch(err => {
       sending = false;
-      elements.sendBtn.disabled = false;
-      elements.sendBtn.innerHTML = '<i class="fa fa-paper-plane me-2"></i>Send to Student';
-      console.error("Send error:", err);
-      alert("❌ Server error: " + err.message);
+      console.error("Save error:", err);
+      alert("❌ Error: " + err.message);
+      
+      if (elements.sendBtn) {
+        elements.sendBtn.disabled = false;
+        elements.sendBtn.innerHTML = '<i class="fa fa-paper-plane me-2"></i>Send to Student';
+      }
     });
   };
 
-  // Keyboard shortcuts
   document.addEventListener("keydown", (e) => {
     if (!elements.splitView.classList.contains("active")) return;
     
@@ -800,10 +1680,22 @@ document.addEventListener("DOMContentLoaded", () => {
           e.preventDefault();
           saveTag();
           break;
+        case 'e':
+          e.preventDefault();
+          toggleEraser();
+          break;
       }
     }
     if (e.key === "Escape") {
       closeViewer();
+    }
+  });
+
+  window.addEventListener("beforeunload", (e) => {
+    const hasUnsaved = tags.some(t => !t.fromDB) || deletedHeadings.length > 0;
+    if (hasUnsaved && !sending) {
+      e.preventDefault();
+      e.returnValue = "You have unsaved changes. Are you sure you want to leave?";
     }
   });
 

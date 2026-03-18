@@ -484,7 +484,7 @@ body{
 </div>
 
 <script>
-// 🔥 Inject DB remarks for JS access
+  // 🔥 Inject DB remarks for JS access
 const DB_SAVED_REMARKS = [
   {% for r in saved_remarks %}
   {
@@ -501,13 +501,22 @@ document.addEventListener("DOMContentLoaded", () => {
   let selectedRange = null;
   let selectedColor = "#ffe066";
   let tags = [];
+  let deletedHeadings = [];
   let zoom = 1;
   let eraser = false;
   let sending = false;
   let highlightCounter = 0;
   let isHighlighting = false;
 
-  const STORAGE_KEY = "zero_review_annotations_v2";
+  const STORAGE_KEY = "zero_review_highlights_v1";
+  const DELETED_HIGHLIGHTS_KEY = "zero_review_deleted_highlights_v1"; // 🔥 NEW: Track deleted highlights
+  
+  // 🔥 Document info for Cloudinary save
+  const DOC_INFO = {
+    type: "abstract",
+    filename: "{{ team_name|escapejs }}_Abstract",
+    teamName: "{{ team_name|escapejs }}"
+  };
   
   const elements = {
     splitView: document.getElementById("splitView"),
@@ -526,12 +535,118 @@ document.addEventListener("DOMContentLoaded", () => {
     headingContainer: document.getElementById("headingContainer")
   };
 
-  // Initialize
+  // 🔥 Initialize on page load
+  if (elements.reviewContent) {
+    console.log("Initializing zero review system...");
+    setTimeout(() => {
+      initializeSystem();
+    }, 800);
+  }
+
+  function initializeSystem() {
+    // Load remarks from DB
+    tags = DB_SAVED_REMARKS.map(r => ({
+      heading: r.heading,
+      remark: r.remark,
+      color: r.color,
+      timestamp: r.created_at || new Date().toISOString(),
+      fromDB: true
+    }));
+    
+    renderTags();
+    
+    // Restore highlights from localStorage (WORKING)
+    restoreHighlightsFromStorage();
+    
+    // 🔥 NEW: Filter out deleted highlights before applying DB highlights
+    const deletedHighlights = getDeletedHighlights();
+    const filteredDBRemarks = DB_SAVED_REMARKS.filter(r => 
+      !deletedHighlights.some(dh => dh.heading === r.heading && dh.remark === r.remark)
+    );
+    
+    // Apply highlights from filtered DB remarks
+    applyDBHighlights(filteredDBRemarks);
+    
+    // 🔥 NEW: Normalize any existing highlights after PDF conversion
+    normalizeHighlights();
+    
+    updateStats();
+  }
+
+  // 🔥 NEW: Get deleted highlights from localStorage
+  function getDeletedHighlights() {
+    try {
+      const stored = localStorage.getItem(DELETED_HIGHLIGHTS_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      console.error("Failed to get deleted highlights:", e);
+      return [];
+    }
+  }
+
+  // 🔥 NEW: Save deleted highlight to localStorage
+  function saveDeletedHighlight(heading, remark, text) {
+    try {
+      const deleted = getDeletedHighlights();
+      deleted.push({
+        heading: heading,
+        remark: remark,
+        text: text,
+        timestamp: new Date().toISOString(),
+        teamName: "{{ team_name|escapejs }}"
+      });
+      localStorage.setItem(DELETED_HIGHLIGHTS_KEY, JSON.stringify(deleted));
+      console.log("✅ Saved deleted highlight:", text.substring(0, 50));
+    } catch (e) {
+      console.error("Failed to save deleted highlight:", e);
+    }
+  }
+
+  // Restore highlights from localStorage (WORKING METHOD)
+  function restoreHighlightsFromStorage() {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) return;
+      
+      const data = JSON.parse(stored);
+      const currentTeam = "{{ team_name|escapejs }}";
+      
+      if (data.teamName === currentTeam && data.htmlContent) {
+        const age = Date.now() - new Date(data.timestamp).getTime();
+        const hoursOld = age / (1000 * 60 * 60);
+        
+        if (hoursOld < 24) {
+          elements.reviewContent.innerHTML = data.htmlContent;
+          console.log("✅ Restored highlights from localStorage");
+        }
+      }
+    } catch (e) {
+      console.error("Failed to restore highlights:", e);
+    }
+  }
+
+  // Save highlights to localStorage (WORKING METHOD) - TEMPORARY ONLY
+  function saveHighlightsToStorage() {
+    try {
+      const data = {
+        teamName: "{{ team_name|escapejs }}",
+        htmlContent: elements.reviewContent.innerHTML,
+        timestamp: new Date().toISOString()
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      console.log("✅ Saved to localStorage (temporary)");
+    } catch (e) {
+      console.error("Failed to save to localStorage:", e);
+    }
+  }
+
+  // 🔥 REMOVED: saveHighlightsToCloudinary() from individual actions
+  // This will now ONLY be called when "Send to Student" is clicked
+
   if (elements.openBtn) {
     elements.openBtn.addEventListener("click", openViewer);
   }
 
-  // Character counter
   if (elements.remarkText) {
     elements.remarkText.addEventListener("input", () => {
       const len = elements.remarkText.value.length;
@@ -547,12 +662,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function openViewer() {
     elements.splitView.classList.add("active");
-    restoreData();
     updateStats();
     setTimeout(() => {
-      applyDBHighlights();
+      // 🔥 Re-filter DB remarks on open to catch any new deletions
+      const deletedHighlights = getDeletedHighlights();
+      const filteredDBRemarks = DB_SAVED_REMARKS.filter(r => 
+        !deletedHighlights.some(dh => dh.heading === r.heading && dh.remark === r.remark)
+      );
+      applyDBHighlights(filteredDBRemarks);
+      normalizeHighlights(); // 🔥 Normalize on open
       updateStats();
-    }, 100);
+    }, 300);
   }
 
   window.closeViewer = () => {
@@ -562,7 +682,6 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.splitView.classList.remove("active");
   };
 
-  // Color picker
   document.querySelectorAll(".color-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".color-btn").forEach(b => b.classList.remove("active"));
@@ -571,7 +690,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // FIXED: Text selection with proper capture
   elements.reviewContent.addEventListener("mouseup", handleTextSelection);
   elements.reviewContent.addEventListener("keyup", handleTextSelection);
   
@@ -600,7 +718,6 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
         
-        // Store both range and selection object for later
         selectedRange = range.cloneRange();
         elements.selectedText.value = selectedText;
         
@@ -702,7 +819,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 300);
   };
 
-  // CRITICAL FIX: Multi-element highlight by splitting into text nodes
+  // 🔥🔥🔥 WORKING applyHighlight from your version 🔥🔥🔥
   window.applyHighlight = () => {
     if (isHighlighting) return;
     
@@ -723,7 +840,6 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       let rangeToUse = selectedRange;
       
-      // If range is invalid but we have text, try to find it
       if (!rangeToUse || !isRangeValid(rangeToUse)) {
         if (fallbackText.length >= 2) {
           rangeToUse = findTextRange(fallbackText);
@@ -736,7 +852,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
       
-      // CRITICAL: Get all text nodes in the selection and highlight each
       const textNodes = getTextNodesInRange(rangeToUse);
       
       if (textNodes.length === 0) {
@@ -745,7 +860,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       
-      // Highlight each text node individually
       let appliedCount = 0;
       textNodes.forEach(nodeInfo => {
         try {
@@ -766,15 +880,15 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error("Could not apply any highlights");
       }
       
-      // Clear selection
       window.getSelection().removeAllRanges();
       selectedRange = null;
       elements.selectedText.value = "";
       highlightCounter += appliedCount;
       updateStats();
-      persistData();
       
-      showSuccessFeedback();
+      // 🔥 ONLY save to localStorage (temporary), NOT Cloudinary
+      saveHighlightsToStorage();
+      // REMOVED: saveHighlightsToCloudinary() - will only be called on "Send to Student"
       
     } catch (e) {
       console.error("Highlight error:", e);
@@ -784,12 +898,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  // NEW: Get all text nodes within a range with their start/end offsets
   function getTextNodesInRange(range) {
     const textNodes = [];
     const commonAncestor = range.commonAncestorContainer;
     
-    // If it's a single text node
     if (commonAncestor.nodeType === 3) {
       const text = commonAncestor.textContent;
       const start = range.startOffset;
@@ -805,7 +917,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return textNodes;
     }
     
-    // For multi-node selections, walk the tree
     const treeWalker = document.createTreeWalker(
       commonAncestor,
       NodeFilter.SHOW_TEXT,
@@ -817,24 +928,20 @@ document.addEventListener("DOMContentLoaded", () => {
     let startFound = false;
     
     while (node = treeWalker.nextNode()) {
-      // Check if this node is within the range
       if (!range.intersectsNode(node)) continue;
       
       let start = 0;
       let end = node.textContent.length;
       
-      // Adjust start for the first node
       if (!startFound && node === range.startContainer) {
         start = range.startOffset;
         startFound = true;
       }
       
-      // Adjust end for the last node
       if (node === range.endContainer) {
         end = range.endOffset;
       }
       
-      // Only add if there's actual content to highlight
       if (end > start && node.textContent.substring(start, end).trim().length > 0) {
         textNodes.push({
           node: node,
@@ -843,14 +950,12 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
       
-      // Stop if we've reached the end
       if (node === range.endContainer) break;
     }
     
     return textNodes;
   }
 
-  // NEW: Create a fresh highlight span
   function createHighlightSpan() {
     const span = document.createElement("span");
     span.className = "highlighted";
@@ -862,13 +967,12 @@ document.addEventListener("DOMContentLoaded", () => {
     span.style.display = "inline";
     span.title = "Click to remove (eraser mode)";
     span.dataset.highlightId = `hl_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    span.dataset.highlightText = elements.selectedText.value.trim();
     return span;
   }
 
-  // NEW: Highlight a specific text node range
   function highlightTextNode(range, span) {
     try {
-      // Try surroundContents first (cleanest)
       if (range.canSurroundContents()) {
         range.surroundContents(span);
         return true;
@@ -891,21 +995,17 @@ document.addEventListener("DOMContentLoaded", () => {
       
       const parent = textNode.parentNode;
       
-      // Insert before text
       if (before) {
         parent.insertBefore(document.createTextNode(before), textNode);
       }
       
-      // Insert highlighted span
       span.textContent = selected;
       parent.insertBefore(span, textNode);
       
-      // Insert after text
       if (after) {
         parent.insertBefore(document.createTextNode(after), textNode);
       }
       
-      // Remove original
       parent.removeChild(textNode);
       
       return true;
@@ -915,7 +1015,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // NEW: Find text range by searching
   function findTextRange(text) {
     const walker = document.createTreeWalker(
       elements.reviewContent,
@@ -947,12 +1046,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function showSuccessFeedback() {
-    const btn = document.querySelector('[onclick="applyHighlight()"]');
+  // 🔥 MODIFIED: Now targets Send to Student button
+  function showSuccessFeedback(message = "Saved!") {
+    const btn = elements.sendBtn;
     if (!btn) return;
     
     const originalHTML = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-check me-2"></i>Highlighted!';
+    btn.innerHTML = `<i class="fas fa-check me-2"></i>${message}`;
     btn.style.background = "#69db7c";
     btn.style.color = "#fff";
     
@@ -963,7 +1063,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 1200);
   }
 
-  // Eraser mode
   window.toggleEraser = () => {
     eraser = !eraser;
     
@@ -979,15 +1078,66 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.reviewContent.classList.toggle("eraser-active", eraser);
   };
 
-  // FIXED: Eraser click handling
+  // 🔥🔥🔥 FIXED: Robust eraser that handles PDF conversion artifacts 🔥🔥🔥
   elements.reviewContent.addEventListener("click", (e) => {
     if (!eraser) return;
     
-    const target = e.target.closest('.highlighted');
+    // Try multiple selectors to find highlight after PDF conversion
+    let target = e.target.closest('.highlighted');
+    
+    // 🔥 NEW: If no direct match, try finding by background color or data attributes
+    if (!target) {
+      let element = e.target;
+      while (element && element !== elements.reviewContent) {
+        // Check for inline background color style (PDF conversion often preserves this)
+        const bgColor = element.style.backgroundColor;
+        const hasHighlightColor = bgColor && (
+          bgColor.includes('rgb(255, 224, 102)') || // #ffe066
+          bgColor.includes('rgb(255, 183, 178)') || // #ffb7b2
+          bgColor.includes('rgb(178, 224, 255)') || // #b2e0ff
+          bgColor.includes('rgb(178, 255, 178)') || // #b2ffb2
+          bgColor.includes('rgb(255, 224, 102)') || // yellow
+          bgColor.includes('yellow') ||
+          bgColor.includes('rgba(255') ||
+          element.dataset.highlightId ||
+          element.className.includes('highlight')
+        );
+        
+        if (hasHighlightColor || element.dataset.highlightId) {
+          target = element;
+          break;
+        }
+        element = element.parentElement;
+      }
+    }
+    
     if (!target) return;
     
     e.preventDefault();
     e.stopPropagation();
+    
+    // 🔥 NEW: Extract metadata before removal for tracking
+    const removedText = target.textContent;
+    const removedHeading = target.dataset.heading || "";
+    const removedRemark = target.title || "";
+    const highlightId = target.dataset.highlightId || "";
+    
+    console.log("Erasing highlight:", removedText.substring(0, 50));
+    
+    // 🔥 NEW: Check if this is a DB highlight (has heading from DB_SAVED_REMARKS)
+    const isDBHighlight = DB_SAVED_REMARKS.some(r => 
+      removedText.includes(r.heading) || r.heading.includes(removedText.substring(0, 20))
+    );
+    
+    if (isDBHighlight) {
+      // Find the matching DB remark to track deletion
+      const matchingRemark = DB_SAVED_REMARKS.find(r => 
+        removedText.includes(r.heading) || r.heading.includes(removedText.substring(0, 20))
+      );
+      if (matchingRemark) {
+        saveDeletedHighlight(matchingRemark.heading, matchingRemark.remark, removedText);
+      }
+    }
     
     target.style.opacity = "0";
     target.style.transform = "scale(0.9)";
@@ -996,24 +1146,48 @@ document.addEventListener("DOMContentLoaded", () => {
       const parent = target.parentNode;
       if (!parent) return;
       
+      // 🔥 NEW: More robust unwrapping - preserve all child nodes
       const fragment = document.createDocumentFragment();
+      
+      // Move all child nodes (including text and elements) to fragment
       while (target.firstChild) {
         fragment.appendChild(target.firstChild);
       }
       
+      // Replace the highlight span with the content
       parent.replaceChild(fragment, target);
+      
+      // 🔥 NEW: Normalize the parent to merge adjacent text nodes
+      parent.normalize();
       
       highlightCounter = Math.max(0, highlightCounter - 1);
       updateStats();
-      persistData();
+      
+      // 🔥 ONLY save to localStorage (temporary), NOT Cloudinary
+      saveHighlightsToStorage();
+      // REMOVED: saveHighlightsToCloudinary()
     }, 200);
   });
 
-  // Clear all highlights
   window.clearAllHighlights = () => {
     if (!confirm("Remove all highlights? This cannot be undone.")) return;
     
-    const highlights = elements.reviewContent.querySelectorAll(".highlighted");
+    // 🔥 FIXED: More comprehensive selector to catch all highlight variants
+    const highlights = elements.reviewContent.querySelectorAll(
+      '.highlighted, [data-highlight-id], span[style*="background-color"]'
+    );
+    
+    // 🔥 NEW: Track all DB highlights being deleted
+    highlights.forEach(h => {
+      const text = h.textContent;
+      const matchingRemark = DB_SAVED_REMARKS.find(r => 
+        text.includes(r.heading) || r.heading.includes(text.substring(0, 20))
+      );
+      if (matchingRemark) {
+        saveDeletedHighlight(matchingRemark.heading, matchingRemark.remark, text);
+      }
+    });
+    
     highlights.forEach(h => {
       const parent = h.parentNode;
       if (!parent) return;
@@ -1023,14 +1197,18 @@ document.addEventListener("DOMContentLoaded", () => {
         fragment.appendChild(h.firstChild);
       }
       parent.replaceChild(fragment, h);
+      parent.normalize(); // 🔥 Merge text nodes
     });
     
     highlightCounter = 0;
     updateStats();
-    persistData();
+    
+    // 🔥 ONLY save to localStorage (temporary), NOT Cloudinary
+    saveHighlightsToStorage();
+    // REMOVED: saveHighlightsToCloudinary()
   };
 
-  // Zoom controls
+  // 🔥🔥🔥 FIXED ZOOM: Now uses zoom property instead of transform to avoid white screen 🔥🔥🔥
   window.zoomIn = () => {
     zoom = Math.min(zoom + 0.1, 2.5);
     applyZoom();
@@ -1043,12 +1221,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function applyZoom() {
     if (elements.reviewWrapper) {
+      // 🔥 METHOD 1: Use CSS zoom property (better browser support now)
+      // This scales content without affecting layout flow
+      elements.reviewWrapper.style.zoom = zoom;
+      
+      // 🔥 METHOD 2: Alternative using transform with proper overflow handling
+      // Uncomment below if zoom property doesn't work in your browser
+      /*
       elements.reviewWrapper.style.transform = `scale(${zoom})`;
       elements.reviewWrapper.style.transformOrigin = "top left";
+      elements.reviewWrapper.style.width = zoom < 1 ? `${100/zoom}%` : '100%';
+      */
+      
+      // 🔥 Ensure container allows scrolling when zoomed
+      elements.reviewWrapper.style.overflow = "auto";
+      
+      console.log(`Zoom applied: ${zoom}x`);
     }
   }
 
-  // Update statistics
   function updateStats() {
     if (elements.highlightCount) {
       elements.highlightCount.textContent = highlightCounter;
@@ -1058,7 +1249,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Tag management
   window.saveTag = () => {
     const heading = elements.detectedHeading.value.trim();
     const remark = elements.remarkText.value.trim();
@@ -1087,6 +1277,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!confirm(`A remark for "${heading.substring(0, 30)}..." already exists. Replace it?`)) {
         return;
       }
+      if (tags[existingIndex].fromDB) {
+        deletedHeadings.push(tags[existingIndex].heading);
+      }
       tags.splice(existingIndex, 1);
     }
 
@@ -1094,7 +1287,8 @@ document.addEventListener("DOMContentLoaded", () => {
       heading: heading,
       remark: remark,
       color: selectedColor,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      fromDB: false
     });
 
     elements.detectedHeading.value = "";
@@ -1104,7 +1298,6 @@ document.addEventListener("DOMContentLoaded", () => {
     
     renderTags();
     updateStats();
-    persistData();
     
     const btn = event.target;
     const originalHTML = btn.innerHTML;
@@ -1134,6 +1327,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <span>${escapeHtml(t.remark)}</span>
         <small class="text-muted">
           <i class="fas fa-clock me-1"></i>${formatTime(t.timestamp)}
+          ${t.fromDB ? '<span class="badge bg-success ms-1">saved</span>' : '<span class="badge bg-warning ms-1">unsaved</span>'}
         </small>
       </div>
     `).join('');
@@ -1157,133 +1351,293 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   window.deleteTag = (index) => {
-    if (confirm("Remove this remark?")) {
-      tags.splice(index, 1);
-      renderTags();
-      updateStats();
-      persistData();
-    }
-  };
-
-  // Storage
-  function persistData() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        tags: tags,
-        content: elements.reviewContent.innerHTML,
-        teamName: "{{ team_name|escapejs }}",
-        timestamp: new Date().toISOString(),
-        version: "2.3"
-      }));
-    } catch (e) {
-      console.error("Storage error:", e);
-      if (e.name === 'QuotaExceededError') {
-        alert("Storage full. Please send remarks to clear space.");
-      }
-    }
-  }
-
-  function restoreData() {
-    tags = DB_SAVED_REMARKS.map(r => ({
-      heading: r.heading,
-      remark: r.remark,
-      color: r.color,
-      timestamp: r.created_at || new Date().toISOString()
-    }));
+    if (!confirm("Remove this remark?")) return;
     
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try {
-        const data = JSON.parse(raw);
-        const currentTeam = "{{ team_name|escapejs }}";
-        
-        if (data.teamName === currentTeam && data.tags && data.tags.length > 0) {
-          const age = Date.now() - new Date(data.timestamp).getTime();
-          const hoursOld = age / (1000 * 60 * 60);
-          
-          if (hoursOld < 24 && data.content) {
-            if (confirm(`You have ${data.tags.length} unsaved remark(s) from earlier. Load them?`)) {
-              const localHeadings = new Set(data.tags.map(t => t.heading));
-              tags = tags.filter(t => !localHeadings.has(t.heading));
-              tags = [...tags, ...data.tags];
-              
-              if (data.content) elements.reviewContent.innerHTML = data.content;
-            }
-          }
-        }
-      } catch (e) {
-        console.error("Restore error:", e);
-      }
+    const tagToDelete = tags[index];
+    if (!tagToDelete) return;
+    
+    if (tagToDelete.fromDB) {
+      deletedHeadings.push(tagToDelete.heading);
     }
     
-    highlightCounter = elements.reviewContent.querySelectorAll(".highlighted").length;
+    tags.splice(index, 1);
     renderTags();
     updateStats();
+  };
+
+  // 🔥 MODIFIED: Now accepts filtered remarks parameter
+  function applyDBHighlights(remarksToApply = DB_SAVED_REMARKS) {
+    if (!remarksToApply || remarksToApply.length === 0) return;
+    
+    console.log(`Applying ${remarksToApply.length} highlights from DB...`);
+    let applied = 0;
+    
+    remarksToApply.forEach(r => {
+      if (!r.heading || r.heading.length < 2) return;
+      if (highlightTextInDocument(r.heading, r.color, r.remark)) {
+        applied++;
+      }
+    });
+    
+    console.log(`Applied ${applied} highlights`);
+    highlightCounter = elements.reviewContent.querySelectorAll(".highlighted").length;
   }
 
-  // Apply DB highlights
-  function applyDBHighlights() {
-    if (!DB_SAVED_REMARKS || DB_SAVED_REMARKS.length === 0) return;
+  function highlightTextInDocument(searchText, color, remark) {
+    const walker = document.createTreeWalker(
+      elements.reviewContent,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode: function(node) {
+          const parent = node.parentElement;
+          if (parent && (
+            parent.classList.contains('highlighted') ||
+            parent.tagName === 'SCRIPT' ||
+            parent.tagName === 'STYLE'
+          )) {
+            return NodeFilter.FILTER_REJECT;
+          }
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      },
+      false
+    );
     
-    let html = elements.reviewContent.innerHTML;
-    let applied = 0;
-    const processed = new Set();
+    let node;
+    while (node = walker.nextNode()) {
+      const text = node.textContent;
+      const index = text.indexOf(searchText);
+      
+      if (index !== -1) {
+        try {
+          const range = document.createRange();
+          range.setStart(node, index);
+          range.setEnd(node, index + searchText.length);
+          
+          const span = document.createElement("span");
+          span.className = "highlighted db-highlight";
+          span.style.backgroundColor = color || "#ffe066";
+          span.style.padding = "1px 3px";
+          span.style.borderRadius = "2px";
+          span.dataset.heading = searchText;
+          span.title = remark || "Saved remark";
+          
+          range.surroundContents(span);
+          return true;
+        } catch (e) {
+          return manualHighlight(node, index, searchText.length, color, remark);
+        }
+      }
+    }
+    return false;
+  }
+
+  function manualHighlight(textNode, start, length, color, remark) {
+    try {
+      const text = textNode.textContent;
+      const before = text.substring(0, start);
+      const highlight = text.substring(start, start + length);
+      const after = text.substring(start + length);
+      
+      const parent = textNode.parentNode;
+      if (!parent) return false;
+      
+      const fragment = document.createDocumentFragment();
+      
+      if (before) fragment.appendChild(document.createTextNode(before));
+      
+      const span = document.createElement("span");
+      span.className = "highlighted db-highlight";
+      span.style.backgroundColor = color || "#ffe066";
+      span.style.padding = "1px 3px";
+      span.style.borderRadius = "2px";
+      span.dataset.heading = highlight;
+      span.title = remark || "Saved remark";
+      span.textContent = highlight;
+      
+      fragment.appendChild(span);
+      if (after) fragment.appendChild(document.createTextNode(after));
+      
+      parent.replaceChild(fragment, textNode);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // 🔥🔥🔥 NEW: Normalize highlights after PDF conversion 🔥🔥🔥
+  function normalizeHighlights() {
+    console.log("Normalizing highlights after potential PDF conversion...");
     
-    DB_SAVED_REMARKS.forEach(r => {
-      if (!r.heading || r.heading.length < 3) return;
-      if (processed.has(r.heading)) return;
-      
-      const safe = r.heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const regex = new RegExp(`(${safe})(?![^<]*>)`, "gi");
-      
-      const alreadyHighlighted = html.includes(`data-heading="${escapeHtml(r.heading)}"`);
-      
-      if (!alreadyHighlighted) {
-        const before = html;
-        html = html.replace(regex, (match) => {
-          return `<span class="highlighted" style="background-color:${r.color};" data-heading="${escapeHtml(r.heading)}" title="${escapeHtml(r.remark)}">${match}</span>`;
-        });
+    // Find all spans with background colors that might be highlights from PDF
+    const allSpans = elements.reviewContent.querySelectorAll('span');
+    let normalizedCount = 0;
+    
+    // 🔥 NEW: Check against deleted highlights and remove them
+    const deletedHighlights = getDeletedHighlights();
+    
+    allSpans.forEach(span => {
+      // Skip if already properly marked
+      if (span.classList.contains('highlighted') || span.dataset.highlightId) {
+        // 🔥 NEW: Check if this was previously deleted
+        const spanText = span.textContent;
+        const wasDeleted = deletedHighlights.some(dh => 
+          spanText.includes(dh.text) || dh.text.includes(spanText.substring(0, 20))
+        );
         
-        if (html !== before) {
-          applied++;
-          processed.add(r.heading);
+        if (wasDeleted) {
+          // Remove this highlight - it was previously deleted by user
+          const parent = span.parentNode;
+          if (parent) {
+            const fragment = document.createDocumentFragment();
+            while (span.firstChild) {
+              fragment.appendChild(span.firstChild);
+            }
+            parent.replaceChild(fragment, span);
+            parent.normalize();
+            console.log("Removed previously deleted highlight:", spanText.substring(0, 50));
+          }
+        }
+        return;
+      }
+      
+      // Check if this looks like a highlight from PDF conversion
+      const bgColor = span.style.backgroundColor;
+      const computedStyle = window.getComputedStyle(span);
+      const computedBg = computedStyle.backgroundColor;
+      
+      const isHighlightColor = (color) => {
+        if (!color || color === 'transparent' || color === 'rgba(0, 0, 0, 0)') return false;
+        // Check for common highlight colors
+        return color.includes('rgb(255, 224, 102)') || // #ffe066
+               color.includes('rgb(255, 183, 178)') || // #ffb7b2
+               color.includes('rgb(178, 224, 255)') || // #b2e0ff
+               color.includes('rgb(178, 255, 178)') || // #b2ffb2
+               color.includes('rgb(255, 255, 0)') ||   // yellow
+               color.includes('rgba(255, 255, 0') ||
+               color.includes('rgba(255, 224, 102') ||
+               color.includes('rgba(255, 183, 178') ||
+               color.includes('rgba(178, 224, 255') ||
+               color.includes('rgba(178, 255, 178');
+      };
+      
+      if (isHighlightColor(bgColor) || isHighlightColor(computedBg)) {
+        const spanText = span.textContent;
+        
+        // 🔥 NEW: Check if this highlight was previously deleted
+        const wasDeleted = deletedHighlights.some(dh => 
+          spanText.includes(dh.text) || dh.text.includes(spanText.substring(0, 20))
+        );
+        
+        if (wasDeleted) {
+          // Remove this highlight - it was previously deleted by user
+          const parent = span.parentNode;
+          if (parent) {
+            const fragment = document.createDocumentFragment();
+            while (span.firstChild) {
+              fragment.appendChild(span.firstChild);
+            }
+            parent.replaceChild(fragment, span);
+            parent.normalize();
+            console.log("Removed previously deleted highlight from PDF:", spanText.substring(0, 50));
+          }
+        } else {
+          // Add the highlight class and data attributes
+          span.classList.add('highlighted');
+          if (!span.dataset.highlightId) {
+            span.dataset.highlightId = `hl_pdf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          }
+          if (!span.dataset.highlightText) {
+            span.dataset.highlightText = spanText;
+          }
+          span.style.cursor = "pointer";
+          span.title = "Click to remove (eraser mode)";
+          normalizedCount++;
         }
       }
     });
     
-    if (applied > 0) {
-      elements.reviewContent.innerHTML = html;
-      highlightCounter = elements.reviewContent.querySelectorAll(".highlighted").length;
+    if (normalizedCount > 0) {
+      console.log(`Normalized ${normalizedCount} highlights from PDF conversion`);
+      highlightCounter = elements.reviewContent.querySelectorAll(".highlighted, [data-highlight-id]").length;
+      updateStats();
     }
   }
 
-  // Send to backend
-  window.sendRemarksToStudent = () => {
-    if (sending) return;
-    if (tags.length === 0) {
-      alert("No remarks to send. Please add some remarks first.");
-      return;
-    }
-    
-    const unsaved = tags.filter(t => !t.id);
-    if (unsaved.length === 0) {
-      alert("All remarks are already saved.");
-      return;
-    }
-    
-    if (!confirm(`Send ${unsaved.length} new remark(s) to student?`)) return;
-    
-    sending = true;
-    elements.sendBtn.disabled = true;
-    elements.sendBtn.innerHTML = '<span class="loading-spinner me-2"></span>Sending...';
+  // 🔥 NEW: Cloudinary save function - ONLY called by Send to Student
+  function saveHighlightsToCloudinary() {
+    const highlights = [];
+    elements.reviewContent.querySelectorAll(".highlighted").forEach(span => {
+      highlights.push({
+        text: span.dataset.highlightText || span.textContent,
+        color: span.style.backgroundColor
+      });
+    });
 
-    fetch("{% url 'zero_review' %}", {
+    console.log("🔥 Saving to Cloudinary...", highlights.length, "highlights");
+
+    return fetch("/api/save-highlighted-html/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-CSRFToken": "{{ csrf_token }}"
       },
-      body: JSON.stringify({ remarks: tags })
+      body: JSON.stringify({
+        html: elements.reviewContent.innerHTML,
+        highlights: highlights,
+        doc_type: DOC_INFO.type,
+        filename: DOC_INFO.filename,
+        team_name: DOC_INFO.teamName
+      })
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.status === "success") {
+        console.log("✅ Saved to Cloudinary:", d.url);
+        return { success: true, url: d.url };
+      } else {
+        console.error("❌ Cloudinary save failed:", d.message);
+        return { success: false, error: d.message };
+      }
+    })
+    .catch(e => {
+      console.error("❌ Fetch error:", e);
+      return { success: false, error: e.message };
+    });
+  }
+
+  // 🔥 MODIFIED: Send to Student now handles Cloudinary save
+  window.sendRemarksToStudent = () => {
+    if (sending) return;
+    
+    const unsaved = tags.filter(t => !t.fromDB);
+    const hasDeletions = deletedHeadings.length > 0;
+    
+    if (unsaved.length === 0 && !hasDeletions) {
+      alert("No changes to save.");
+      return;
+    }
+    
+    if (!confirm(`Save ${unsaved.length} new and delete ${deletedHeadings.length} remarks?`)) return;
+    
+    sending = true;
+    if (elements.sendBtn) {
+      elements.sendBtn.disabled = true;
+      elements.sendBtn.innerHTML = '<span class="loading-spinner me-2"></span>Saving...';
+    }
+
+    // 🔥 FIRST: Save remarks to database
+    fetch("{% url 'save_zeroth_remark' %}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": "{{ csrf_token }}"
+      },
+      body: JSON.stringify({ 
+        remarks: unsaved,
+        deleted: deletedHeadings,
+        file_type: "abstract"
+      })
     })
     .then(async r => {
       if (!r.ok) {
@@ -1293,31 +1647,63 @@ document.addEventListener("DOMContentLoaded", () => {
       return r.json();
     })
     .then(d => {
-      sending = false;
-      elements.sendBtn.disabled = false;
-      elements.sendBtn.innerHTML = '<i class="fa fa-paper-plane me-2"></i>Send to Student';
-      
       if (d.status === "success") {
-        alert(`✅ Success!\n${d.inserted || 0} new remarks added\n${d.updated || 0} remarks updated`);
-        tags = [];
-        renderTags();
-        updateStats();
-        localStorage.removeItem(STORAGE_KEY);
-        window.location.reload();
+        // 🔥 SECOND: Only after DB save succeeds, save highlights to Cloudinary
+        return saveHighlightsToCloudinary().then(cloudResult => {
+          return { ...d, cloudinary: cloudResult };
+        });
       } else {
-        alert("❌ Failed: " + (d.message || "Unknown server error"));
+        throw new Error(d.message || "Database save failed");
       }
+    })
+    .then(d => {
+      sending = false;
+      
+      // 🔥 Show success feedback on Send to Student button
+      const inserted = d.inserted || 0;
+      const updated = d.updated || 0;
+      const deleted = d.deleted || 0;
+      const totalSaved = inserted + updated;
+      
+      showSuccessFeedback(`Saved: ${totalSaved} remarks`);
+      
+      // Mark all tags as saved
+      tags.forEach(t => t.fromDB = true);
+      deletedHeadings = [];
+      renderTags();
+      
+      // 🔥 NEW: Clear deleted highlights from localStorage since they're now permanently processed
+      localStorage.removeItem(DELETED_HIGHLIGHTS_KEY);
+      
+      // Clear localStorage since everything is now permanently saved
+      localStorage.removeItem(STORAGE_KEY);
+      
+      console.log("✅ Database save:", d);
+      if (d.cloudinary && d.cloudinary.success) {
+        console.log("✅ Cloudinary save:", d.cloudinary.url);
+      }
+      
+      // Reset button after success feedback timeout
+      setTimeout(() => {
+        if (elements.sendBtn) {
+          elements.sendBtn.disabled = false;
+          elements.sendBtn.innerHTML = '<i class="fa fa-paper-plane me-2"></i>Send to Student';
+        }
+      }, 1200);
     })
     .catch(err => {
       sending = false;
-      elements.sendBtn.disabled = false;
-      elements.sendBtn.innerHTML = '<i class="fa fa-paper-plane me-2"></i>Send to Student';
-      console.error("Send error:", err);
+      console.error("Save error:", err);
       alert("❌ Error: " + err.message);
+      
+      // Reset button immediately on error
+      if (elements.sendBtn) {
+        elements.sendBtn.disabled = false;
+        elements.sendBtn.innerHTML = '<i class="fa fa-paper-plane me-2"></i>Send to Student';
+      }
     });
   };
 
-  // Keyboard shortcuts
   document.addEventListener("keydown", (e) => {
     if (!elements.splitView.classList.contains("active")) return;
     
@@ -1347,15 +1733,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Warn before leaving
   window.addEventListener("beforeunload", (e) => {
-    if (tags.length > 0 && !sending) {
+    const hasUnsaved = tags.some(t => !t.fromDB) || deletedHeadings.length > 0;
+    if (hasUnsaved && !sending) {
       e.preventDefault();
-      e.returnValue = "You have unsaved remarks. Are you sure you want to leave?";
+      e.returnValue = "You have unsaved changes. Are you sure you want to leave?";
     }
   });
 
 });
 </script>
+
 </body>
 </html>

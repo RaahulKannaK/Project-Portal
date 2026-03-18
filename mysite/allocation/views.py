@@ -14,7 +14,7 @@ from django.http import FileResponse, Http404
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import Team, ApprovedTeam, ModifyRequest
+from .models import Team, ApprovedTeam, ModifyRequest,ProjectRemarks
 
 
 
@@ -1367,6 +1367,11 @@ from django.db import transaction, IntegrityError
 
 from .models import AllocationResult, ZerothReviewRemark, ProjectFile
 
+from playwright.sync_api import sync_playwright
+import cloudinary
+import cloudinary.uploader
+
+
 # -----------------------------
 # Heading validators
 # -----------------------------
@@ -1401,13 +1406,16 @@ def zero_review(request):
     print("method:", request.method)
 
     # =====================================================
-    # POST → SAVE ZEROTH REVIEW REMARKS
+    # POST → SAVE REMARKS (with deletions)
     # =====================================================
     if request.method == "POST":
         try:
             data = json.loads(request.body)
             remarks = data.get("remarks", [])
+            deleted = data.get("deleted", [])
+            
             print("Incoming remarks:", len(remarks))
+            print("Deleted headings:", len(deleted))
 
             allocation = AllocationResult.objects.filter(
                 mentor_name=mentor_name
@@ -1419,7 +1427,35 @@ def zero_review(request):
             team_name = allocation.team_name
             inserted = 0
             updated = 0
+            deleted_count = 0
 
+            # Handle deletions first
+            if deleted and len(deleted) > 0:
+                for heading in deleted:
+                    heading = heading.strip()
+                    if not heading:
+                        continue
+                    
+                    count, _ = ZerothReviewRemark.objects.filter(
+                        team_name=team_name,
+                        mentor_name=mentor_name,
+                        heading=heading
+                    ).delete()
+                    
+                    if count > 0:
+                        deleted_count += count
+                        print(f"🗑️ Deleted: {heading} ({count} rows)")
+                    else:
+                        count2, _ = ZerothReviewRemark.objects.filter(
+                            team_name=team_name,
+                            mentor_name=mentor_name,
+                            heading__icontains=heading[:50]
+                        ).delete()
+                        if count2 > 0:
+                            deleted_count += count2
+                            print(f"🗑️ Deleted (icontains): {heading[:50]}... ({count2} rows)")
+
+            # Handle upserts
             for r in remarks:
                 heading = (r.get("heading") or "").strip()
                 remark = (r.get("remark") or "").strip()
@@ -1446,11 +1482,14 @@ def zero_review(request):
             return JsonResponse({
                 "status": "success",
                 "inserted": inserted,
-                "updated": updated
+                "updated": updated,
+                "deleted": deleted_count
             })
 
         except Exception as e:
             print("❌ POST ERROR:", e)
+            import traceback
+            traceback.print_exc()
             return JsonResponse({"status": "fail", "message": str(e)}, status=500)
 
     # =====================================================
@@ -1469,7 +1508,7 @@ def zero_review(request):
     print("Team:", team_name)
 
     # =====================================================
-    # 🔥 LOAD SAVED REMARKS
+    # LOAD SAVED REMARKS
     # =====================================================
     saved_remarks = ZerothReviewRemark.objects.filter(
         team_name=team_name,
@@ -1481,66 +1520,99 @@ def zero_review(request):
         print(" ->", r.heading)
 
     # =====================================================
-    # ABSTRACT FILE FROM CLOUDINARY
+    # CHECK FOR REMARKS VERSION FIRST (ProjectRemarks)
     # =====================================================
-    project_file = ProjectFile.objects.filter(
+    remarks_file = ProjectRemarks.objects.filter(
         team_name=team_name,
+        review_type="zero",
         file_type="abstract"
-    ).first()
+    ).order_by('-updated_at').first()
 
-    if not project_file:
-        return render(request, "mentor/review_men/men_doc/zero_paper/zero_review.html", {
-            "zero_review": False
-        })
-
-    cloud_url = project_file.cloudinary_url
-
-    temp_dir = os.path.join(settings.MEDIA_ROOT, "temp_html", folder_name)
-
-    docker_temp_dir = os.path.abspath(temp_dir).replace("\\", "/")
-
-    os.makedirs(temp_dir, exist_ok=True)
-
+    # SINGLE FILE NAME - no _Original or _Remarks suffix
     pdf_name = f"{folder_name}_Abstract.pdf"
     html_name = f"{folder_name}_Abstract.html"
+    
+    temp_dir = os.path.join(settings.MEDIA_ROOT, "temp_html", folder_name)
+    docker_temp_dir = os.path.abspath(temp_dir).replace("\\", "/")
+    os.makedirs(temp_dir, exist_ok=True)
 
     pdf_path = os.path.join(temp_dir, pdf_name)
     html_path = os.path.join(temp_dir, html_name)
 
+    if remarks_file:
+        print(f"✅ Using remarks version: {remarks_file.cloudinary_url}")
+        cloud_url = remarks_file.cloudinary_url
+        has_highlights = True
+        
+        # Delete old original files if remarks exist (cleanup)
+        old_original_pdf = os.path.join(temp_dir, f"{folder_name}_Abstract_Original.pdf")
+        old_original_html = os.path.join(temp_dir, f"{folder_name}_Abstract_Original.html")
+        for old_file in [old_original_pdf, old_original_html]:
+            if os.path.exists(old_file):
+                os.remove(old_file)
+                print(f"🗑️ Cleaned old: {os.path.basename(old_file)}")
+    else:
+        # Fall back to original
+        print("⚠️ No remarks found, using original")
+        project_file = ProjectFile.objects.filter(
+            team_name=team_name,
+            file_type="abstract"
+        ).first()
+
+        if not project_file:
+            return render(request, "mentor/review_men/men_doc/zero_paper/zero_review.html", {
+                "zero_review": False
+            })
+
+        cloud_url = project_file.cloudinary_url
+        has_highlights = False
+
+    print(f"Local files: {pdf_name}, {html_name}")
+
     # =====================================================
-    # DOWNLOAD PDF
+    # DOWNLOAD PDF (always overwrite if different source)
     # =====================================================
-    if not os.path.exists(pdf_path):
+    needs_download = True
+    
+    # Check if existing file matches current source
+    if os.path.exists(pdf_path):
+        # Simple check: compare file sizes or delete and re-download
+        # For now, always re-download to ensure correct version
+        os.remove(pdf_path)
+        print("🗑️ Removed old PDF to re-download")
+    
+    if needs_download:
         try:
             r = requests.get(cloud_url, timeout=20)
             r.raise_for_status()
             with open(pdf_path, "wb") as f:
                 f.write(r.content)
-            print("✔ PDF downloaded")
+            print(f"✅ PDF downloaded: {pdf_name} ({len(r.content)} bytes)")
         except Exception as e:
             print("❌ PDF DOWNLOAD ERROR:", e)
             return render(request, "mentor/review_men/men_doc/zero_paper/zero_review.html")
 
     # =====================================================
-    # PDF → HTML
+    # PDF → HTML (overwrite if exists to ensure fresh conversion)
     # =====================================================
-    if not os.path.exists(html_path):
-        try:
-            subprocess.run(
-                [
-                    "docker", "run", "--rm",
+    if os.path.exists(html_path):
+        os.remove(html_path)
+        print("🗑️ Removed old HTML for fresh conversion")
 
-                    "-v", f"{docker_temp_dir}:/pdf",
-
-                    "pdf2html_local",
-                    pdf_name,
-                    "--dest-dir", "/pdf"
-                ],
-                check=True
-            )
-            print("✔ PDF converted to HTML")
-        except Exception as e:
-            print("❌ PDF→HTML ERROR:", e)
+    try:
+        subprocess.run(
+            [
+                "docker", "run", "--rm",
+                "-v", f"{docker_temp_dir}:/pdf",
+                "pdf2html_local",
+                pdf_name,
+                "--dest-dir", "/pdf"
+            ],
+            check=True
+        )
+        print(f"✅ PDF converted to HTML: {html_name}")
+    except Exception as e:
+        print("❌ PDF→HTML ERROR:", e)
 
     # =====================================================
     # READ HTML CONTENT
@@ -1589,7 +1661,8 @@ def zero_review(request):
             "main_heading": main_heading,
             "sub_headings": sub_headings,
             "html_content": html_content,
-            "saved_remarks": saved_remarks,   # 🔥 IMPORTANT
+            "saved_remarks": saved_remarks,
+            "has_highlights": has_highlights,
             "zero_review": True
         }
     )
@@ -1619,6 +1692,323 @@ def serve_temp_html(request, team, filename):
     )
 
 
+
+import requests as http_requests
+import os
+from django.http import JsonResponse
+from pypdf import PdfReader  # pip install pypdf
+
+def get_pdf_dimensions_from_original(team_name, doc_type):
+    """
+    Extract exact page dimensions from the original PDF file.
+    Returns: (width_in_inches, height_in_inches)
+    """
+    try:
+        folder_name = team_name.replace(" ", "_")
+        temp_dir = os.path.join(settings.MEDIA_ROOT, "temp_html", folder_name)
+        
+        # 🔥 UPDATED: Map doc_type to correct file suffix
+        # doc_type "abstract" -> "Abstract", doc_type "pdf" -> "Report"
+        if doc_type == "abstract":
+            file_suffix = "Abstract"
+        elif doc_type == "pdf":
+            file_suffix = "Report"
+        else:
+            file_suffix = doc_type.capitalize()  # fallback
+        
+        original_pdf_path = os.path.join(temp_dir, f"{folder_name}_{file_suffix}.pdf")
+
+        # Check if original exists locally
+        if not os.path.exists(original_pdf_path):
+            # Try to find the original from ProjectFile
+            project_file = ProjectFile.objects.filter(
+                team_name=team_name,
+                file_type=doc_type  # "abstract" or "pdf"
+            ).first()
+
+            if project_file and project_file.cloudinary_url:
+                # Download original to get dimensions
+                import requests
+                r = requests.get(project_file.cloudinary_url, timeout=20)
+                if r.status_code == 200:
+                    # Save temporarily to read dimensions
+                    temp_pdf = os.path.join(temp_dir, f"temp_original_{doc_type}.pdf")
+                    os.makedirs(temp_dir, exist_ok=True)
+                    with open(temp_pdf, "wb") as f:
+                        f.write(r.content)
+                    original_pdf_path = temp_pdf
+                else:
+                    print(f"❌ Failed to download original {doc_type} PDF: HTTP {r.status_code}")
+                    return None, None
+            else:
+                print(f"❌ No ProjectFile found for {team_name} with type {doc_type}")
+                return None, None
+
+        # Read PDF dimensions using pypdf
+        from pypdf import PdfReader  # or: from PyPDF2 import PdfReader
+        reader = PdfReader(original_pdf_path)
+        if len(reader.pages) == 0:
+            print(f"❌ PDF has no pages: {original_pdf_path}")
+            return None, None
+
+        page = reader.pages[0]
+
+        # Get mediabox (physical page size) in points (1/72 inch)
+        mediabox = page.mediabox
+        width_points = float(mediabox.width)
+        height_points = float(mediabox.height)
+
+        # Convert points to inches (1 point = 1/72 inch)
+        width_inches = width_points / 72.0
+        height_inches = height_points / 72.0
+
+        # Check for rotation - if rotated 90 or 270, swap dimensions
+        rotation = page.get('/Rotate', 0)
+        if rotation in [90, 270, -90, -270]:
+            width_inches, height_inches = height_inches, width_inches
+
+        print(f"📐 Original {doc_type.upper()} PDF dimensions: {width_inches:.2f}in x {height_inches:.2f}in ({width_points:.0f}pt x {height_points:.0f}pt)")
+
+        # Cleanup temp file if created
+        temp_pdf = os.path.join(temp_dir, f"temp_original_{doc_type}.pdf")
+        if os.path.exists(temp_pdf):
+            os.remove(temp_pdf)
+
+        return width_inches, height_inches
+
+    except Exception as e:
+        print(f"⚠️ Could not extract {doc_type} PDF dimensions: {e}")
+        import traceback
+        traceback.print_exc()
+        return None, None
+
+def save_highlighted_html(request):
+    """
+    Save highlighted HTML, convert to PDF using Gotenberg Docker
+    with exact dimensions from original PDF
+    """
+    print("\n🎨 save_highlighted_html CALLED")
+
+    if request.method != "POST":
+        return JsonResponse({"status": "fail", "message": "Invalid request"}, status=400)
+
+    mentor_name = request.session.get("mentor_name")
+    allocation = AllocationResult.objects.filter(mentor_name=mentor_name).first()
+
+    if not allocation:
+        return JsonResponse({"status": "fail", "message": "No allocation"}, status=404)
+
+    team_name = allocation.team_name
+    folder_name = team_name.replace(" ", "_")
+
+    try:
+        data = json.loads(request.body)
+        html_content = data.get("html", "")
+        doc_type = data.get("doc_type", "abstract")  # "abstract" or "pdf"
+        
+        print(f"Saving highlights for: {doc_type}, length: {len(html_content)} chars")
+
+        # Setup paths
+        temp_dir = os.path.join(settings.MEDIA_ROOT, "temp_html", folder_name)
+        os.makedirs(temp_dir, exist_ok=True)
+
+        # 🔥 UPDATED: Dynamic file naming based on doc_type
+        file_suffix = "Abstract" if doc_type == "abstract" else "Report"
+        html_path = os.path.join(temp_dir, f"{folder_name}_{file_suffix}.html")
+        pdf_path = os.path.join(temp_dir, f"{folder_name}_{file_suffix}.pdf")
+
+        # Clean old files
+        for old_file in [html_path, pdf_path]:
+            if os.path.exists(old_file):
+                os.remove(old_file)
+
+        # Save HTML to file
+        with open(html_path, "w", encoding="utf-8") as f:
+            f.write(html_content)
+        
+        print(f"✅ Saved HTML: {html_path}")
+
+        # =====================================================
+        # 🔥 UPDATED: Get exact dimensions from original PDF based on doc_type
+        # =====================================================
+        pdf_width, pdf_height = get_pdf_dimensions_from_original(team_name, doc_type)
+        
+        # Fallback to A4 if extraction failed
+        if pdf_width is None or pdf_height is None:
+            pdf_width, pdf_height = 8.27, 11.69  # A4
+            print(f"⚠️ Using default A4 dimensions: {pdf_width}in x {pdf_height}in")
+
+        # =====================================================
+        # HTML → PDF using Gotenberg with exact dimensions
+        # =====================================================
+        gotenberg_url = "http://localhost:3000/forms/chromium/convert/html"
+        
+        # Check if Gotenberg is running
+        try:
+            health_check = http_requests.get("http://localhost:3000/health", timeout=2)
+            if health_check.status_code != 200:
+                raise Exception("Gotenberg health check failed")
+            print("✅ Gotenberg is running")
+        except Exception as e:
+            print(f"❌ Gotenberg not accessible: {e}")
+            return JsonResponse({
+                "status": "fail",
+                "message": "PDF conversion service not available"
+            }, status=503)
+
+        # Perform conversion with exact PDF dimensions
+        try:
+            # CRITICAL: Gotenberg requires the file to be named 'index.html' in the form
+            files = {
+                'files': ('index.html', html_content.encode('utf-8'), 'text/html')
+            }
+            
+            # Form data with exact dimensions from original PDF
+            form_data = {
+                'paperWidth': str(pdf_width),      # Use extracted width
+                'paperHeight': str(pdf_height),    # Use extracted height
+                'marginTop': '0',
+                'marginBottom': '0',
+                'marginLeft': '0',
+                'marginRight': '0',
+                'printBackground': 'true',
+                'preferCssPageSize': 'false',    # Use our exact dimensions, not CSS
+                'scale': '1.0'
+            }
+            
+            print(f"🔥 Converting with exact dimensions: {pdf_width}in x {pdf_height}in")
+            
+            response = http_requests.post(
+                gotenberg_url,
+                files=files,
+                data=form_data,
+                timeout=60
+            )
+            response.raise_for_status()
+            
+            with open(pdf_path, 'wb') as f:
+                f.write(response.content)
+                
+            print(f"✅ PDF created: {pdf_path} ({len(response.content)} bytes)")
+            
+        except Exception as conv_error:
+            print(f"❌ Conversion failed: {conv_error}")
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({
+                "status": "fail",
+                "message": f"PDF conversion failed: {str(conv_error)}"
+            }, status=500)
+
+        # =====================================================
+        # Upload to Cloudinary
+        # =====================================================
+        if os.path.exists(pdf_path):
+            print("🔥 Uploading to Cloudinary...")
+            
+            upload_result = cloudinary.uploader.upload(
+                pdf_path,
+                public_id=f"{folder_name}_{file_suffix}",
+                resource_type="raw",
+                folder=f"teams/{folder_name}/remarks",
+                overwrite=True
+            )
+            
+            cloudinary_url = upload_result.get("secure_url")
+            print(f"✅ Uploaded: {cloudinary_url}")
+
+            # Save to database
+            # 🔥 UPDATED: Get original file based on doc_type
+            original_file = ProjectFile.objects.filter(
+                team_name=team_name,
+                file_type=doc_type  # "abstract" or "pdf"
+            ).first()
+
+            ProjectRemarks.objects.update_or_create(
+                team_name=team_name,
+                review_type="zero",
+                file_type=doc_type,  # 🔥 Save with correct type
+                mentor_name=mentor_name,
+                defaults={
+                    'cloudinary_url': cloudinary_url,
+                    'original_file': original_file
+                }
+            )
+            print("✅ Saved to ProjectRemarks")
+
+            return JsonResponse({
+                "status": "success",
+                "url": cloudinary_url,
+                "doc_type": doc_type,
+                "dimensions": {
+                    "width": pdf_width,
+                    "height": pdf_height
+                },
+                "message": "Highlights saved with exact PDF dimensions"
+            })
+
+        return JsonResponse({
+            "status": "fail",
+            "message": "PDF file not created"
+        }, status=500)
+
+    except Exception as e:
+        print(f"❌ ERROR: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"status": "fail", "message": str(e)}, status=500)
+
+def get_highlighted_document(request):
+    """
+    Generic: Get remarks or original document for any type
+    """
+    print("\n📄 get_highlighted_document CALLED")
+
+    mentor_name = request.session.get("mentor_name")
+    allocation = AllocationResult.objects.filter(mentor_name=mentor_name).first()
+
+    if not allocation:
+        return JsonResponse({"status": "fail", "message": "No allocation"}, status=404)
+
+    team_name = allocation.team_name
+    doc_type = request.GET.get("type", "abstract")
+
+    print(f"Fetching: {doc_type}")
+
+    # Check for remarks version first
+    remarks = ProjectRemarks.objects.filter(
+        team_name=team_name,
+        file_type=doc_type
+    ).select_related('original_file').first()
+
+    if remarks:
+        return JsonResponse({
+            "status": "success",
+            "url": remarks.cloudinary_url,
+            "has_remarks": True,
+            "doc_type": doc_type,
+            "mentor": remarks.mentor_name,
+            "review_type": remarks.review_type,
+            "updated_at": remarks.updated_at.isoformat()
+        })
+
+    # Return original
+    original = ProjectFile.objects.filter(
+        team_name=team_name,
+        file_type=doc_type
+    ).first()
+
+    if original:
+        return JsonResponse({
+            "status": "success",
+            "url": original.cloudinary_url,
+            "has_remarks": False,
+            "doc_type": doc_type
+        })
+
+    return JsonResponse({"status": "fail", "message": "Not found"}, status=404)
+
+
 def zero_base(request):
     print("\n🟢 zero_base CALLED")
 
@@ -1636,7 +2026,9 @@ def zero_base(request):
         try:
             data = json.loads(request.body)
             remarks = data.get("remarks", [])
+            deleted = data.get("deleted", [])  # 🔥 Added deletion support like zero_review
             print("Incoming remarks:", len(remarks))
+            print("Deleted headings:", len(deleted))
 
             allocation = AllocationResult.objects.filter(
                 mentor_name=mentor_name
@@ -1648,7 +2040,37 @@ def zero_base(request):
             team_name = allocation.team_name
             inserted = 0
             updated = 0
+            deleted_count = 0  # 🔥 Track deletions
 
+            # 🔥 Handle deletions first (like zero_review)
+            if deleted and len(deleted) > 0:
+                for heading in deleted:
+                    heading = heading.strip()
+                    if not heading:
+                        continue
+                    
+                    count, _ = ZerothReviewRemark.objects.filter(
+                        team_name=team_name,
+                        mentor_name=mentor_name,
+                        heading=heading,
+                        file_type="pdf"  # 🔥 Only delete PDF type remarks
+                    ).delete()
+                    
+                    if count > 0:
+                        deleted_count += count
+                        print(f"🗑️ Deleted: {heading} ({count} rows)")
+                    else:
+                        count2, _ = ZerothReviewRemark.objects.filter(
+                            team_name=team_name,
+                            mentor_name=mentor_name,
+                            heading__icontains=heading[:50],
+                            file_type="pdf"
+                        ).delete()
+                        if count2 > 0:
+                            deleted_count += count2
+                            print(f"🗑️ Deleted (icontains): {heading[:50]}... ({count2} rows)")
+
+            # Handle upserts
             for r in remarks:
                 heading = (r.get("heading") or "").strip()
                 remark = (r.get("remark") or "").strip()
@@ -1676,11 +2098,14 @@ def zero_base(request):
             return JsonResponse({
                 "status": "success",
                 "inserted": inserted,
-                "updated": updated
+                "updated": updated,
+                "deleted": deleted_count  # 🔥 Return deletion count
             })
 
         except Exception as e:
             print("❌ POST ERROR:", e)
+            import traceback
+            traceback.print_exc()
             return JsonResponse({"status": "fail", "message": str(e)}, status=500)
 
     # =====================================================
@@ -1712,40 +2137,73 @@ def zero_base(request):
         print(" ->", r.heading)
 
     # =====================================================
-    # REPORT PDF FILE FROM CLOUDINARY
+    # 🔥 CHECK FOR REMARKS VERSION FIRST (ProjectRemarks) - LIKE ZERO_REVIEW
     # =====================================================
-    project_file = ProjectFile.objects.filter(
+    remarks_file = ProjectRemarks.objects.filter(
         team_name=team_name,
-        file_type="pdf"  # 🔥 Report file
-    ).first()
+        review_type="zero",
+        file_type="pdf"  # 🔥 PDF type for report
+    ).order_by('-updated_at').first()
 
-    if not project_file:
-        return render(request, "mentor/review_men/men_doc/zero_paper/zero_base.html", {
-            "report_available": False
-        })
-
-    cloud_url = project_file.cloudinary_url
-
+    # SINGLE FILE NAME - no _Original or _Remarks suffix
+    pdf_name = f"{folder_name}_Report.pdf"  # 🔥 Report naming
+    html_name = f"{folder_name}_Report.html"
+    
     temp_dir = os.path.join(settings.MEDIA_ROOT, "temp_html", folder_name)
     docker_temp_dir = os.path.abspath(temp_dir).replace("\\", "/")
     os.makedirs(temp_dir, exist_ok=True)
 
-    pdf_name = f"{folder_name}_Report.pdf"  # 🔥 Report naming
-    html_name = f"{folder_name}_Report.html"
-
     pdf_path = os.path.join(temp_dir, pdf_name)
     html_path = os.path.join(temp_dir, html_name)
 
+    if remarks_file:
+        print(f"✅ Using remarks version: {remarks_file.cloudinary_url}")
+        cloud_url = remarks_file.cloudinary_url
+        has_highlights = True
+        
+        # Delete old original files if remarks exist (cleanup)
+        old_original_pdf = os.path.join(temp_dir, f"{folder_name}_Report_Original.pdf")
+        old_original_html = os.path.join(temp_dir, f"{folder_name}_Report_Original.html")
+        for old_file in [old_original_pdf, old_original_html]:
+            if os.path.exists(old_file):
+                os.remove(old_file)
+                print(f"🗑️ Cleaned old: {os.path.basename(old_file)}")
+    else:
+        # Fall back to original
+        print("⚠️ No remarks found, using original")
+        project_file = ProjectFile.objects.filter(
+            team_name=team_name,
+            file_type="pdf"  # 🔥 Report file
+        ).first()
+
+        if not project_file:
+            return render(request, "mentor/review_men/men_doc/zero_paper/zero_base.html", {
+                "report_available": False
+            })
+
+        cloud_url = project_file.cloudinary_url
+        has_highlights = False
+
+    print(f"Local files: {pdf_name}, {html_name}")
+
     # =====================================================
-    # DOWNLOAD PDF
+    # 🔥 DOWNLOAD PDF (always overwrite if different source) - LIKE ZERO_REVIEW
     # =====================================================
-    if not os.path.exists(pdf_path):
+    needs_download = True
+    
+    # Check if existing file matches current source
+    if os.path.exists(pdf_path):
+        # Always re-download to ensure correct version
+        os.remove(pdf_path)
+        print("🗑️ Removed old PDF to re-download")
+    
+    if needs_download:
         try:
             r = requests.get(cloud_url, timeout=20)
             r.raise_for_status()
             with open(pdf_path, "wb") as f:
                 f.write(r.content)
-            print("✔ PDF downloaded")
+            print(f"✅ PDF downloaded: {pdf_name} ({len(r.content)} bytes)")
         except Exception as e:
             print("❌ PDF DOWNLOAD ERROR:", e)
             return render(request, "mentor/review_men/men_doc/zero_paper/zero_base.html", {
@@ -1753,23 +2211,26 @@ def zero_base(request):
             })
 
     # =====================================================
-    # PDF → HTML
+    # 🔥 PDF → HTML (overwrite if exists to ensure fresh conversion) - LIKE ZERO_REVIEW
     # =====================================================
-    if not os.path.exists(html_path):
-        try:
-            subprocess.run(
-                [
-                    "docker", "run", "--rm",
-                    "-v", f"{docker_temp_dir}:/pdf",
-                    "pdf2html_local",
-                    pdf_name,
-                    "--dest-dir", "/pdf"
-                ],
-                check=True
-            )
-            print("✔ PDF converted to HTML")
-        except Exception as e:
-            print("❌ PDF→HTML ERROR:", e)
+    if os.path.exists(html_path):
+        os.remove(html_path)
+        print("🗑️ Removed old HTML for fresh conversion")
+
+    try:
+        subprocess.run(
+            [
+                "docker", "run", "--rm",
+                "-v", f"{docker_temp_dir}:/pdf",
+                "pdf2html_local",
+                pdf_name,
+                "--dest-dir", "/pdf"
+            ],
+            check=True
+        )
+        print(f"✅ PDF converted to HTML: {html_name}")
+    except Exception as e:
+        print("❌ PDF→HTML ERROR:", e)
 
     # =====================================================
     # READ HTML CONTENT
@@ -1819,9 +2280,10 @@ def zero_base(request):
             "sub_headings": sub_headings,
             "html_content": html_content,
             "saved_remarks": saved_remarks,   # 🔥 Report-specific remarks
+            "has_highlights": has_highlights,  # 🔥 Added like zero_review
             "report_available": True
         }
-        )
+    )
 
 def zero_form(request):
     mentor_name = request.session.get("mentor_name")
@@ -2379,12 +2841,12 @@ def zero_ma1(request):
         print("DEBUG: Uploaded files dict →", uploaded)
 
         # ---------------------------
-        # 4️⃣ Update ProjectFile Table (use team_name instead of ForeignKey)
+        # 4️⃣ Update ProjectFile Table
         # ---------------------------
         for ftype, url in uploaded.items():
             if url:
                 obj, created = ProjectFile.objects.update_or_create(
-                    team_name=team_title,   # <-- store team_name as string
+                    team_name=team_title,
                     review_type="zero",
                     file_type=ftype,
                     defaults={"cloudinary_url": url}
@@ -2407,31 +2869,82 @@ def zero_ma1(request):
     print("DEBUG: Uploaded files fetched →", uploaded_files)
 
     # ---------------------------
-    # 6️⃣ Get Zeroth Review Remarks
+    # 6️⃣ Get Zeroth Review Remarks (GROUPED BY FILE TYPE)
     # ---------------------------
+    # Initialize remarks dict for each file type
+    remarks_by_type = {
+        "abstract": [],
+        "pdf": [],
+        "ppt": []
+    }
+    
+    # Fetch all remarks for this team
     remarks_qs = ZerothReviewRemark.objects.filter(team_name=team_title).order_by("created_at")
-    remarks_data = [
-        {
+    
+    for r in remarks_qs:
+        remark_data = {
             "heading": r.heading,
             "remark": r.remark,
             "color": r.color,
-            "created_at": r.created_at
+            "created_at": r.created_at,
+            "mentor_name": r.mentor_name if hasattr(r, 'mentor_name') else None
         }
-        for r in remarks_qs
-    ]
-    print("DEBUG: Remarks fetched →", len(remarks_data))
+        
+        # Determine which file type this remark belongs to
+        # Option 1: If your model has a file_type field
+        if hasattr(r, 'file_type') and r.file_type:
+            if r.file_type in remarks_by_type:
+                remarks_by_type[r.file_type].append(remark_data)
+            else:
+                # Default to abstract if unknown
+                remarks_by_type["abstract"].append(remark_data)
+        else:
+            # Option 2: Parse from heading (e.g., "Abstract: Title" or "Report: Title")
+            heading_lower = r.heading.lower() if r.heading else ""
+            if "abstract" in heading_lower:
+                remarks_by_type["abstract"].append(remark_data)
+            elif "report" in heading_lower or "pdf" in heading_lower:
+                remarks_by_type["pdf"].append(remark_data)
+            elif "ppt" in heading_lower or "presentation" in heading_lower:
+                remarks_by_type["ppt"].append(remark_data)
+            else:
+                # Default to abstract if can't determine
+                remarks_by_type["abstract"].append(remark_data)
+    
+    print("DEBUG: Remarks fetched →", {k: len(v) for k, v in remarks_by_type.items()})
 
     # ---------------------------
-    # 7️⃣ Final Render
+    # 7️⃣ Get Highlighted PDFs from ProjectRemarks
+    # ---------------------------
+    highlighted_pdfs = {}
+    
+    remarks_files_qs = ProjectRemarks.objects.filter(
+        team_name=team_title,
+        review_type="zero"
+    ).select_related('original_file')
+    
+    for remark_file in remarks_files_qs:
+        file_type = remark_file.file_type
+        highlighted_pdfs[file_type] = {
+            "url": remark_file.cloudinary_url,
+            "mentor_name": remark_file.mentor_name,
+            "updated_at": remark_file.updated_at if hasattr(remark_file, 'updated_at') else None,
+            "original_file_type": file_type
+        }
+    
+    print("DEBUG: Highlighted PDFs fetched →", highlighted_pdfs)
+
+    # ---------------------------
+    # 8️⃣ Final Render
     # ---------------------------
     return render(request, "student/review/zero_ma.html", {
         "student_name": student_name,
         "username": username,
         "team_name": team_title,
         "uploaded_files": uploaded_files,
-        "remarks": remarks_data,
+        "remarks_by_type": remarks_by_type,  # 🆕 Grouped by file type
+        "highlighted_pdfs": highlighted_pdfs,
     })
-
 # ============================================
 # 🔹 Student Zero Review File Upload View
 # ============================================
@@ -2450,6 +2963,11 @@ import json
 @csrf_exempt
 
 def save_zeroth_remark(request):
+    """
+    Save remarks for a specific file type (abstract/pdf/ppt).
+    Each remark is tied to a specific file type and will only show 
+    when that file type is viewed.
+    """
     print("🔥 save_zeroth_remark CALLED")
 
     if request.method != "POST":
@@ -2472,13 +2990,45 @@ def save_zeroth_remark(request):
     try:
         data = json.loads(request.body)
         remarks = data.get("remarks", [])
-        file_type = data.get("file_type") or "pdf"   # ✅ DEFAULT TO PDF
-        print("Remarks count:", len(remarks))
+        deleted = data.get("deleted", [])
+        
+        # CRITICAL: Get file_type from request, default to 'abstract'
+        file_type = data.get("file_type", "abstract")
+        
+        # Validate - only allow these three values
+        if file_type not in ["abstract", "pdf", "ppt"]:
+            print(f"⚠️ Invalid file_type '{file_type}', using 'abstract'")
+            file_type = "abstract"
+            
         print("File type:", file_type)
+        print("Remarks count:", len(remarks))
+        print("Deleted count:", len(deleted))
+        
     except Exception as e:
         print("❌ JSON error:", e)
         return JsonResponse({"status": "fail", "message": "Invalid JSON"})
 
+    inserted = 0
+    updated = 0
+    deleted_count = 0
+
+    # Handle deletions - STRICT matching by file_type
+    if deleted:
+        for heading in deleted:
+            heading = heading.strip()
+            if not heading:
+                continue
+                
+            print(f"🗑️ Deleting: '{heading}' for {file_type}")
+            
+            deleted_count += ZerothReviewRemark.objects.filter(
+                team_name=team_name,
+                mentor_name=mentor_name,
+                heading=heading,
+                file_type=file_type  # MUST match
+            ).delete()[0]
+
+    # Handle upserts - ALWAYS include file_type in lookup
     for r in remarks:
         heading = (r.get("heading") or "").strip()
         remark = (r.get("remark") or "").strip()
@@ -2487,13 +3037,13 @@ def save_zeroth_remark(request):
         if not heading or not remark:
             continue
 
-        print("Saving remark:", heading)
+        print(f"💾 Saving: '{heading}' for {file_type}")
 
         obj, created = ZerothReviewRemark.objects.update_or_create(
             team_name=team_name,
             mentor_name=mentor_name,
             heading=heading,
-            file_type=file_type,   # ✅ INCLUDE IN UNIQUE CHECK
+            file_type=file_type,  # Key field - separates remarks by file type
             defaults={
                 "remark": remark,
                 "color": color,
@@ -2501,12 +3051,19 @@ def save_zeroth_remark(request):
         )
 
         if created:
-            print("🆕 Inserted:", heading)
+            inserted += 1
         else:
-            print("🔁 Updated (no duplicate):", heading)
+            updated += 1
 
-    print("✅ Remarks saved successfully")
-    return JsonResponse({"status": "success"})
+    print(f"✅ Done for {file_type}: {inserted} new, {updated} updated, {deleted_count} deleted")
+    
+    return JsonResponse({
+        "status": "success",
+        "file_type": file_type,
+        "inserted": inserted,
+        "updated": updated,
+        "deleted": deleted_count
+    })
 
 def clean_text(text):
     return re.sub(r'\(.*?\)', '', text).strip().lower()
