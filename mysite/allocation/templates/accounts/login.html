@@ -1,19 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Team & Mentor Allocation - Login</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
   <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
 
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     /* LAYER 3 — Full Page */
-    body, html {
+    body,
+    html {
       height: 100%;
       font-family: 'Montserrat', sans-serif;
       display: flex;
@@ -34,8 +41,8 @@
       border-radius: 1.5rem;
       overflow: hidden;
       background: #D1D9FF;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
-      border: 1.5px solid rgba(255,255,255,0.7);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+      border: 1.5px solid rgba(255, 255, 255, 0.7);
       position: relative;
       z-index: 1;
       transition: background 0.6s ease;
@@ -49,7 +56,7 @@
       align-items: center;
       padding: 2.5rem;
       text-align: center;
-      border-right: 1px solid rgba(255,255,255,0.6);
+      border-right: 1px solid rgba(255, 255, 255, 0.6);
     }
 
     .slogan-left h2 {
@@ -75,8 +82,8 @@
       background: #F8F9FC;
       border-radius: 1.1rem;
       padding: 1.8rem;
-      border: 1.5px solid rgba(255,255,255,0.95);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+      border: 1.5px solid rgba(255, 255, 255, 0.95);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.07);
       color: #2c37ad;
       transition: background 0.6s ease;
     }
@@ -88,11 +95,14 @@
       margin-bottom: 0.4rem;
       transition: color 0.6s ease;
     }
-    .welcome-card h4 i { color: #F59E0B; }
+
+    .welcome-card h4 i {
+      color: #F59E0B;
+    }
 
     .card-divider {
       border: none;
-      border-top: 1px solid rgba(0,0,0,0.07);
+      border-top: 1px solid rgba(0, 0, 0, 0.07);
       margin: 0.5rem 0 1rem;
     }
 
@@ -111,9 +121,10 @@
       padding: 0.65rem 1rem;
       transition: all 0.3s ease;
     }
+
     .form-select:focus {
       border-color: #F59E0B;
-      box-shadow: 0 0 0 3px rgba(245,158,11,0.12);
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.12);
       outline: none;
     }
 
@@ -125,22 +136,30 @@
       font-size: 0.88rem;
       transition: all 0.3s ease;
     }
+
     .form-control:focus {
       border-color: #F59E0B;
-      box-shadow: 0 0 0 3px rgba(245,158,11,0.1);
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
       outline: none;
     }
 
-    .pwd-wrap { position: relative; }
+    .pwd-wrap {
+      position: relative;
+    }
+
     .pwd-toggle {
       position: absolute;
-      right: 12px; top: 50%;
+      right: 12px;
+      top: 50%;
       transform: translateY(-50%);
       cursor: pointer;
       opacity: 0.5;
       transition: opacity 0.2s;
     }
-    .pwd-toggle:hover { opacity: 1; }
+
+    .pwd-toggle:hover {
+      opacity: 1;
+    }
 
     .btn-login {
       width: 100%;
@@ -155,34 +174,50 @@
       margin-top: 0.9rem;
       cursor: pointer;
       transition: background 0.6s ease, transform 0.2s ease;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
     }
+
     .btn-login:hover {
       transform: scale(1.03);
       filter: brightness(0.95);
     }
 
-    .extra-links { display: none; }
+    .extra-links {
+      display: none;
+    }
 
     @media (max-width: 768px) {
-      .slogan-box { flex-direction: column; height: auto; }
-      .slogan-left { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.5); }
-      .welcome-card { width: 100%; }
-      lottie-player { width: 140px !important; height: 140px !important; }
+      .slogan-box {
+        flex-direction: column;
+        height: auto;
+      }
+
+      .slogan-left {
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+      }
+
+      .welcome-card {
+        width: 100%;
+      }
+
+      lottie-player {
+        width: 140px !important;
+        height: 140px !important;
+      }
     }
   </style>
 </head>
+
 <body>
 
   <div class="slogan-box" id="sloganBox">
     <div class="slogan-left">
-      <lottie-player id="lottieAnim"
-        src="https://assets10.lottiefiles.com/packages/lf20_jcikwtux.json"
-        background="transparent" speed="1"
-        style="width: 190px; height: 190px;"
-        loop autoplay>
+      <lottie-player id="lottieAnim" src="https://assets10.lottiefiles.com/packages/lf20_jcikwtux.json"
+        background="transparent" speed="1" style="width: 190px; height: 190px;" loop autoplay>
       </lottie-player>
-      <h2 id="quoteText">"Collaboration is the key to innovation – Login and work together with your mentors & guides."</h2>
+      <h2 id="quoteText">"Collaboration is the key to innovation – Login and work together with your mentors & guides."
+      </h2>
     </div>
 
     <div class="card-area">
@@ -194,7 +229,6 @@
           <div class="mb-2">
             <label for="role" class="form-label" id="roleLabel">Login as</label>
             <select class="form-select" id="role" name="role" required>
-              <option value="">-- Select Role --</option>
               <option value="student">Student</option>
               <option value="mentor">Guide</option>
               <option value="coordinator">Coordinator</option>
@@ -217,119 +251,120 @@
     </div>
   </div>
 
-<script>
-  function togglePassword() {
-    const p = document.getElementById("password");
-    p.type = p.type === "password" ? "text" : "password";
-  }
-
-  const quotes = [
-    "\u201cCollaboration is the key to innovation \u2013 Login and work together with your mentors & guides.\u201d",
-    "\u201cTeamwork divides the task and multiplies the success.\u201d",
-    "\u201cGreat things are never done by one person. They\u2019re done by a team.\u201d",
-    "\u201cTogether, we can achieve more than we ever could alone.\u201d",
-    "\u201cInnovation happens when diverse minds work together.\u201d"
-  ];
-  document.getElementById("quoteText").innerText = quotes[Math.floor(Math.random() * quotes.length)];
-
-  /*
-    ALL LIGHT COLORS — same style for every role
-    L3  = body full page   (lightest)
-    L2  = slogan box       (light medium)
-    L1  = welcome card     (near white)
-    btn = login button     (medium shade of same family)
-    text = headings/quote
-    border = input borders
-  */
-  const themes = {
-    "": {
-      L3: "#E8ECF9", L2: "#D1D9FF", L1: "#F8F9FC",
-      text: "#2c37ad", quote: "#2c37ad",
-      btn: "#2c37ad", btnText: "#fff",
-      border: "#A1A7C9", placeholder: "#A1A7C9",
-      lottie: "https://assets10.lottiefiles.com/packages/lf20_jcikwtux.json"
-    },
-    student: {
-      L3: "#E8ECF9", L2: "#D1D9FF", L1: "#F8F9FC",
-      text: "#2c37ad", quote: "#2c37ad",
-      btn: "#2c37ad", btnText: "#fff",
-      border: "#A1A7C9", placeholder: "#A1A7C9",
-      lottie: "https://assets10.lottiefiles.com/packages/lf20_jcikwtux.json"
-    },
-    mentor: {
-      L3: "#F3E8FF", L2: "#D8B4FE", L1: "#FAF5FF",
-      text: "#6A0DAD", quote: "#6A0DAD",
-      btn: "#6A0DAD", btnText: "#fff",
-      border: "#C7A4E0", placeholder: "#C7A4E0",
-      lottie: "https://assets2.lottiefiles.com/packages/lf20_tutvdkg0.json"
-    },
-    coordinator: {
-      L3: "#F5F3FF", L2: "#DDD6FE", L1: "#FAFAFF",
-      text: "#3730A3", quote: "#4C1D95",
-      btn: "#A78BFA", btnText: "#fff",
-      border: "#DDD6FE", placeholder: "#C4B5FD",
-      lottie: "https://assets10.lottiefiles.com/packages/lf20_V9t630.json"
-    },
-    hod: {
-      L3: "#F0FDFA", L2: "#CFFAFE", L1: "#ECFEFF",
-      text: "#155E75", quote: "#0891B2",
-      btn: "#0891B2", btnText: "#fff",
-      border: "#0891B2", placeholder: "#0E7490",
-      lottie: "https://assets10.lottiefiles.com/packages/lf20_iwmd6pyr.json"
+  <script>
+    function togglePassword() {
+      const p = document.getElementById("password");
+      p.type = p.type === "password" ? "text" : "password";
     }
-  };
 
-  function applyTheme(role) {
-    const c = themes[role] || themes[""];
+    const quotes = [
+      "\u201cCollaboration is the key to innovation \u2013 Login and work together with your mentors & guides.\u201d",
+      "\u201cTeamwork divides the task and multiplies the success.\u201d",
+      "\u201cGreat things are never done by one person. They\u2019re done by a team.\u201d",
+      "\u201cTogether, we can achieve more than we ever could alone.\u201d",
+      "\u201cInnovation happens when diverse minds work together.\u201d"
+    ];
+    document.getElementById("quoteText").innerText = quotes[Math.floor(Math.random() * quotes.length)];
 
-    /* Layer 3 — full page */
-    
+    /*
+      ALL LIGHT COLORS — same style for every role
+      L3  = body full page   (lightest)
+      L2  = slogan box       (light medium)
+      L1  = welcome card     (near white)
+      btn = login button     (medium shade of same family)
+      text = headings/quote
+      border = input borders
+    */
+    const themes = {
+      "": {
+        L3: "#E8ECF9", L2: "#D1D9FF", L1: "#F8F9FC",
+        text: "#2c37ad", quote: "#2c37ad",
+        btn: "#2c37ad", btnText: "#fff",
+        border: "#A1A7C9", placeholder: "#A1A7C9",
+        lottie: "https://assets10.lottiefiles.com/packages/lf20_jcikwtux.json"
+      },
+      student: {
+        L3: "#E8ECF9", L2: "#D1D9FF", L1: "#F8F9FC",
+        text: "#2c37ad", quote: "#2c37ad",
+        btn: "#2c37ad", btnText: "#fff",
+        border: "#A1A7C9", placeholder: "#A1A7C9",
+        lottie: "https://assets10.lottiefiles.com/packages/lf20_jcikwtux.json"
+      },
+      mentor: {
+        L3: "#F3E8FF", L2: "#D8B4FE", L1: "#FAF5FF",
+        text: "#6A0DAD", quote: "#6A0DAD",
+        btn: "#6A0DAD", btnText: "#fff",
+        border: "#C7A4E0", placeholder: "#C7A4E0",
+        lottie: "https://assets2.lottiefiles.com/packages/lf20_tutvdkg0.json"
+      },
+      coordinator: {
+        L3: "#E8F0EF", L2: "#C1DED7", L1: "#F2F7F6",
+        text: "#012019", quote: "#013328",
+        btn: "#013328", btnText: "#fff",
+        border: "#C1DED7", placeholder: "#82A9A1",
+        lottie: "https://assets10.lottiefiles.com/packages/lf20_V9t630.json"
+      },
+      hod: {
+        L3: "#ECFEFF", L2: "#CFFAFE", L1: "#E0F2FE",
+        text: "#164E63", quote: "#06B6D4",
+        btn: "#06B6D4", btnText: "#fff",
+        border: "#06B6D4", placeholder: "#0891B2",
+        lottie: "https://assets3.lottiefiles.com/packages/lf20_qp1q7mct.json"
+      }
+    };
+
+    function applyTheme(role) {
+      const c = themes[role] || themes[""];
+
+      /* Layer 3 — full page */
+
+      document.getElementById("role").addEventListener("change", function () {
+        applyTheme(this.value);  // ← student/mentor/coordinator/hod pass ஆகுது
+      });
+
+      // applyTheme-ல:
+      document.body.style.background = c.L3;              // body background
+      document.documentElement.style.background = c.L3;   // html element (sides fix)
+      document.getElementById("sloganBox").style.background = c.L2;   // slogan box
+      document.getElementById("welcomeCard").style.background = c.L1; // welcome card
+
+      /* Layer 2 — slogan box */
+      document.getElementById("sloganBox").style.background = c.L2;
+
+      /* Layer 1 — welcome card */
+      const card = document.getElementById("welcomeCard");
+      card.style.background = c.L1;
+      card.style.color = c.text;
+
+      /* Heading */
+      document.querySelector(".welcome-card h4").style.color = c.text;
+
+      /* Quote */
+      document.getElementById("quoteText").style.color = c.quote;
+
+      /* Labels */
+      document.querySelectorAll(".form-label").forEach(el => el.style.color = c.text);
+
+      /* Input borders + placeholder color via style */
+      document.querySelectorAll(".form-control, .form-select").forEach(el => {
+        el.style.borderColor = c.border;
+        el.style.color = c.text;
+      });
+
+      /* Button */
+      const btn = document.getElementById("loginBtn");
+      btn.style.background = c.btn;
+      btn.style.color = c.btnText;
+
+      /* Lottie */
+      if (c.lottie) document.getElementById("lottieAnim").load(c.lottie);
+    }
+
+    applyTheme(document.getElementById("role").value);
     document.getElementById("role").addEventListener("change", function () {
-    applyTheme(this.value);  // ← student/mentor/coordinator/hod pass ஆகுது
-});
-
-// applyTheme-ல:
-    document.body.style.background = c.L3;              // body background
-    document.documentElement.style.background = c.L3;   // html element (sides fix)
-    document.getElementById("sloganBox").style.background = c.L2;   // slogan box
-    document.getElementById("welcomeCard").style.background = c.L1; // welcome card
-
-    /* Layer 2 — slogan box */
-    document.getElementById("sloganBox").style.background = c.L2;
-
-    /* Layer 1 — welcome card */
-    const card = document.getElementById("welcomeCard");
-    card.style.background = c.L1;
-    card.style.color = c.text;
-
-    /* Heading */
-    document.querySelector(".welcome-card h4").style.color = c.text;
-
-    /* Quote */
-    document.getElementById("quoteText").style.color = c.quote;
-
-    /* Labels */
-    document.querySelectorAll(".form-label").forEach(el => el.style.color = c.text);
-
-    /* Input borders + placeholder color via style */
-    document.querySelectorAll(".form-control, .form-select").forEach(el => {
-      el.style.borderColor = c.border;
-      el.style.color = c.text;
+      applyTheme(this.value);
     });
-
-    /* Button */
-    const btn = document.getElementById("loginBtn");
-    btn.style.background = c.btn;
-    btn.style.color = c.btnText;
-
-    /* Lottie */
-    if (c.lottie) document.getElementById("lottieAnim").load(c.lottie);
-  }
-
-  applyTheme("");
-  document.getElementById("role").addEventListener("change", function () {
-    applyTheme(this.value);
-  });
-</script>
+  </script>
 </body>
+
 </html>
