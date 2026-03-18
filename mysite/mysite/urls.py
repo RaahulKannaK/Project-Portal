@@ -6,7 +6,7 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 """
 
 from django.contrib import admin
-from django.urls import path
+from django.urls import path,include
 from allocation.views import (
     login_view, student_dashboard, mentor_dashboard, create_team, add_men, logout_view,
     mentor_list, zero_ma, allocate_view, zero_men, one_men, three_men, two_men,
@@ -92,6 +92,8 @@ urlpatterns = [
     path("mentor/my-teams/", mentor_result_view, name="mentor_teams"),
     path("student/ack/<int:status_id>/", acknowledge_announcement, name="ack_announcement"),
     path("mentor/temp-html/<str:team>/<str:filename>/",serve_temp_html,name="serve_temp_html"),
+
+    path('', include('pwa.urls')),
 ]
 
 # Serve media files in debug
