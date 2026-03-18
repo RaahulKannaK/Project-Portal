@@ -74,7 +74,8 @@ PWA_APP_STATUS_BAR_COLOR = 'default'
 PWA_APP_ICONS = [
     {
         'src': 'https://res.cloudinary.com/dmwwhifs8/image/upload/v1771318324/WhatsApp_Image_2026-02-17_at_2.18.34_PM_dpur0m.jpg',
-        'sizes': '160x160'
+        'sizes': '512x512',
+        'type': 'image/jpg'
     }
 ]
 
@@ -90,6 +91,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'mysite.urls'
