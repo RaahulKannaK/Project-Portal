@@ -95,8 +95,6 @@ urlpatterns = [
     path("mentor/temp-html/<str:team>/<str:filename>/",serve_temp_html,name="serve_temp_html"),
 
     path('', include('pwa.urls')),
-    path('manifest.json', TemplateView.as_view(template_name="manifest.json", content_type='application/json')),
-    path('service-worker.js', TemplateView.as_view(template_name="service-worker.js", content_type='application/javascript')),
 ]
 
 # Serve media files in debug
