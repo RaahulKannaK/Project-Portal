@@ -7,6 +7,7 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 
 from django.contrib import admin
 from django.urls import path,include
+from django.views.generic import TemplateView
 from allocation.views import (
     login_view, student_dashboard, mentor_dashboard, create_team, add_men, logout_view,
     mentor_list, zero_ma, allocate_view, zero_men, one_men, three_men, two_men,
@@ -94,6 +95,8 @@ urlpatterns = [
     path("mentor/temp-html/<str:team>/<str:filename>/",serve_temp_html,name="serve_temp_html"),
 
     path('', include('pwa.urls')),
+    path('manifest.json', TemplateView.as_view(template_name="manifest.json", content_type='application/json')),
+    path('service-worker.js', TemplateView.as_view(template_name="service-worker.js", content_type='application/javascript')),
 ]
 
 # Serve media files in debug
