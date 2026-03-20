@@ -491,7 +491,9 @@ const DB_SAVED_REMARKS = [
     heading: "{{ r.heading|escapejs }}",
     remark: "{{ r.remark|escapejs }}",
     color: "{{ r.color|default:'#ffe066'|escapejs }}",
-    created_at: "{{ r.created_at|date:'Y-m-d H:i'|default:''|escapejs }}"
+    created_at: "{{ r.created_at|date:'Y-m-d H:i'|default:''|escapejs }}",
+    file_type: "{{ r.file_type|default:'abstract'|escapejs }}",  // 🔥 ADDED: File type from DB
+    document_section: "{{ r.document_section|default:'abstract'|escapejs }}"  // 🔥 ADDED: Document section
   }{% if not forloop.last %},{% endif %}
   {% endfor %}
 ];
@@ -509,13 +511,22 @@ document.addEventListener("DOMContentLoaded", () => {
   let isHighlighting = false;
 
   const STORAGE_KEY = "zero_review_highlights_v1";
-  const DELETED_HIGHLIGHTS_KEY = "zero_review_deleted_highlights_v1"; // 🔥 NEW: Track deleted highlights
+  const DELETED_HIGHLIGHTS_KEY = "zero_review_deleted_highlights_v1";
   
-  // 🔥 Document info for Cloudinary save
+  // 🔥 Document info for Cloudinary save - ENHANCED for abstract
   const DOC_INFO = {
     type: "abstract",
+    file_type: "abstract",  // 🔥 ADDED: Explicit file type
     filename: "{{ team_name|escapejs }}_Abstract",
-    teamName: "{{ team_name|escapejs }}"
+    teamName: "{{ team_name|escapejs }}",
+    documentSection: "abstract",  // 🔥 ADDED: Document section identifier
+    pageType: "review",  // 🔥 ADDED: Page context
+    metadata: {  // 🔥 ADDED: Additional metadata object
+      source: "zeroth_review",
+      documentFormat: "html",
+      reviewType: "abstract_assessment",
+      timestamp: new Date().toISOString()
+    }
   };
   
   const elements = {
@@ -537,54 +548,64 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 🔥 Initialize on page load
   if (elements.reviewContent) {
-    console.log("Initializing zero review system...");
+    console.log("Initializing zero review system for ABSTRACT document...");
     setTimeout(() => {
       initializeSystem();
     }, 800);
   }
 
   function initializeSystem() {
-    // Load remarks from DB
-    tags = DB_SAVED_REMARKS.map(r => ({
-      heading: r.heading,
-      remark: r.remark,
-      color: r.color,
-      timestamp: r.created_at || new Date().toISOString(),
-      fromDB: true
-    }));
+    // 🔥 FIXED: Load ONLY abstract remarks from DB with file_type validation
+    tags = DB_SAVED_REMARKS
+      .filter(r => r.file_type === "abstract" || r.file_type === "all" || !r.file_type)  // 🔥 Only abstract
+      .map(r => ({
+        heading: r.heading,
+        remark: r.remark,
+        color: r.color,
+        timestamp: r.created_at || new Date().toISOString(),
+        fromDB: true,
+        fileType: r.file_type || "abstract",  // 🔥 ADDED: Preserve file type
+        documentSection: r.document_section || "abstract"  // 🔥 ADDED: Preserve section
+      }));
     
+    console.log(`Loaded ${tags.length} abstract remarks from DB (filtered from ${DB_SAVED_REMARKS.length} total)`);
     renderTags();
     
-    // Restore highlights from localStorage (WORKING)
+    // Restore highlights from localStorage
     restoreHighlightsFromStorage();
     
-    // 🔥 NEW: Filter out deleted highlights before applying DB highlights
+    // Filter out deleted highlights before applying DB highlights
     const deletedHighlights = getDeletedHighlights();
     const filteredDBRemarks = DB_SAVED_REMARKS.filter(r => 
-      !deletedHighlights.some(dh => dh.heading === r.heading && dh.remark === r.remark)
+      !deletedHighlights.some(dh => dh.heading === r.heading && dh.remark === r.remark) &&
+      (r.file_type === "abstract" || r.file_type === "all" || !r.file_type)  // 🔥 Only abstract
     );
     
     // Apply highlights from filtered DB remarks
     applyDBHighlights(filteredDBRemarks);
     
-    // 🔥 NEW: Normalize any existing highlights after PDF conversion
+    // Normalize any existing highlights after PDF conversion
     normalizeHighlights();
     
     updateStats();
   }
 
-  // 🔥 NEW: Get deleted highlights from localStorage
+  // Get deleted highlights from localStorage
   function getDeletedHighlights() {
     try {
       const stored = localStorage.getItem(DELETED_HIGHLIGHTS_KEY);
-      return stored ? JSON.parse(stored) : [];
+      const allDeleted = stored ? JSON.parse(stored) : [];
+      // 🔥 ADDED: Filter for abstract-specific deletions
+      return allDeleted.filter(d => 
+        !d.fileType || d.fileType === "abstract" || d.fileType === "all"
+      );
     } catch (e) {
       console.error("Failed to get deleted highlights:", e);
       return [];
     }
   }
 
-  // 🔥 NEW: Save deleted highlight to localStorage
+  // Save deleted highlight to localStorage
   function saveDeletedHighlight(heading, remark, text) {
     try {
       const deleted = getDeletedHighlights();
@@ -593,16 +614,18 @@ document.addEventListener("DOMContentLoaded", () => {
         remark: remark,
         text: text,
         timestamp: new Date().toISOString(),
-        teamName: "{{ team_name|escapejs }}"
+        teamName: "{{ team_name|escapejs }}",
+        fileType: "abstract",  // 🔥 ADDED: Mark as abstract deletion
+        documentSection: "abstract"  // 🔥 ADDED: Document section
       });
       localStorage.setItem(DELETED_HIGHLIGHTS_KEY, JSON.stringify(deleted));
-      console.log("✅ Saved deleted highlight:", text.substring(0, 50));
+      console.log("✅ Saved deleted abstract highlight:", text.substring(0, 50));
     } catch (e) {
       console.error("Failed to save deleted highlight:", e);
     }
   }
 
-  // Restore highlights from localStorage (WORKING METHOD)
+  // Restore highlights from localStorage
   function restoreHighlightsFromStorage() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -611,13 +634,19 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = JSON.parse(stored);
       const currentTeam = "{{ team_name|escapejs }}";
       
+      // 🔥 ADDED: Validate file_type matches abstract
+      if (data.fileType && data.fileType !== "abstract") {
+        console.log("Skipping localStorage restore - different file type:", data.fileType);
+        return;
+      }
+      
       if (data.teamName === currentTeam && data.htmlContent) {
         const age = Date.now() - new Date(data.timestamp).getTime();
         const hoursOld = age / (1000 * 60 * 60);
         
         if (hoursOld < 24) {
           elements.reviewContent.innerHTML = data.htmlContent;
-          console.log("✅ Restored highlights from localStorage");
+          console.log("✅ Restored abstract highlights from localStorage");
         }
       }
     } catch (e) {
@@ -625,23 +654,26 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Save highlights to localStorage (WORKING METHOD) - TEMPORARY ONLY
+  // Save highlights to localStorage
   function saveHighlightsToStorage() {
     try {
       const data = {
         teamName: "{{ team_name|escapejs }}",
+        fileType: "abstract",  // 🔥 ADDED: Store file type
+        documentSection: "abstract",  // 🔥 ADDED: Store section
         htmlContent: elements.reviewContent.innerHTML,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        metadata: {  // 🔥 ADDED: Storage metadata
+          version: "1.0",
+          source: "zeroth_review_abstract"
+        }
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      console.log("✅ Saved to localStorage (temporary)");
+      console.log("✅ Saved abstract highlights to localStorage");
     } catch (e) {
       console.error("Failed to save to localStorage:", e);
     }
   }
-
-  // 🔥 REMOVED: saveHighlightsToCloudinary() from individual actions
-  // This will now ONLY be called when "Send to Student" is clicked
 
   if (elements.openBtn) {
     elements.openBtn.addEventListener("click", openViewer);
@@ -664,13 +696,14 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.splitView.classList.add("active");
     updateStats();
     setTimeout(() => {
-      // 🔥 Re-filter DB remarks on open to catch any new deletions
+      // Re-filter DB remarks on open to catch any new deletions
       const deletedHighlights = getDeletedHighlights();
       const filteredDBRemarks = DB_SAVED_REMARKS.filter(r => 
-        !deletedHighlights.some(dh => dh.heading === r.heading && dh.remark === r.remark)
+        !deletedHighlights.some(dh => dh.heading === r.heading && dh.remark === r.remark) &&
+        (r.file_type === "abstract" || r.file_type === "all" || !r.file_type)  // 🔥 Only abstract
       );
       applyDBHighlights(filteredDBRemarks);
-      normalizeHighlights(); // 🔥 Normalize on open
+      normalizeHighlights();
       updateStats();
     }, 300);
   }
@@ -819,7 +852,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 300);
   };
 
-  // 🔥🔥🔥 WORKING applyHighlight from your version 🔥🔥🔥
   window.applyHighlight = () => {
     if (isHighlighting) return;
     
@@ -886,9 +918,7 @@ document.addEventListener("DOMContentLoaded", () => {
       highlightCounter += appliedCount;
       updateStats();
       
-      // 🔥 ONLY save to localStorage (temporary), NOT Cloudinary
       saveHighlightsToStorage();
-      // REMOVED: saveHighlightsToCloudinary() - will only be called on "Send to Student"
       
     } catch (e) {
       console.error("Highlight error:", e);
@@ -968,6 +998,8 @@ document.addEventListener("DOMContentLoaded", () => {
     span.title = "Click to remove (eraser mode)";
     span.dataset.highlightId = `hl_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     span.dataset.highlightText = elements.selectedText.value.trim();
+    span.dataset.fileType = "abstract";  // 🔥 ADDED: Mark as abstract highlight
+    span.dataset.documentSection = "abstract";  // 🔥 ADDED: Document section
     return span;
   }
 
@@ -1046,7 +1078,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // 🔥 MODIFIED: Now targets Send to Student button
   function showSuccessFeedback(message = "Saved!") {
     const btn = elements.sendBtn;
     if (!btn) return;
@@ -1078,25 +1109,21 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.reviewContent.classList.toggle("eraser-active", eraser);
   };
 
-  // 🔥🔥🔥 FIXED: Robust eraser that handles PDF conversion artifacts 🔥🔥🔥
   elements.reviewContent.addEventListener("click", (e) => {
     if (!eraser) return;
     
-    // Try multiple selectors to find highlight after PDF conversion
     let target = e.target.closest('.highlighted');
     
-    // 🔥 NEW: If no direct match, try finding by background color or data attributes
     if (!target) {
       let element = e.target;
       while (element && element !== elements.reviewContent) {
-        // Check for inline background color style (PDF conversion often preserves this)
         const bgColor = element.style.backgroundColor;
         const hasHighlightColor = bgColor && (
-          bgColor.includes('rgb(255, 224, 102)') || // #ffe066
-          bgColor.includes('rgb(255, 183, 178)') || // #ffb7b2
-          bgColor.includes('rgb(178, 224, 255)') || // #b2e0ff
-          bgColor.includes('rgb(178, 255, 178)') || // #b2ffb2
-          bgColor.includes('rgb(255, 224, 102)') || // yellow
+          bgColor.includes('rgb(255, 224, 102)') ||
+          bgColor.includes('rgb(255, 183, 178)') ||
+          bgColor.includes('rgb(178, 224, 255)') ||
+          bgColor.includes('rgb(178, 255, 178)') ||
+          bgColor.includes('rgb(255, 224, 102)') ||
           bgColor.includes('yellow') ||
           bgColor.includes('rgba(255') ||
           element.dataset.highlightId ||
@@ -1116,7 +1143,6 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault();
     e.stopPropagation();
     
-    // 🔥 NEW: Extract metadata before removal for tracking
     const removedText = target.textContent;
     const removedHeading = target.dataset.heading || "";
     const removedRemark = target.title || "";
@@ -1124,13 +1150,11 @@ document.addEventListener("DOMContentLoaded", () => {
     
     console.log("Erasing highlight:", removedText.substring(0, 50));
     
-    // 🔥 NEW: Check if this is a DB highlight (has heading from DB_SAVED_REMARKS)
     const isDBHighlight = DB_SAVED_REMARKS.some(r => 
       removedText.includes(r.heading) || r.heading.includes(removedText.substring(0, 20))
     );
     
     if (isDBHighlight) {
-      // Find the matching DB remark to track deletion
       const matchingRemark = DB_SAVED_REMARKS.find(r => 
         removedText.includes(r.heading) || r.heading.includes(removedText.substring(0, 20))
       );
@@ -1146,38 +1170,29 @@ document.addEventListener("DOMContentLoaded", () => {
       const parent = target.parentNode;
       if (!parent) return;
       
-      // 🔥 NEW: More robust unwrapping - preserve all child nodes
       const fragment = document.createDocumentFragment();
       
-      // Move all child nodes (including text and elements) to fragment
       while (target.firstChild) {
         fragment.appendChild(target.firstChild);
       }
       
-      // Replace the highlight span with the content
       parent.replaceChild(fragment, target);
-      
-      // 🔥 NEW: Normalize the parent to merge adjacent text nodes
       parent.normalize();
       
       highlightCounter = Math.max(0, highlightCounter - 1);
       updateStats();
       
-      // 🔥 ONLY save to localStorage (temporary), NOT Cloudinary
       saveHighlightsToStorage();
-      // REMOVED: saveHighlightsToCloudinary()
     }, 200);
   });
 
   window.clearAllHighlights = () => {
     if (!confirm("Remove all highlights? This cannot be undone.")) return;
     
-    // 🔥 FIXED: More comprehensive selector to catch all highlight variants
     const highlights = elements.reviewContent.querySelectorAll(
       '.highlighted, [data-highlight-id], span[style*="background-color"]'
     );
     
-    // 🔥 NEW: Track all DB highlights being deleted
     highlights.forEach(h => {
       const text = h.textContent;
       const matchingRemark = DB_SAVED_REMARKS.find(r => 
@@ -1197,18 +1212,15 @@ document.addEventListener("DOMContentLoaded", () => {
         fragment.appendChild(h.firstChild);
       }
       parent.replaceChild(fragment, h);
-      parent.normalize(); // 🔥 Merge text nodes
+      parent.normalize();
     });
     
     highlightCounter = 0;
     updateStats();
     
-    // 🔥 ONLY save to localStorage (temporary), NOT Cloudinary
     saveHighlightsToStorage();
-    // REMOVED: saveHighlightsToCloudinary()
   };
 
-  // 🔥🔥🔥 FIXED ZOOM: Now uses zoom property instead of transform to avoid white screen 🔥🔥🔥
   window.zoomIn = () => {
     zoom = Math.min(zoom + 0.1, 2.5);
     applyZoom();
@@ -1221,32 +1233,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function applyZoom() {
     if (elements.reviewWrapper) {
-      // 🔥 METHOD 1: Use CSS zoom property (better browser support now)
-      // This scales content without affecting layout flow
       elements.reviewWrapper.style.zoom = zoom;
-      
-      // 🔥 METHOD 2: Alternative using transform with proper overflow handling
-      // Uncomment below if zoom property doesn't work in your browser
-      /*
-      elements.reviewWrapper.style.transform = `scale(${zoom})`;
-      elements.reviewWrapper.style.transformOrigin = "top left";
-      elements.reviewWrapper.style.width = zoom < 1 ? `${100/zoom}%` : '100%';
-      */
-      
-      // 🔥 Ensure container allows scrolling when zoomed
       elements.reviewWrapper.style.overflow = "auto";
-      
       console.log(`Zoom applied: ${zoom}x`);
     }
   }
 
+  // 🔥🔥🔥 FIXED: Now counts ONLY abstract tags, not all tags 🔥🔥🔥
   function updateStats() {
+    // 🔥 FIXED: Filter tags to count only abstract ones
+    const abstractTags = tags.filter(t => t.fileType === "abstract" || !t.fileType);
+    const abstractCount = abstractTags.length;
+    
+    // 🔥 FIXED: Filter highlights to count only abstract ones
+    const allHighlights = elements.reviewContent.querySelectorAll(".highlighted");
+    let abstractHighlightCount = 0;
+    allHighlights.forEach(h => {
+      if (h.dataset.fileType === "abstract" || !h.dataset.fileType) {
+        abstractHighlightCount++;
+      }
+    });
+    
     if (elements.highlightCount) {
-      elements.highlightCount.textContent = highlightCounter;
+      elements.highlightCount.textContent = abstractHighlightCount;
     }
     if (elements.remarkCount) {
-      elements.remarkCount.textContent = tags.length;
+      elements.remarkCount.textContent = abstractCount;  // 🔥 Now shows only abstract count!
     }
+    
+    console.log(`Stats updated - Abstract Remarks: ${abstractCount}, Abstract Highlights: ${abstractHighlightCount}`);
   }
 
   window.saveTag = () => {
@@ -1266,21 +1281,27 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const exactDup = tags.findIndex(t => t.heading === heading && t.remark === remark);
+    // 🔥 FIXED: Only check duplicates within abstract tags
+    const abstractTags = tags.filter(t => t.fileType === "abstract" || !t.fileType);
+    const exactDup = abstractTags.findIndex(t => t.heading === heading && t.remark === remark);
     if (exactDup !== -1) {
       alert("This exact remark already exists");
       return;
     }
 
-    const existingIndex = tags.findIndex(t => t.heading === heading);
+    const existingIndex = abstractTags.findIndex(t => t.heading === heading);
     if (existingIndex !== -1) {
       if (!confirm(`A remark for "${heading.substring(0, 30)}..." already exists. Replace it?`)) {
         return;
       }
-      if (tags[existingIndex].fromDB) {
-        deletedHeadings.push(tags[existingIndex].heading);
+      // Find the actual index in the full tags array
+      const actualIndex = tags.findIndex(t => t.heading === heading && (t.fileType === "abstract" || !t.fileType));
+      if (actualIndex !== -1 && tags[actualIndex].fromDB) {
+        deletedHeadings.push(tags[actualIndex].heading);
       }
-      tags.splice(existingIndex, 1);
+      if (actualIndex !== -1) {
+        tags.splice(actualIndex, 1);
+      }
     }
 
     tags.push({
@@ -1288,7 +1309,9 @@ document.addEventListener("DOMContentLoaded", () => {
       remark: remark,
       color: selectedColor,
       timestamp: new Date().toISOString(),
-      fromDB: false
+      fromDB: false,
+      fileType: "abstract",  // 🔥 ADDED: Mark as abstract tag
+      documentSection: "abstract"  // 🔥 ADDED: Document section
     });
 
     elements.detectedHeading.value = "";
@@ -1312,15 +1335,18 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderTags() {
     if (!elements.savedTags) return;
     
-    if (tags.length === 0) {
-      elements.savedTags.innerHTML = '<small class="text-muted">No remarks added yet. Select text and add remarks.</small>';
+    // 🔥 FIXED: Only render abstract tags
+    const abstractTags = tags.filter(t => t.fileType === "abstract" || !t.fileType);
+    
+    if (abstractTags.length === 0) {
+      elements.savedTags.innerHTML = '<small class="text-muted">No abstract remarks added yet. Select text and add remarks.</small>';
       return;
     }
 
-    elements.savedTags.innerHTML = tags.map((t, i) => `
+    elements.savedTags.innerHTML = abstractTags.map((t, i) => `
       <div class="tag-item" style="border-left-color: ${t.color}; animation: fadeIn 0.3s ease ${i * 0.05}s both;">
         <button class="btn btn-sm btn-outline-danger float-end py-0 px-2" 
-                onclick="deleteTag(${i})" title="Remove remark">
+                onclick="deleteTag(${tags.indexOf(t)})" title="Remove remark">
           <i class="fas fa-times"></i>
         </button>
         <b>${escapeHtml(t.heading)}</b>
@@ -1328,6 +1354,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <small class="text-muted">
           <i class="fas fa-clock me-1"></i>${formatTime(t.timestamp)}
           ${t.fromDB ? '<span class="badge bg-success ms-1">saved</span>' : '<span class="badge bg-warning ms-1">unsaved</span>'}
+          <span class="badge bg-info ms-1">${t.fileType || 'abstract'}</span>
         </small>
       </div>
     `).join('');
@@ -1356,6 +1383,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const tagToDelete = tags[index];
     if (!tagToDelete) return;
     
+    // 🔥 Only allow deleting abstract tags
+    if (tagToDelete.fileType !== "abstract" && tagToDelete.fileType) {
+      alert("Cannot delete non-abstract remark from this view");
+      return;
+    }
+    
     if (tagToDelete.fromDB) {
       deletedHeadings.push(tagToDelete.heading);
     }
@@ -1365,21 +1398,25 @@ document.addEventListener("DOMContentLoaded", () => {
     updateStats();
   };
 
-  // 🔥 MODIFIED: Now accepts filtered remarks parameter
   function applyDBHighlights(remarksToApply = DB_SAVED_REMARKS) {
-    if (!remarksToApply || remarksToApply.length === 0) return;
+    // 🔥 FIXED: Only apply abstract highlights
+    const abstractRemarks = remarksToApply.filter(r => 
+      r.file_type === "abstract" || r.file_type === "all" || !r.file_type
+    );
     
-    console.log(`Applying ${remarksToApply.length} highlights from DB...`);
+    if (!abstractRemarks || abstractRemarks.length === 0) return;
+    
+    console.log(`Applying ${abstractRemarks.length} ABSTRACT highlights from DB...`);
     let applied = 0;
     
-    remarksToApply.forEach(r => {
+    abstractRemarks.forEach(r => {
       if (!r.heading || r.heading.length < 2) return;
       if (highlightTextInDocument(r.heading, r.color, r.remark)) {
         applied++;
       }
     });
     
-    console.log(`Applied ${applied} highlights`);
+    console.log(`Applied ${applied} abstract highlights`);
     highlightCounter = elements.reviewContent.querySelectorAll(".highlighted").length;
   }
 
@@ -1421,6 +1458,9 @@ document.addEventListener("DOMContentLoaded", () => {
           span.style.borderRadius = "2px";
           span.dataset.heading = searchText;
           span.title = remark || "Saved remark";
+          span.dataset.fileType = "abstract";  // 🔥 ADDED: Mark as abstract
+          span.dataset.documentSection = "abstract";  // 🔥 ADDED: Document section
+          span.dataset.source = "database";  // 🔥 ADDED: Source identifier
           
           range.surroundContents(span);
           return true;
@@ -1454,6 +1494,9 @@ document.addEventListener("DOMContentLoaded", () => {
       span.dataset.heading = highlight;
       span.title = remark || "Saved remark";
       span.textContent = highlight;
+      span.dataset.fileType = "abstract";  // 🔥 ADDED: Mark as abstract
+      span.dataset.documentSection = "abstract";  // 🔥 ADDED: Document section
+      span.dataset.source = "database";  // 🔥 ADDED: Source identifier
       
       fragment.appendChild(span);
       if (after) fragment.appendChild(document.createTextNode(after));
@@ -1465,28 +1508,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // 🔥🔥🔥 NEW: Normalize highlights after PDF conversion 🔥🔥🔥
   function normalizeHighlights() {
     console.log("Normalizing highlights after potential PDF conversion...");
     
-    // Find all spans with background colors that might be highlights from PDF
     const allSpans = elements.reviewContent.querySelectorAll('span');
     let normalizedCount = 0;
     
-    // 🔥 NEW: Check against deleted highlights and remove them
     const deletedHighlights = getDeletedHighlights();
     
     allSpans.forEach(span => {
-      // Skip if already properly marked
       if (span.classList.contains('highlighted') || span.dataset.highlightId) {
-        // 🔥 NEW: Check if this was previously deleted
         const spanText = span.textContent;
         const wasDeleted = deletedHighlights.some(dh => 
           spanText.includes(dh.text) || dh.text.includes(spanText.substring(0, 20))
         );
         
         if (wasDeleted) {
-          // Remove this highlight - it was previously deleted by user
           const parent = span.parentNode;
           if (parent) {
             const fragment = document.createDocumentFragment();
@@ -1501,19 +1538,17 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       
-      // Check if this looks like a highlight from PDF conversion
       const bgColor = span.style.backgroundColor;
       const computedStyle = window.getComputedStyle(span);
       const computedBg = computedStyle.backgroundColor;
       
       const isHighlightColor = (color) => {
         if (!color || color === 'transparent' || color === 'rgba(0, 0, 0, 0)') return false;
-        // Check for common highlight colors
-        return color.includes('rgb(255, 224, 102)') || // #ffe066
-               color.includes('rgb(255, 183, 178)') || // #ffb7b2
-               color.includes('rgb(178, 224, 255)') || // #b2e0ff
-               color.includes('rgb(178, 255, 178)') || // #b2ffb2
-               color.includes('rgb(255, 255, 0)') ||   // yellow
+        return color.includes('rgb(255, 224, 102)') ||
+               color.includes('rgb(255, 183, 178)') ||
+               color.includes('rgb(178, 224, 255)') ||
+               color.includes('rgb(178, 255, 178)') ||
+               color.includes('rgb(255, 255, 0)') ||
                color.includes('rgba(255, 255, 0') ||
                color.includes('rgba(255, 224, 102') ||
                color.includes('rgba(255, 183, 178') ||
@@ -1524,13 +1559,11 @@ document.addEventListener("DOMContentLoaded", () => {
       if (isHighlightColor(bgColor) || isHighlightColor(computedBg)) {
         const spanText = span.textContent;
         
-        // 🔥 NEW: Check if this highlight was previously deleted
         const wasDeleted = deletedHighlights.some(dh => 
           spanText.includes(dh.text) || dh.text.includes(spanText.substring(0, 20))
         );
         
         if (wasDeleted) {
-          // Remove this highlight - it was previously deleted by user
           const parent = span.parentNode;
           if (parent) {
             const fragment = document.createDocumentFragment();
@@ -1542,7 +1575,6 @@ document.addEventListener("DOMContentLoaded", () => {
             console.log("Removed previously deleted highlight from PDF:", spanText.substring(0, 50));
           }
         } else {
-          // Add the highlight class and data attributes
           span.classList.add('highlighted');
           if (!span.dataset.highlightId) {
             span.dataset.highlightId = `hl_pdf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -1550,6 +1582,9 @@ document.addEventListener("DOMContentLoaded", () => {
           if (!span.dataset.highlightText) {
             span.dataset.highlightText = spanText;
           }
+          span.dataset.fileType = "abstract";  // 🔥 ADDED: Mark as abstract
+          span.dataset.documentSection = "abstract";  // 🔥 ADDED: Document section
+          span.dataset.source = "pdf_conversion";  // 🔥 ADDED: Source identifier
           span.style.cursor = "pointer";
           span.title = "Click to remove (eraser mode)";
           normalizedCount++;
@@ -1564,17 +1599,42 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // 🔥 NEW: Cloudinary save function - ONLY called by Send to Student
+  // 🔥 ENHANCED: Cloudinary save function with complete abstract metadata
   function saveHighlightsToCloudinary() {
     const highlights = [];
     elements.reviewContent.querySelectorAll(".highlighted").forEach(span => {
-      highlights.push({
-        text: span.dataset.highlightText || span.textContent,
-        color: span.style.backgroundColor
-      });
+      // 🔥 Only save abstract highlights
+      if (span.dataset.fileType === "abstract" || !span.dataset.fileType) {
+        highlights.push({
+          text: span.dataset.highlightText || span.textContent,
+          color: span.style.backgroundColor,
+          fileType: span.dataset.fileType || "abstract",  // 🔥 ADDED: Include file type
+          documentSection: span.dataset.documentSection || "abstract",  // 🔥 ADDED: Include section
+          source: span.dataset.source || "manual"  // 🔥 ADDED: Include source
+        });
+      }
     });
 
-    console.log("🔥 Saving to Cloudinary...", highlights.length, "highlights");
+    console.log("🔥 Saving ABSTRACT highlights to Cloudinary...", highlights.length, "highlights");
+
+    // 🔥 ENHANCED: Complete payload with all abstract document info
+    const payload = {
+      html: elements.reviewContent.innerHTML,
+      highlights: highlights,
+      doc_type: DOC_INFO.type,
+      file_type: DOC_INFO.file_type,  // 🔥 ADDED: Explicit file type
+      filename: DOC_INFO.filename,
+      team_name: DOC_INFO.teamName,
+      document_section: DOC_INFO.documentSection,  // 🔥 ADDED: Document section
+      page_type: DOC_INFO.pageType,  // 🔥 ADDED: Page context
+      metadata: {
+        ...DOC_INFO.metadata,  // 🔥 ADDED: Spread metadata
+        highlightCount: highlights.length,
+        remarkCount: tags.filter(t => t.fileType === "abstract" || !t.fileType).length,  // 🔥 Count only abstract
+        savedAt: new Date().toISOString(),
+        version: "2.0"  // 🔥 ADDED: Version tracking
+      }
+    };
 
     return fetch("/api/save-highlighted-html/", {
       method: "POST",
@@ -1582,35 +1642,31 @@ document.addEventListener("DOMContentLoaded", () => {
         "Content-Type": "application/json",
         "X-CSRFToken": "{{ csrf_token }}"
       },
-      body: JSON.stringify({
-        html: elements.reviewContent.innerHTML,
-        highlights: highlights,
-        doc_type: DOC_INFO.type,
-        filename: DOC_INFO.filename,
-        team_name: DOC_INFO.teamName
-      })
+      body: JSON.stringify(payload)  // 🔥 Using enhanced payload
     })
     .then(r => r.json())
     .then(d => {
       if (d.status === "success") {
-        console.log("✅ Saved to Cloudinary:", d.url);
-        return { success: true, url: d.url };
+        console.log("✅ Saved abstract to Cloudinary:", d.url);
+        return { success: true, url: d.url, fileType: "abstract" };  // 🔥 ADDED: Return file type
       } else {
         console.error("❌ Cloudinary save failed:", d.message);
-        return { success: false, error: d.message };
+        return { success: false, error: d.message, fileType: "abstract" };  // 🔥 ADDED: Return file type
       }
     })
     .catch(e => {
       console.error("❌ Fetch error:", e);
-      return { success: false, error: e.message };
+      return { success: false, error: e.message, fileType: "abstract" };  // 🔥 ADDED: Return file type
     });
   }
 
-  // 🔥 MODIFIED: Send to Student now handles Cloudinary save
+  // 🔥 ENHANCED: Send to Student with complete abstract info
   window.sendRemarksToStudent = () => {
     if (sending) return;
     
-    const unsaved = tags.filter(t => !t.fromDB);
+    // 🔥 FIXED: Only get abstract unsaved tags
+    const abstractTags = tags.filter(t => t.fileType === "abstract" || !t.fileType);
+    const unsaved = abstractTags.filter(t => !t.fromDB);
     const hasDeletions = deletedHeadings.length > 0;
     
     if (unsaved.length === 0 && !hasDeletions) {
@@ -1618,26 +1674,40 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     
-    if (!confirm(`Save ${unsaved.length} new and delete ${deletedHeadings.length} remarks?`)) return;
+    if (!confirm(`Save ${unsaved.length} new and delete ${deletedHeadings.length} remarks for ABSTRACT?`)) return;  // 🔥 ADDED: Confirm abstract context
     
     sending = true;
     if (elements.sendBtn) {
       elements.sendBtn.disabled = true;
-      elements.sendBtn.innerHTML = '<span class="loading-spinner me-2"></span>Saving...';
+      elements.sendBtn.innerHTML = '<span class="loading-spinner me-2"></span>Saving Abstract...';  // 🔥 ADDED: Context in loading text
     }
 
-    // 🔥 FIRST: Save remarks to database
+    // 🔥 ENHANCED: Payload with complete abstract metadata
+    const payload = {
+      remarks: unsaved.map(r => ({
+        ...r,
+        file_type: "abstract",  // 🔥 ADDED: Ensure file_type is set
+        document_section: "abstract",  // 🔥 ADDED: Document section
+        team_name: "{{ team_name|escapejs }}"  // 🔥 ADDED: Team name in each remark
+      })),
+      deleted: deletedHeadings,
+      file_type: "abstract",  // 🔥 ADDED: Explicit file_type at root level
+      document_section: "abstract",  // 🔥 ADDED: Document section
+      team_name: "{{ team_name|escapejs }}",  // 🔥 ADDED: Team name
+      metadata: {  // 🔥 ADDED: Metadata object
+        source: "zeroth_review",
+        version: "2.0",
+        savedAt: new Date().toISOString()
+      }
+    };
+
     fetch("{% url 'save_zeroth_remark' %}", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-CSRFToken": "{{ csrf_token }}"
       },
-      body: JSON.stringify({ 
-        remarks: unsaved,
-        deleted: deletedHeadings,
-        file_type: "abstract"
-      })
+      body: JSON.stringify(payload)
     })
     .then(async r => {
       if (!r.ok) {
@@ -1648,7 +1718,6 @@ document.addEventListener("DOMContentLoaded", () => {
     })
     .then(d => {
       if (d.status === "success") {
-        // 🔥 SECOND: Only after DB save succeeds, save highlights to Cloudinary
         return saveHighlightsToCloudinary().then(cloudResult => {
           return { ...d, cloudinary: cloudResult };
         });
@@ -1659,31 +1728,31 @@ document.addEventListener("DOMContentLoaded", () => {
     .then(d => {
       sending = false;
       
-      // 🔥 Show success feedback on Send to Student button
       const inserted = d.inserted || 0;
       const updated = d.updated || 0;
       const deleted = d.deleted || 0;
       const totalSaved = inserted + updated;
       
-      showSuccessFeedback(`Saved: ${totalSaved} remarks`);
+      showSuccessFeedback(`Saved: ${totalSaved} abstract remarks`);  // 🔥 ADDED: Context in success message
       
-      // Mark all tags as saved
-      tags.forEach(t => t.fromDB = true);
+      // Mark all abstract tags as saved
+      tags.forEach(t => {
+        if (t.fileType === "abstract" || !t.fileType) {
+          t.fromDB = true;
+          t.fileType = "abstract";  // 🔥 ADDED: Ensure fileType is set on save
+        }
+      });
       deletedHeadings = [];
       renderTags();
       
-      // 🔥 NEW: Clear deleted highlights from localStorage since they're now permanently processed
       localStorage.removeItem(DELETED_HIGHLIGHTS_KEY);
-      
-      // Clear localStorage since everything is now permanently saved
       localStorage.removeItem(STORAGE_KEY);
       
-      console.log("✅ Database save:", d);
+      console.log("✅ Abstract database save:", d);
       if (d.cloudinary && d.cloudinary.success) {
-        console.log("✅ Cloudinary save:", d.cloudinary.url);
+        console.log("✅ Abstract Cloudinary save:", d.cloudinary.url);
       }
       
-      // Reset button after success feedback timeout
       setTimeout(() => {
         if (elements.sendBtn) {
           elements.sendBtn.disabled = false;
@@ -1693,10 +1762,9 @@ document.addEventListener("DOMContentLoaded", () => {
     })
     .catch(err => {
       sending = false;
-      console.error("Save error:", err);
-      alert("❌ Error: " + err.message);
+      console.error("Abstract save error:", err);  // 🔥 ADDED: Context in error log
+      alert("❌ Error saving abstract: " + err.message);  // 🔥 ADDED: Context in alert
       
-      // Reset button immediately on error
       if (elements.sendBtn) {
         elements.sendBtn.disabled = false;
         elements.sendBtn.innerHTML = '<i class="fa fa-paper-plane me-2"></i>Send to Student';
@@ -1734,10 +1802,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   window.addEventListener("beforeunload", (e) => {
-    const hasUnsaved = tags.some(t => !t.fromDB) || deletedHeadings.length > 0;
+    // 🔥 FIXED: Only check abstract tags for unsaved changes
+    const abstractTags = tags.filter(t => t.fileType === "abstract" || !t.fileType);
+    const hasUnsaved = abstractTags.some(t => !t.fromDB) || deletedHeadings.length > 0;
     if (hasUnsaved && !sending) {
       e.preventDefault();
-      e.returnValue = "You have unsaved changes. Are you sure you want to leave?";
+      e.returnValue = "You have unsaved abstract changes. Are you sure you want to leave?";  // 🔥 ADDED: Context in warning
     }
   });
 

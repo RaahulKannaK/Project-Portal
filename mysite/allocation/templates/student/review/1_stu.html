@@ -319,14 +319,14 @@ body {
       <div class="top-header">
         <div class="user-greeting">
           <div class="profile-avatar">A</div>
-          <span class="welcome-text">Welcome, Alex!</span>
+          <span class="welcome-text">Welcome, {{student_name}}</span>
         </div>
         <div class="dropdown">
           <button class="more-options-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
             <i class="fas fa-user-circle"></i>
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item" href="{% url 'stu_dash' %}"><i class="fas fa-home me-2"></i>Dashboard</a></li>
+            <li><a class="dropdown-item" href="{% url 'student_dashboard' %}"><i class="fas fa-home me-2"></i>Dashboard</a></li>
             <li><hr class="dropdown-divider"></li>
             <li>
               <a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}">
@@ -353,7 +353,7 @@ body {
         <!-- Sections -->
         <div id="upload" class="action-section active">
           <p>Upload your first review project presentation and files here.</p>
-          <a href="{% url 'student_dashboard' %}" class="glass-button">Upload</a>
+          <a href="{% url 'one_ma1' %}" class="glass-button">Upload</a>
         </div>
 
         <div id="marks" class="action-section">

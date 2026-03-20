@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>First Review - Student</title>
+
+  <!-- Bootstrap & Fonts -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- CSRF token for JS -->
+  <meta name="csrf-token" content="{{ csrf_token }}">
+
+  <style>
+    :root {
+      --primary: #333da4;
+      --secondary: #a1a7c9;
+      --accent: #d1d9ff;
+      --background: #f8f9fc;
+    }
+    body {
+      margin: 0;
+      font-family: "Montserrat", sans-serif;
+      background: linear-gradient(120deg, var(--background), #ffffff);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .dashboard-wrapper { display:flex; width:95%; max-width:1400px; height:90vh; background:var(--primary); border-radius:20px; overflow:hidden; }
+    .sidebar { width:280px; padding:30px 20px; background:linear-gradient(180deg, var(--primary), var(--secondary)); color:#fff; }
+    .sidebar-header { text-align:center; margin-bottom:25px; border-bottom:1px solid rgba(255,255,255,0.2); }
+    .sidebar-nav .nav-item { display:flex; align-items:center; padding:14px 18px; margin-bottom:12px; color:#fff; border-radius:12px; cursor:pointer; transition:0.3s; }
+    .sidebar-nav .nav-item:hover, .sidebar-nav .nav-item.active { background: rgba(255,255,255,0.2); }
+    .main-content { flex-grow:1; background:var(--background); padding:30px; overflow-y:auto; display:flex; flex-direction:column; }
+    .upload-section { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:25px; }
+    .upload-card { background:#fff; border-radius:16px; padding:25px; text-align:center; box-shadow:0 8px 25px rgba(0,0,0,0.1); }
+    .file-label { display:flex; justify-content:center; align-items:center; background:linear-gradient(135deg,var(--primary),var(--secondary)); color:#fff; padding:12px; border-radius:10px; cursor:pointer; margin-top:10px; }
+    .file-label.success { background:#28a745; cursor:default; }
+    .submit-button { margin-top:20px; padding:12px 20px; border:none; border-radius:10px; background:var(--accent); font-weight:600; }
+    .remarks-wrapper { display:none; }
+    .remarks-layout { display:flex; gap:20px; height:100%; }
+    .remark-card { background:#fff; border-radius:12px; padding:15px; margin-bottom:10px; border-left:5px solid var(--primary); font-size:14px; }
+    .ppt-viewer { flex:1; height:80vh; border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 8px 25px rgba(0,0,0,0.1); }
+    .ppt-viewer iframe { width:100%; height:100%; border:none; }
+    
+    /* File tabs - Only PPT for review 1 */
+    .file-tabs { display:flex; gap:10px; margin-bottom:15px; }
+    .file-tab { padding:10px 20px; border:none; border-radius:8px; background:#fff; color:var(--primary); font-weight:600; cursor:pointer; transition:0.3s; box-shadow:0 2px 5px rgba(0,0,0,0.1); }
+    .file-tab:hover { background:var(--accent); }
+    .file-tab.active { background:var(--primary); color:#fff; }
+    .file-tab:disabled { opacity:0.5; cursor:not-allowed; background:#ccc; }
+    
+    /* Version toggle buttons */
+    .version-toggle { display:flex; gap:10px; margin-bottom:15px; }
+    .version-btn { padding:8px 16px; border:2px solid var(--primary); border-radius:20px; background:#fff; color:var(--primary); font-weight:600; cursor:pointer; transition:0.3s; }
+    .version-btn:hover { background:var(--accent); }
+    .version-btn.active { background:var(--primary); color:#fff; }
+    .version-btn:disabled { opacity:0.4; cursor:not-allowed; border-color:#ccc; color:#666; }
+    
+    /* Highlighted badge */
+    .highlighted-badge { 
+      display:inline-flex; 
+      align-items:center; 
+      background:linear-gradient(135deg, #ff6b6b, #ee5a24); 
+      color:#fff; 
+      padding:4px 12px; 
+      border-radius:20px; 
+      font-size:12px; 
+      font-weight:600;
+      margin-left:10px;
+    }
+    .mentor-info { 
+      background:#fff; 
+      padding:10px 15px; 
+      border-radius:8px; 
+      margin-bottom:10px; 
+      box-shadow:0 2px 5px rgba(0,0,0,0.1);
+      font-size:13px;
+      color:#555;
+    }
+    .mentor-info i { color:var(--primary); margin-right:8px; }
+    
+    .no-file-message { display:flex; align-items:center; justify-content:center; height:100%; color:#666; font-size:16px; }
+    
+    /* Remarks count badge */
+    .remarks-count {
+      background: var(--primary);
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      margin-left: 8px;
+    }
+    
+    /* Review indicator */
+    .review-indicator {
+      display:inline-flex;
+      align-items:center;
+      background:#28a745;
+      color:#fff;
+      padding:4px 12px;
+      border-radius:20px;
+      font-size:11px;
+      font-weight:600;
+      margin-left:10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="dashboard-wrapper">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h4><i class="fas fa-folder-open me-2"></i>First Review</h4>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" onclick="showUpload()">File Upload</div>
+      <div class="nav-item" onclick="showRemarks()">Remarks</div>
+    </nav>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+
+    <!-- UPLOAD SECTION -->
+    <div id="uploadSection">
+      <h5 class="mb-4">
+        <i class="fas fa-upload me-2"></i>Upload PPT
+        <span class="review-indicator">Review 1</span>
+      </h5>
+
+      <form id="uploadForm" method="POST" enctype="multipart/form-data">
+        <div class="upload-section">
+
+          <!-- PPT ONLY -->
+          <div class="upload-card">
+            <h5><i class="fas fa-file-powerpoint me-2"></i>PPT Presentation</h5>
+            {% if uploaded_files.ppt %}
+              <div class="file-label success"><i class="fas fa-check-circle me-2"></i>{{ uploaded_files.ppt|slice:"-50:" }}</div>
+            {% else %}
+              <input type="file" id="pptFile" name="pptFile" accept=".ppt,.pptx" style="display:none;">
+              <label for="pptFile" class="file-label">Choose PPT</label>
+            {% endif %}
+          </div>
+
+        </div>
+
+        <button type="submit" class="submit-button">Submit PPT</button>
+      </form>
+    </div>
+
+    <!-- REMARKS SECTION -->
+    <div id="remarksSection" class="remarks-wrapper">
+      <h5 class="mb-3">
+        <i class="fas fa-comments me-2"></i>Mentor Remarks
+        <span class="review-indicator">Review 1</span>
+        <span id="highlightedBadge" class="highlighted-badge" style="display:none;">
+          <i class="fas fa-highlighter me-1"></i>Highlighted Available
+        </span>
+      </h5>
+
+      <!-- File Tab - Only PPT -->
+      <div class="file-tabs">
+        <button class="file-tab active" onclick="switchFile('ppt')" id="tab-ppt" {% if not uploaded_files.ppt %}disabled{% endif %}>
+          <i class="fas fa-file-powerpoint me-2"></i>PPT
+          <span class="remarks-count" id="count-ppt">{{ remarks_by_type.ppt|length }}</span>
+        </button>
+      </div>
+
+      <!-- Version Toggle (Original vs Highlighted) -->
+      <div class="version-toggle">
+        <button class="version-btn active" onclick="switchVersion('original')" id="btn-original">
+          <i class="fas fa-file me-2"></i>Original
+        </button>
+        <button class="version-btn" onclick="switchVersion('highlighted')" id="btn-highlighted">
+          <i class="fas fa-highlighter me-2"></i>Mentor Reviewed
+        </button>
+      </div>
+
+      <!-- Mentor Info (shown when viewing highlighted) -->
+      <div id="mentorInfo" class="mentor-info" style="display:none;">
+        <i class="fas fa-user-tie"></i>
+        <span id="mentorName">Reviewed by: -</span>
+        <span id="reviewDate" class="float-end"></span>
+      </div>
+
+      <div class="remarks-layout">
+        <div class="ppt-viewer" id="pptViewer">
+          <!-- Dynamic content loaded here -->
+        </div>
+        <div style="width:35%;">
+          <h6 id="remarksTitle">Remarks for PPT</h6>
+          <div id="remarksContainer">
+            <!-- Dynamic remarks loaded here -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// File URLs from Django template - ONLY PPT for review 1
+const fileUrls = {
+  ppt: "{{ uploaded_files.ppt|default:'' }}"
+};
+
+// Highlighted PPTs from mentor
+const highlightedPdfs = {
+  ppt: {% if highlighted_pdfs.ppt %}"{{ highlighted_pdfs.ppt.url }}"{% else %}null{% endif %}
+};
+
+// Mentor info for display
+const mentorInfo = {
+  ppt: {% if highlighted_pdfs.ppt %}{ name: "{{ highlighted_pdfs.ppt.mentor_name }}", date: "{{ highlighted_pdfs.ppt.updated_at|default:'' }}" }{% else %}null{% endif %}
+};
+
+// Remarks grouped by file type from Django - ONLY PPT
+const remarksByType = {
+  ppt: [
+    {% for r in remarks_by_type.ppt %}
+    {
+      heading: "{{ r.heading|escapejs }}",
+      remark: "{{ r.remark|escapejs }}",
+      color: "{{ r.color|default:'#333da4'|escapejs }}",
+      created_at: "{{ r.created_at|default:''|escapejs }}",
+      mentor_name: "{{ r.mentor_name|default:''|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ]
+};
+
+const uploadSection = document.getElementById("uploadSection");
+const remarksSection = document.getElementById("remarksSection");
+const pptViewer = document.getElementById("pptViewer");
+const remarksContainer = document.getElementById("remarksContainer");
+const remarksTitle = document.getElementById("remarksTitle");
+
+let currentFileType = 'ppt';
+let currentVersion = 'original';
+
+function showUpload(){
+  uploadSection.style.display="block";
+  remarksSection.style.display="none";
+  document.querySelector('.nav-item.active')?.classList.remove('active');
+  event.target.classList.add('active');
+}
+
+function showRemarks(){
+  uploadSection.style.display="none";
+  remarksSection.style.display="block";
+  document.querySelector('.nav-item.active')?.classList.remove('active');
+  event.target.classList.add('active');
+  
+  // Check if highlighted PPT exists
+  if(highlightedPdfs.ppt) {
+    document.getElementById('highlightedBadge').style.display = 'inline-flex';
+  }
+  
+  // Load PPT by default
+  if(fileUrls.ppt) {
+    switchFile('ppt');
+  }
+}
+
+function switchFile(fileType) {
+  currentFileType = fileType;
+  
+  // Update active tab (only PPT for review 1)
+  document.querySelectorAll('.file-tab').forEach(tab => tab.classList.remove('active'));
+  document.getElementById('tab-' + fileType).classList.add('active');
+  
+  // Update remarks title
+  remarksTitle.textContent = 'Remarks for PPT Presentation';
+  
+  // Load remarks
+  loadRemarks(fileType);
+  
+  // Update version button states based on highlighted availability
+  const hasHighlighted = highlightedPdfs[fileType] !== null;
+  const highlightedBtn = document.getElementById('btn-highlighted');
+  
+  if(!hasHighlighted) {
+    highlightedBtn.disabled = true;
+    highlightedBtn.title = "No highlighted version available yet";
+    if(currentVersion === 'highlighted') {
+      switchVersion('original');
+    }
+  } else {
+    highlightedBtn.disabled = false;
+    highlightedBtn.title = "View mentor's highlighted version";
+  }
+  
+  loadViewer();
+}
+
+function loadRemarks(fileType) {
+  const remarks = remarksByType[fileType] || [];
+  
+  if(remarks.length === 0) {
+    remarksContainer.innerHTML = '<p class="text-muted">No remarks yet for this PPT.</p>';
+    return;
+  }
+  
+  let html = '';
+  remarks.forEach(r => {
+    html += `
+      <div class="remark-card" style="border-left-color: ${r.color}">
+        <strong>${r.heading}</strong><br>
+        ${r.remark}<br>
+        <small class="text-muted">${r.created_at}</small>
+        ${r.mentor_name ? `<br><small class="text-primary"><i class="fas fa-user-tie me-1"></i>${r.mentor_name}</small>` : ''}
+      </div>
+    `;
+  });
+  
+  remarksContainer.innerHTML = html;
+}
+
+function switchVersion(version) {
+  currentVersion = version;
+  
+  // Update button states
+  document.querySelectorAll('.version-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById('btn-' + version).classList.add('active');
+  
+  // Show/hide mentor info
+  const mentorInfoDiv = document.getElementById('mentorInfo');
+  if(version === 'highlighted' && mentorInfo[currentFileType]) {
+    document.getElementById('mentorName').textContent = 'Reviewed by: ' + mentorInfo[currentFileType].name;
+    document.getElementById('reviewDate').textContent = mentorInfo[currentFileType].date;
+    mentorInfoDiv.style.display = 'block';
+  } else {
+    mentorInfoDiv.style.display = 'none';
+  }
+  
+  loadViewer();
+}
+
+function loadViewer() {
+  let url;
+  
+  if(currentVersion === 'highlighted' && highlightedPdfs[currentFileType]) {
+    url = highlightedPdfs[currentFileType];
+  } else {
+    url = fileUrls[currentFileType];
+  }
+  
+  if(!url) {
+    pptViewer.innerHTML = '<div class="no-file-message"><i class="fas fa-exclamation-circle me-2"></i>No PPT uploaded yet</div>';
+    return;
+  }
+  
+  // PPT files use Google Docs viewer or download link
+  pptViewer.innerHTML = `
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
+      <i class="fas fa-file-powerpoint" style="font-size:64px; color:var(--primary); margin-bottom:20px;"></i>
+      <p style="margin-bottom:20px;">PPT files cannot be previewed directly in browser</p>
+      <a href="${url}" target="_blank" class="btn btn-primary">
+        <i class="fas fa-eye me-2"></i>View PPT
+      </a>
+    </div>
+  `;
+}
+
+// Upload PPT
+document.getElementById("uploadForm").addEventListener("submit", function(e){
+  e.preventDefault();
+
+  const formData = new FormData();
+  const pptFile = document.getElementById("pptFile");
+
+  if(pptFile && pptFile.files.length>0) {
+    formData.append("pptFile", pptFile.files[0]);
+  } else {
+    alert("Please select a PPT file");
+    return;
+  }
+
+  console.log("DEBUG: Sending PPT →", pptFile.files[0].name);
+
+  fetch("{% url 'one_ma1' %}", {
+    method: "POST",
+    headers: { "X-CSRFToken": "{{ csrf_token }}" },
+    body: formData
+  })
+  .then(r => r.json())
+  .then(d => {
+    console.log("DEBUG: Response →", d);
+
+    if(d.files && d.files.ppt){
+      const pptLabel = document.querySelector("label[for='pptFile']");
+      if(pptLabel) {
+        pptLabel.classList.add("success");
+        pptLabel.innerHTML = `<i class="fas fa-check-circle me-2"></i>${d.files.ppt.split("/").pop()}`;
+      }
+      fileUrls.ppt = d.files.ppt;
+      document.getElementById('tab-ppt').disabled = false;
+      document.getElementById('count-ppt').textContent = '0';
+    }
+
+    alert(d.message);
+  })
+  .catch(err => {
+    console.error("Upload error:", err);
+    alert("Failed to upload PPT");
+  });
+});
+
+// File input change handler
+document.getElementById('pptFile').addEventListener('change', function() {
+  if(this.files.length > 0) {
+    const label = document.querySelector("label[for='pptFile']");
+    label.innerHTML = `<i class="fas fa-file me-2"></i>${this.files[0].name}`;
+  }
+});
+</script>
+
+</body>
+</html>
