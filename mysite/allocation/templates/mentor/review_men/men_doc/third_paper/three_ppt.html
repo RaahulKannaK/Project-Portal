@@ -12,11 +12,11 @@
 
 <style>
 :root {
-  --primary: #6a0dad;        /* 🟣 Purple - Same as zero */
-  --secondary: #c7a4e0;      /* 🟣 Light purple - Same as zero */
-  --accent: #f9ddeb;         /* 🟣 Pink accent - Same as zero */
+  --primary: #6a0dad;        /* 🟣 Purple - Same as zero_review */
+  --secondary: #c7a4e0;      /* 🟣 Light purple */
+  --accent: #f9ddeb;         /* 🟣 Pink accent */
   --background: #f8f9fc;
-  --review-indicator: #dc3545; /* 🔴 Red for Review 3 indicator */
+  --review3-indicator: #9b59b6;  /* 🟣 Slightly different for Review 3 badge */
 }
 
 body{
@@ -359,10 +359,10 @@ body{
   box-shadow: 0 0 0 3px rgba(106, 13, 173, 0.2);
 }
 
-.review-indicator {
+.review3-indicator {
   display: inline-flex;
   align-items: center;
-  background: var(--review-indicator);
+  background: var(--review3-indicator);
   color: #fff;
   padding: 4px 12px;
   border-radius: 20px;
@@ -424,9 +424,7 @@ body{
   </div>
   <nav>
     <a href="{% url 'three_ppt' %}" class="active"><i class="fas fa-file-powerpoint me-2"></i>PPT</a>
-    <a href="{% url 'three_form' %}"><i class="fas fa-clipboard-list me-2"></i>Review Form</a>
-    <a href="{% url 'three_review' %}"><i class="fas fa-file-alt me-2"></i>Review Paper</a>
-    <a href="{% url 'three_base' %}"><i class="fas fa-file-pdf me-2"></i>Base Paper</a>
+
   </nav>
 </div>
 
@@ -439,7 +437,7 @@ body{
     <div>
       <h5>
         <i class="fas fa-file-powerpoint me-2"></i>Review PPT 
-        <span class="review-indicator"><i class="fas fa-presentation"></i>REVIEW 3</span>
+        <span class="review3-indicator"><i class="fas fa-presentation"></i>REVIEW 3</span>
       </h5>
       <small class="opacity-75">
         Team: {{ team_name|default:"Not Assigned" }} | 
@@ -602,7 +600,7 @@ body{
 </div>
 
 <script>
-  // Inject DB remarks for JS access - Third Review PPT specific
+  // Inject DB remarks for JS access - Review 3 PPT specific
 const DB_SAVED_REMARKS = [
   {% for r in saved_remarks %}
   {
@@ -622,23 +620,23 @@ document.addEventListener("DOMContentLoaded", () => {
   let tags = [];
   let deletedHeadings = [];
   let sending = false;
-  let selectedColor = "#ffe066";
+  let selectedColor = "#ffe066"; // Default yellow
 
-  const STORAGE_KEY = "third_review_ppt_remarks_v1";
-  const DELETED_REMARKS_KEY = "third_review_ppt_deleted_remarks_v1";
+  const STORAGE_KEY = "review3_ppt_remarks_v1";  // 🔥 Review 3 specific
+  const DELETED_REMARKS_KEY = "review3_ppt_deleted_remarks_v1";  // 🔥 Review 3 specific
   
-  // Document info for Third Review PPT
+  // Document info for Review 3 PPT
   const DOC_INFO = {
     type: "ppt",
     file_type: "ppt",
-    filename: "{{ team_name|escapejs }}_Review3_PPT",
+    filename: "{{ team_name|escapejs }}_PPT_Review3",  // 🔥 Review 3 specific
     teamName: "{{ team_name|escapejs }}",
     documentSection: "ppt",
-    pageType: "third_review_ppt",
+    pageType: "review3_ppt",  // 🔥 Review 3 specific
     metadata: {
-      source: "third_review",
+      source: "third_review",  // 🔥 Review 3 specific
       documentFormat: "ppt",
-      reviewType: "ppt_assessment",
+      reviewType: "ppt_assessment_review3",  // 🔥 Review 3 specific
       timestamp: new Date().toISOString()
     }
   };
@@ -658,10 +656,11 @@ document.addEventListener("DOMContentLoaded", () => {
     pptViewer: document.getElementById("pptViewer")
   };
 
+  // Initialize on page load
   initializeSystem();
 
   function initializeSystem() {
-    // Load ONLY PPT remarks from DB for Third Review
+    // Load ONLY Review 3 PPT remarks from DB
     tags = DB_SAVED_REMARKS
       .filter(r => r.file_type === "ppt" || r.file_type === "all" || !r.file_type)
       .map(r => ({
@@ -675,12 +674,15 @@ document.addEventListener("DOMContentLoaded", () => {
         documentSection: r.document_section || "ppt"
       }));
     
-    console.log(`Loaded ${tags.length} Third Review PPT remarks from DB`);
+    console.log(`Loaded ${tags.length} Review 3 PPT remarks from DB`);
     renderTags();
     updateStats();
+    
+    // Restore from localStorage
     restoreFromStorage();
   }
 
+  // Restore from localStorage
   function restoreFromStorage() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -699,6 +701,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const hoursOld = age / (1000 * 60 * 60);
         
         if (hoursOld < 24) {
+          // Merge with DB tags, avoiding duplicates
           data.tags.forEach(localTag => {
             if (!tags.find(t => t.heading === localTag.heading && t.remark === localTag.remark)) {
               tags.push({...localTag, fromDB: false});
@@ -706,7 +709,7 @@ document.addEventListener("DOMContentLoaded", () => {
           });
           renderTags();
           updateStats();
-          console.log("✅ Restored Third Review PPT remarks from localStorage");
+          console.log("✅ Restored Review 3 PPT remarks from localStorage");
         }
       }
     } catch (e) {
@@ -714,6 +717,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // Save to localStorage
   function saveToStorage() {
     try {
       const data = {
@@ -724,11 +728,11 @@ document.addEventListener("DOMContentLoaded", () => {
         timestamp: new Date().toISOString(),
         metadata: {
           version: "1.0",
-          source: "third_review_ppt"
+          source: "third_review_ppt"  // 🔥 Review 3 specific
         }
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      console.log("✅ Saved Third Review PPT remarks to localStorage");
+      console.log("✅ Saved Review 3 PPT remarks to localStorage");
     } catch (e) {
       console.error("Failed to save to localStorage:", e);
     }
@@ -751,6 +755,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Color picker event listeners
   document.querySelectorAll(".color-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".color-btn").forEach(b => b.classList.remove("active"));
@@ -759,6 +764,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Slide number input handler
   if (elements.slideNumber) {
     elements.slideNumber.addEventListener("input", (e) => {
       const slideNum = e.target.value;
@@ -801,6 +807,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 200);
   };
 
+  // Save tag function (No highlighting, just save remark)
   window.saveTag = () => {
     const heading = elements.detectedHeading.value.trim();
     const remark = elements.remarkText.value.trim();
@@ -821,6 +828,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const finalHeading = heading || `Slide ${slideNum}`;
     
+    // Check duplicates only within PPT tags
     const pptTags = tags.filter(t => t.fileType === "ppt" || !t.fileType);
     const exactDup = pptTags.findIndex(t => t.heading === finalHeading && t.remark === remark);
     if (exactDup !== -1) {
@@ -853,6 +861,7 @@ document.addEventListener("DOMContentLoaded", () => {
       documentSection: "ppt"
     });
 
+    // Clear inputs
     elements.detectedHeading.value = "";
     elements.remarkText.value = "";
     elements.slideNumber.value = "";
@@ -862,6 +871,7 @@ document.addEventListener("DOMContentLoaded", () => {
     updateStats();
     saveToStorage();
     
+    // Visual feedback
     const btn = event.target;
     const originalHTML = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-check me-2"></i>Saved!';
@@ -875,10 +885,11 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderTags() {
     if (!elements.savedTags) return;
     
+    // Only render PPT tags
     const pptTags = tags.filter(t => t.fileType === "ppt" || !t.fileType);
     
     if (pptTags.length === 0) {
-      elements.savedTags.innerHTML = '<small class="text-muted">No Third Review PPT remarks added yet. Add slide number/title and remarks.</small>';
+      elements.savedTags.innerHTML = '<small class="text-muted">No Review 3 PPT remarks added yet. Add slide number/title and remarks.</small>';
       return;
     }
 
@@ -949,7 +960,7 @@ document.addEventListener("DOMContentLoaded", () => {
       elements.savedCount.textContent = count;
     }
     
-    console.log(`Third Review PPT Stats updated - Remarks: ${count}`);
+    console.log(`Review 3 PPT Stats updated - Remarks: ${count}`);
   }
 
   function showSuccessFeedback(message = "Saved!") {
@@ -968,6 +979,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 1200);
   }
 
+  // Send to Student function - Review 3 specific
   window.sendRemarksToStudent = () => {
     if (sending) return;
     
@@ -980,7 +992,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     
-    if (!confirm(`Save ${unsaved.length} new and delete ${deletedHeadings.length} remarks for Third Review PPT?`)) return;
+    if (!confirm(`Save ${unsaved.length} new and delete ${deletedHeadings.length} remarks for Review 3 PPT?`)) return;
     
     sending = true;
     if (elements.sendBtn) {
@@ -1000,13 +1012,13 @@ document.addEventListener("DOMContentLoaded", () => {
       document_section: "ppt",
       team_name: "{{ team_name|escapejs }}",
       metadata: {
-        source: "third_review",
+        source: "third_review",  // 🔥 Review 3 specific
         version: "1.0",
         savedAt: new Date().toISOString()
       }
     };
 
-    fetch("{% url 'save_third_remark' %}", {
+    fetch("{% url 'save_third_remark' %}", {  // 🔥 Review 3 specific URL
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1032,5 +1044,72 @@ document.addEventListener("DOMContentLoaded", () => {
         
         showSuccessFeedback(`Saved: ${totalSaved} Review 3 remarks`);
         
+        // Mark all PPT tags as saved
         tags.forEach(t => {
-          if (t.fileType === "ppt
+          if (t.fileType === "ppt" || !t.fileType) {
+            t.fromDB = true;
+            t.fileType = "ppt";
+          }
+        });
+        deletedHeadings = [];
+        renderTags();
+        
+        localStorage.removeItem(DELETED_REMARKS_KEY);
+        localStorage.removeItem(STORAGE_KEY);
+        
+        console.log("✅ Review 3 database save:", d);
+        
+        setTimeout(() => {
+          if (elements.sendBtn) {
+            elements.sendBtn.disabled = false;
+            elements.sendBtn.innerHTML = '<i class="fa fa-paper-plane me-2"></i>Send to Student';
+          }
+        }, 1200);
+      } else {
+        throw new Error(d.message || "Database save failed");
+      }
+    })
+    .catch(err => {
+      sending = false;
+      console.error("Review 3 save error:", err);
+      alert("❌ Error saving Review 3: " + err.message);
+      
+      if (elements.sendBtn) {
+        elements.sendBtn.disabled = false;
+        elements.sendBtn.innerHTML = '<i class="fa fa-paper-plane me-2"></i>Send to Student';
+      }
+    });
+  };
+
+  // Keyboard shortcuts
+  document.addEventListener("keydown", (e) => {
+    if (!elements.splitView.classList.contains("active")) return;
+    
+    if (e.ctrlKey || e.metaKey) {
+      switch(e.key) {
+        case 's':
+          e.preventDefault();
+          saveTag();
+          break;
+      }
+    }
+    if (e.key === "Escape") {
+      closeViewer();
+    }
+  });
+
+  // Before unload warning
+  window.addEventListener("beforeunload", (e) => {
+    const pptTags = tags.filter(t => t.fileType === "ppt" || !t.fileType);
+    const hasUnsaved = pptTags.some(t => !t.fromDB) || deletedHeadings.length > 0;
+    if (hasUnsaved && !sending) {
+      e.preventDefault();
+      e.returnValue = "You have unsaved Review 3 changes. Are you sure you want to leave?";
+    }
+  });
+
+});
+</script>
+
+</body>
+</html>

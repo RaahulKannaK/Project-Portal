@@ -8,22 +8,19 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-# Load environment variables from .env file
 load_dotenv(BASE_DIR / ".env")
 
-# MySQLdb replacement
 import pymysql
 pymysql.install_as_MySQLdb()
+
+# Load .env file
+
 
 # -----------------------------
 # Cloudinary configuration
 # -----------------------------
 import cloudinary
-import cloudinary.uploader
-import cloudinary.api
 
 cloudinary.config(
     cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
@@ -32,14 +29,20 @@ cloudinary.config(
     secure=True
 )
 
+
+# Base directory
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 # -----------------------------
 # Security
 # -----------------------------
-SECRET_KEY = os.getenv("SECRET_KEY", "your-default-secret-key-for-dev")
+SECRET_KEY = os.getenv("SECRET_KEY")
 
-DEBUG = True  # Set to False in production
+DEBUG = False
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '10.79.10.25', 'yourdomain.com', 'www.yourdomain.com']
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '*']  # Restrict in production
+DEBUG = True
+ALLOWED_HOSTS = ['*']
 
 # -----------------------------
 # Installed apps
@@ -51,12 +54,31 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # Your app
     'allocation',
-    # Cloudinary
     'cloudinary',
     'cloudinary_storage',
+    'pwa',
 ]
+
+# PWA Settings
+PWA_APP_NAME = 'My Django App'
+PWA_APP_DESCRIPTION = "My Project Description"
+PWA_APP_THEME_COLOR = '#0A0302'
+PWA_APP_BACKGROUND_COLOR = '#ffffff'
+PWA_APP_DISPLAY = 'standalone'
+PWA_APP_SCOPE = '/'
+PWA_APP_START_URL = '/'
+PWA_APP_STATUS_BAR_COLOR = 'default'
+
+# Icons - Using your provided Cloudinary link
+PWA_APP_ICONS = [
+    {
+        'src': 'https://res.cloudinary.com/dmwwhifs8/image/upload/v1771318324/WhatsApp_Image_2026-02-17_at_2.18.34_PM_dpur0m.jpg',
+        'sizes': '512x512',
+        'type': 'image/jpg'
+    }
+]
+
 
 # -----------------------------
 # Middleware
@@ -69,6 +91,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'mysite.urls'
@@ -79,7 +102,7 @@ ROOT_URLCONF = 'mysite.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],  # Global templates directory
+        'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -97,12 +120,13 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 # -----------------------------
 # Database (MySQL)
 # -----------------------------
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv("DB_NAME", "project_portal"),
-        'USER': os.getenv("DB_USER", "root"),
-        'PASSWORD': os.getenv("DB_PASSWORD", ""),
+        'NAME': os.getenv("DB_NAME"),
+        'USER': os.getenv("DB_USER"),
+        'PASSWORD': os.getenv("DB_PASSWORD"),
         'HOST': os.getenv("DB_HOST", "localhost"),
         'PORT': os.getenv("DB_PORT", "3306"),
         'OPTIONS': {
@@ -126,7 +150,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # -----------------------------
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'Asia/Kolkata'  # Changed to India time
+TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
@@ -139,17 +163,14 @@ STATICFILES_DIRS = [
     BASE_DIR / 'allocation' / 'static',
 ]
 
-# Default storage for static files (Django default)
-STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # -----------------------------
 # Media files
 # -----------------------------
+
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
-
-# Default file storage (Cloudinary for production, local for dev)
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # -----------------------------
 # Default primary key field type
@@ -157,37 +178,6 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # -----------------------------
-# Security Settings
+# Allow iframe (PDF viewer)
 # -----------------------------
-X_FRAME_OPTIONS = 'SAMEORIGIN'  # Allow iframe for PDF viewer
-
-# Session settings
-SESSION_COOKIE_AGE = 86400  # 24 hours
-SESSION_SAVE_EVERY_REQUEST = True
-
-# CSRF settings
-CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
-SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
-
-# -----------------------------
-# Logging (optional but recommended)
-# -----------------------------
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
-        },
-        'allocation': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-        },
-    },
-}
+X_FRAME_OPTIONS = 'SAMEORIGIN'
