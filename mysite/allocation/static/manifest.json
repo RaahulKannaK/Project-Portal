@@ -1,0 +1,15 @@
+{
+  "name": "Coordinator Hub",
+  "short_name": "C-Hub",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#A78BFA",
+  "theme_color": "#3730A3",
+  "icons": [
+    {
+      "src": "https://res.cloudinary.com/dmwwhifs8/image/upload/v1771318324/WhatsApp_Image_2026-02-17_at_2.18.34_PM_dpur0m.jpg",
+      "sizes": "512x512",
+      "type": "image/jpg"
+    }
+  ]
+}

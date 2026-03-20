@@ -6,7 +6,8 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 """
 
 from django.contrib import admin
-from django.urls import path
+from django.urls import path,include
+from django.views.generic import TemplateView
 from allocation.views import (
     login_view, student_dashboard, mentor_dashboard, create_team, add_men, logout_view,
     mentor_list, zero_ma, allocate_view, zero_men, one_men, three_men, two_men,
