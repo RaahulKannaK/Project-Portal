@@ -57,8 +57,27 @@ INSTALLED_APPS = [
     'allocation',
     'cloudinary',
     'cloudinary_storage',
+    'pwa',
 ]
 
+# PWA Settings
+PWA_APP_NAME = 'My Django App'
+PWA_APP_DESCRIPTION = "My Project Description"
+PWA_APP_THEME_COLOR = '#0A0302'
+PWA_APP_BACKGROUND_COLOR = '#ffffff'
+PWA_APP_DISPLAY = 'standalone'
+PWA_APP_SCOPE = '/'
+PWA_APP_START_URL = '/'
+PWA_APP_STATUS_BAR_COLOR = 'default'
+
+# Icons - Using your provided Cloudinary link
+PWA_APP_ICONS = [
+    {
+        'src': 'https://res.cloudinary.com/dmwwhifs8/image/upload/v1771318324/WhatsApp_Image_2026-02-17_at_2.18.34_PM_dpur0m.jpg',
+        'sizes': '512x512',
+        'type': 'image/jpg'
+    }
+]
 
 
 # -----------------------------
@@ -72,6 +91,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'mysite.urls'
