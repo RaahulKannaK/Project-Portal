@@ -144,6 +144,57 @@ class ZerothReviewRemark(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+class FirstReviewRemark(models.Model):
+    team_name = models.CharField(max_length=255)
+    mentor_name = models.CharField(max_length=255)
+    heading = models.CharField(max_length=255)
+    remark = models.TextField()
+    color = models.CharField(max_length=20)
+
+    # ✅ New column to identify file type (ppt for review 1)
+    file_type = models.CharField(max_length=20)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+    def __str__(self):
+        return f"{self.team_name} - {self.heading} ({self.file_type})"
+
+
+class SecondReviewRemark(models.Model):
+    team_name = models.CharField(max_length=255)
+    mentor_name = models.CharField(max_length=255)
+    heading = models.CharField(max_length=255)
+    remark = models.TextField()
+    color = models.CharField(max_length=20)
+
+    # ✅ New column to identify file type (ppt for review 2)
+    file_type = models.CharField(max_length=20)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+
+    def __str__(self):
+        return f"{self.team_name} - {self.heading} ({self.file_type})"
+
+
+class ThirdReviewRemark(models.Model):
+    team_name = models.CharField(max_length=255)
+    mentor_name = models.CharField(max_length=255)
+    heading = models.CharField(max_length=255)
+    remark = models.TextField()
+    color = models.CharField(max_length=20)
+
+    # ✅ New column to identify file type (ppt for review 3)
+    file_type = models.CharField(max_length=20)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    
+
+    def __str__(self):
+        return f"{self.team_name} - {self.heading} ({self.file_type})"
 
 # =========================
 # 🔥 NEW: CLOUDINARY DOCUMENT MODEL

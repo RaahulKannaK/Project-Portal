@@ -13,8 +13,8 @@
 
   <style>
     :root {
-      --primary: #0891B2;
-      --secondary: #164E63;
+      --primary: #06B6D4;
+      --secondary: #0891B2;
       --accent: #22D3EE;
       --background: #ECFEFF;
       --text-dark: #164E63;
@@ -216,7 +216,7 @@
     }
 
     .gradient-cyan {
-      background: linear-gradient(135deg, var(--primary), #0891B2);
+      background: linear-gradient(135deg, var(--primary), #00ACC1);
       color: white;
     }
 
@@ -418,17 +418,17 @@
           <div id="clock"></div>
           <div class="dropdown">
             <button class="more-options-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
-              <i class="fas fa-ellipsis-v"></i>
+              <i class="fas fa-user-circle"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" href="#"><i class="fas fa-bell me-2"></i>Notifications <span
-                    class="badge bg-danger ms-2">3</span></a></li>
+              <li><a class="dropdown-item" href="#"><i class="fas fa-id-badge me-2"></i>Profile</a></li>
               <li><a class="dropdown-item" href="#" id="theme-toggle"><i class="fas fa-moon me-2"></i>Dark Mode</a></li>
+              <li><hr class="dropdown-divider"></li>
               <li>
-                <hr class="dropdown-divider">
+                <a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}">
+                  <i class="fas fa-sign-out-alt me-2"></i>Logout
+                </a>
               </li>
-              <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i
-                    class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
             </ul>
           </div>
         </div>

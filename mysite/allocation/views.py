@@ -1265,13 +1265,6 @@ def three_men(request):
     })
 
 
-def zero_doc(request):
-    mentor_name = request.session.get("mentor_name")
-    username = request.session.get("username")
-    return render(request,  "mentor/review_men/men_doc/zero_paper/zero_doc.html", {
-        "mentor_name": mentor_name,
-        "username": username,
-    })
 
 def serve_pdf(request, team_name, pdf_type):
     """
@@ -2381,6 +2374,230 @@ def zero_ppt(request):
         }
     )
 
+def one_ppt(request):
+    print("\n🟢 one_ppt CALLED")
+
+    mentor_name = request.session.get("mentor_name")
+    username = request.session.get("username")
+
+    print("mentor_name:", mentor_name)
+    print("username:", username)
+
+    ppt_url = None
+    team_name = None
+
+    # =====================================================
+    # 🔹 GET ALLOCATED TEAM (same as zero_ppt)
+    # =====================================================
+    allocation = AllocationResult.objects.filter(
+        mentor_name=mentor_name
+    ).first()
+
+    if not allocation:
+        print("❌ No team allocated")
+        return render(
+            request,
+            "mentor/review_men/men_doc/first_paper/one_ppt.html",
+            {
+                "mentor_name": mentor_name,
+                "username": username,
+                "ppt_path": None,
+                "team_name": None,
+            }
+        )
+
+    team_name = allocation.team_name
+    print("✔ Team:", team_name)
+
+    # =====================================================
+    # 🔥 FETCH PPT FROM ProjectFile (LIKE zero_ppt)
+    # =====================================================
+    project_file = ProjectFile.objects.filter(
+        team_name=team_name,
+        review_type="one",  # 👈 IMPORTANT: Review 1
+        file_type="ppt"
+    ).first()
+
+    if not project_file:
+        print("❌ PPT not uploaded in ProjectFile for Review 1")
+        return render(
+            request,
+            "mentor/review_men/men_doc/first_paper/one_ppt.html",
+            {
+                "mentor_name": mentor_name,
+                "username": username,
+                "ppt_path": None,
+                "team_name": team_name,
+            }
+        )
+
+    ppt_url = project_file.cloudinary_url
+    print("✔ PPT Cloudinary URL for Review 1:", ppt_url)
+
+    # =====================================================
+    # FINAL RENDER
+    # =====================================================
+    return render(
+        request,
+        "mentor/review_men/men_doc/first_paper/one_ppt.html",
+        {
+            "mentor_name": mentor_name,
+            "username": username,
+            "ppt_path": ppt_url,
+            "team_name": team_name,
+        }
+    )
+
+
+def two_ppt(request):
+    print("\n🟢 two_ppt CALLED")
+
+    mentor_name = request.session.get("mentor_name")
+    username = request.session.get("username")
+
+    print("mentor_name:", mentor_name)
+    print("username:", username)
+
+    ppt_url = None
+    team_name = None
+
+    # =====================================================
+    # 🔹 GET ALLOCATED TEAM (same as zero_ppt)
+    # =====================================================
+    allocation = AllocationResult.objects.filter(
+        mentor_name=mentor_name
+    ).first()
+
+    if not allocation:
+        print("❌ No team allocated")
+        return render(
+            request,
+            "mentor/review_men/men_doc/second_paper/two_ppt.html",
+            {
+                "mentor_name": mentor_name,
+                "username": username,
+                "ppt_path": None,
+                "team_name": None,
+            }
+        )
+
+    team_name = allocation.team_name
+    print("✔ Team:", team_name)
+
+    # =====================================================
+    # 🔥 FETCH PPT FROM ProjectFile (LIKE zero_ppt)
+    # =====================================================
+    project_file = ProjectFile.objects.filter(
+        team_name=team_name,
+        review_type="two",  # 👈 IMPORTANT: Review 2
+        file_type="ppt"
+    ).first()
+
+    if not project_file:
+        print("❌ PPT not uploaded in ProjectFile for Review 2")
+        return render(
+            request,
+            "mentor/review_men/men_doc/second_paper/two_ppt.html",
+            {
+                "mentor_name": mentor_name,
+                "username": username,
+                "ppt_path": None,
+                "team_name": team_name,
+            }
+        )
+
+    ppt_url = project_file.cloudinary_url
+    print("✔ PPT Cloudinary URL for Review 2:", ppt_url)
+
+    # =====================================================
+    # FINAL RENDER
+    # =====================================================
+    return render(
+        request,
+        "mentor/review_men/men_doc/second_paper/two_ppt.html",
+        {
+            "mentor_name": mentor_name,
+            "username": username,
+            "ppt_path": ppt_url,
+            "team_name": team_name,
+        }
+    )
+
+
+def three_ppt(request):
+    print("\n🟢 three_ppt CALLED")
+
+    mentor_name = request.session.get("mentor_name")
+    username = request.session.get("username")
+
+    print("mentor_name:", mentor_name)
+    print("username:", username)
+
+    ppt_url = None
+    team_name = None
+
+    # =====================================================
+    # 🔹 GET ALLOCATED TEAM (same as zero_ppt)
+    # =====================================================
+    allocation = AllocationResult.objects.filter(
+        mentor_name=mentor_name
+    ).first()
+
+    if not allocation:
+        print("❌ No team allocated")
+        return render(
+            request,
+            "mentor/review_men/men_doc/third_paper/three_ppt.html",
+            {
+                "mentor_name": mentor_name,
+                "username": username,
+                "ppt_path": None,
+                "team_name": None,
+            }
+        )
+
+    team_name = allocation.team_name
+    print("✔ Team:", team_name)
+
+    # =====================================================
+    # 🔥 FETCH PPT FROM ProjectFile (LIKE zero_ppt)
+    # =====================================================
+    project_file = ProjectFile.objects.filter(
+        team_name=team_name,
+        review_type="three",  # 👈 IMPORTANT: Review 3
+        file_type="ppt"
+    ).first()
+
+    if not project_file:
+        print("❌ PPT not uploaded in ProjectFile for Review 3")
+        return render(
+            request,
+            "mentor/review_men/men_doc/third_paper/three_ppt.html",
+            {
+                "mentor_name": mentor_name,
+                "username": username,
+                "ppt_path": None,
+                "team_name": team_name,
+            }
+        )
+
+    ppt_url = project_file.cloudinary_url
+    print("✔ PPT Cloudinary URL for Review 3:", ppt_url)
+
+    # =====================================================
+    # FINAL RENDER
+    # =====================================================
+    return render(
+        request,
+        "mentor/review_men/men_doc/third_paper/three_ppt.html",
+        {
+            "mentor_name": mentor_name,
+            "username": username,
+            "ppt_path": ppt_url,
+            "team_name": team_name,
+        }
+    )
+
 def zero_ma(request, team_name):
     team_members = []
     
@@ -2461,11 +2678,6 @@ def zero_stu(request):
         "username": username,
         "team_name": project_title,
     })
-import cloudinary.uploader
-from django.shortcuts import render, redirect
-from django.http import JsonResponse
-from .models import ProjectFile
-
 
 
 # ======================================================
@@ -2473,25 +2685,30 @@ from .models import ProjectFile
 # ======================================================
 def one_stu(request):
     student_name = request.session.get("student_name")
+    print(student_name)
     username = request.session.get("username")
-
+    
     if not student_name:
         return redirect("login")
 
-    team = Team.objects.filter(
-        member_names__icontains=student_name
-    ).first()
-
+    team = Team.objects.filter(member_names__icontains=student_name).first()
     if not team:
-        return render(request, "student/review/1_stu.html", {
-            "error": "Team not found"
-        })
+        return JsonResponse({"status": "fail", "message": "Team not found for this student"}, status=404)
 
-    # 🔁 Already uploaded file
-    existing = ReviewFile.objects.filter(
-        team_name=team.project_title,
-        review_type=1
-    ).first()
+    project_title = team.project_title.replace(" ", "_")  # sanitize for filename
+
+    # 🔁 Check for existing PPT in Cloudinary only (no DB model)
+    existing_ppt_url = None
+    try:
+        # Search in cloudinary folder for existing file
+        search_result = cloudinary.Search().expression(
+            f"folder:review1_ppt AND filename:{project_title}*"
+        ).execute()
+        
+        if search_result.get("resources"):
+            existing_ppt_url = search_result["resources"][0]["secure_url"]
+    except Exception as e:
+        print(f"Cloudinary search error: {e}")
 
     if request.method == "POST":
         ppt_file = request.FILES.get("pptFile")
@@ -2499,16 +2716,12 @@ def one_stu(request):
         if not ppt_file:
             return JsonResponse({"status": "fail", "message": "No PPT uploaded"})
 
+        # Upload to Cloudinary directly (no DB storage)
         upload = cloudinary.uploader.upload(
             ppt_file,
             resource_type="raw",
-            folder="review1_ppt"
-        )
-
-        ReviewFile.objects.update_or_create(
-            team_name=team.project_title,
-            review_type=1,
-            defaults={"ppt_url": upload["secure_url"]}
+            folder="review1_ppt",
+            public_id=f"{project_title}_ppt_{int(time.time())}"  # unique name with timestamp
         )
 
         return JsonResponse({
@@ -2516,36 +2729,43 @@ def one_stu(request):
             "ppt_url": upload["secure_url"]
         })
 
+    # Simple render like zero_stu - no complex DB queries
     return render(request, "student/review/1_stu.html", {
         "student_name": student_name,
         "username": username,
-        "ppt_url": existing.ppt_url if existing else None
+        "team_name": project_title,
+        "ppt_url": existing_ppt_url,  # Pass URL directly, not DB object
     })
-
 
 # ======================================================
 # 🔹 REVIEW 2 — STUDENT
 # ======================================================
 def two_stu(request):
     student_name = request.session.get("student_name")
+    print(student_name)
     username = request.session.get("username")
-
+    
     if not student_name:
         return redirect("login")
 
-    team = Team.objects.filter(
-        member_names__icontains=student_name
-    ).first()
-
+    team = Team.objects.filter(member_names__icontains=student_name).first()
     if not team:
-        return render(request, "student/review/2_stu.html", {
-            "error": "Team not found"
-        })
+        return JsonResponse({"status": "fail", "message": "Team not found for this student"}, status=404)
 
-    existing = ReviewFile.objects.filter(
-        team_name=team.project_title,
-        review_type=2
-    ).first()
+    project_title = team.project_title.replace(" ", "_")  # sanitize for filename
+
+    # 🔁 Check for existing PPT in Cloudinary only (no DB model)
+    existing_ppt_url = None
+    try:
+        # Search in cloudinary folder for existing file
+        search_result = cloudinary.Search().expression(
+            f"folder:review2_ppt AND filename:{project_title}*"
+        ).execute()
+        
+        if search_result.get("resources"):
+            existing_ppt_url = search_result["resources"][0]["secure_url"]
+    except Exception as e:
+        print(f"Cloudinary search error: {e}")
 
     if request.method == "POST":
         ppt_file = request.FILES.get("pptFile")
@@ -2553,16 +2773,12 @@ def two_stu(request):
         if not ppt_file:
             return JsonResponse({"status": "fail", "message": "No PPT uploaded"})
 
+        # Upload to Cloudinary directly (no DB storage)
         upload = cloudinary.uploader.upload(
             ppt_file,
             resource_type="raw",
-            folder="review2_ppt"
-        )
-
-        ReviewFile.objects.update_or_create(
-            team_name=team.project_title,
-            review_type=2,
-            defaults={"ppt_url": upload["secure_url"]}
+            folder="review2_ppt",
+            public_id=f"{project_title}_ppt_{int(time.time())}"  # unique name with timestamp
         )
 
         return JsonResponse({
@@ -2570,36 +2786,43 @@ def two_stu(request):
             "ppt_url": upload["secure_url"]
         })
 
+    # Simple render like zero_stu - no complex DB queries
     return render(request, "student/review/2_stu.html", {
         "student_name": student_name,
         "username": username,
-        "ppt_url": existing.ppt_url if existing else None
+        "team_name": project_title,
+        "ppt_url": existing_ppt_url,  # Pass URL directly, not DB object
     })
-
 
 # ======================================================
 # 🔹 REVIEW 3 — STUDENT
 # ======================================================
 def three_stu(request):
     student_name = request.session.get("student_name")
+    print(student_name)
     username = request.session.get("username")
-
+    
     if not student_name:
         return redirect("login")
 
-    team = Team.objects.filter(
-        member_names__icontains=student_name
-    ).first()
-
+    team = Team.objects.filter(member_names__icontains=student_name).first()
     if not team:
-        return render(request, "student/review/3_stu.html", {
-            "error": "Team not found"
-        })
+        return JsonResponse({"status": "fail", "message": "Team not found for this student"}, status=404)
 
-    existing = ReviewFile.objects.filter(
-        team_name=team.project_title,
-        review_type=3
-    ).first()
+    project_title = team.project_title.replace(" ", "_")  # sanitize for filename
+
+    # 🔁 Check for existing PPT in Cloudinary only (no DB model)
+    existing_ppt_url = None
+    try:
+        # Search in cloudinary folder for existing file
+        search_result = cloudinary.Search().expression(
+            f"folder:review3_ppt AND filename:{project_title}*"
+        ).execute()
+        
+        if search_result.get("resources"):
+            existing_ppt_url = search_result["resources"][0]["secure_url"]
+    except Exception as e:
+        print(f"Cloudinary search error: {e}")
 
     if request.method == "POST":
         ppt_file = request.FILES.get("pptFile")
@@ -2607,16 +2830,12 @@ def three_stu(request):
         if not ppt_file:
             return JsonResponse({"status": "fail", "message": "No PPT uploaded"})
 
+        # Upload to Cloudinary directly (no DB storage)
         upload = cloudinary.uploader.upload(
             ppt_file,
             resource_type="raw",
-            folder="review3_ppt"
-        )
-
-        ReviewFile.objects.update_or_create(
-            team_name=team.project_title,
-            review_type=3,
-            defaults={"ppt_url": upload["secure_url"]}
+            folder="review3_ppt",
+            public_id=f"{project_title}_ppt_{int(time.time())}"  # unique name with timestamp
         )
 
         return JsonResponse({
@@ -2624,12 +2843,13 @@ def three_stu(request):
             "ppt_url": upload["secure_url"]
         })
 
+    # Simple render like zero_stu - no complex DB queries
     return render(request, "student/review/3_stu.html", {
         "student_name": student_name,
         "username": username,
-        "ppt_url": existing.ppt_url if existing else None
+        "team_name": project_title,
+        "ppt_url": existing_ppt_url,  # Pass URL directly, not DB object
     })
-
 
 def mentor_list(request):
     mentors = Mentor.objects.all()
@@ -2760,7 +2980,7 @@ from allocation.models import ProjectFile, Team
 # ============================================
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
-from allocation.models import Team, ProjectFile, ZerothReviewRemark
+from allocation.models import Team, ProjectFile, ZerothReviewRemark,FirstReviewRemark,SecondReviewRemark,ThirdReviewRemark
 import cloudinary
 import json
 
@@ -2774,7 +2994,7 @@ def upload_to_cloudinary(file_obj, file_type, folder_name):
             file_obj,
             resource_type="auto",       # Supports PDF, PPT, etc.
 
-            folder=f"project_portal/Upload_docs/{folder_name}",
+            folder=f"project_portal/Upload_docs/Zero_Review/{folder_name}",
             public_id=f"{folder_name}_{file_type}",
             overwrite=True,
             use_filename=True,
@@ -2788,7 +3008,68 @@ def upload_to_cloudinary(file_obj, file_type, folder_name):
         print(f"❌ Cloudinary upload failed for {file_type}: {e}")
         return None
 
+def upload_to_cloudinary1(file_obj, file_type, folder_name):
+    try:
+        print(f"DEBUG: Uploading {file_type} to Cloudinary for Review 1...")
+        result = cloudinary.uploader.upload(
+            file_obj,
+            resource_type="auto",       # Supports PDF, PPT, etc.
 
+            folder=f"project_portal/Upload_docs/First_Review/{folder_name}",  # Changed to Review_1
+            public_id=f"{folder_name}_{file_type}_review1",  # Added review1 identifier
+            overwrite=True,
+            use_filename=True,
+            unique_filename=False,
+            access_mode="public"        # Ensure public access
+        )
+        file_url = result.get("secure_url")
+        print(f"DEBUG: Uploaded {file_type} URL for Review 1 → {file_url}")
+        return file_url
+    except Exception as e:
+        print(f"❌ Cloudinary upload failed for {file_type} in Review 1: {e}")
+        return None
+
+def upload_to_cloudinary2(file_obj, file_type, folder_name):
+    try:
+        print(f"DEBUG: Uploading {file_type} to Cloudinary for Review 2...")
+        result = cloudinary.uploader.upload(
+            file_obj,
+            resource_type="auto",       # Supports PDF, PPT, etc.
+
+            folder=f"project_portal/Upload_docs/Second_Review/{folder_name}",  # Changed to Second_Review
+            public_id=f"{folder_name}_{file_type}_review2",  # Added review2 identifier
+            overwrite=True,
+            use_filename=True,
+            unique_filename=False,
+            access_mode="public"        # Ensure public access
+        )
+        file_url = result.get("secure_url")
+        print(f"DEBUG: Uploaded {file_type} URL for Review 2 → {file_url}")
+        return file_url
+    except Exception as e:
+        print(f"❌ Cloudinary upload failed for {file_type} in Review 2: {e}")
+        return None
+
+def upload_to_cloudinary3(file_obj, file_type, folder_name):
+    try:
+        print(f"DEBUG: Uploading {file_type} to Cloudinary for Review 3...")
+        result = cloudinary.uploader.upload(
+            file_obj,
+            resource_type="auto",       # Supports PDF, PPT, etc.
+
+            folder=f"project_portal/Upload_docs/Third_Review/{folder_name}",  # Changed to Third_Review
+            public_id=f"{folder_name}_{file_type}_review3",  # Added review3 identifier
+            overwrite=True,
+            use_filename=True,
+            unique_filename=False,
+            access_mode="public"        # Ensure public access
+        )
+        file_url = result.get("secure_url")
+        print(f"DEBUG: Uploaded {file_type} URL for Review 3 → {file_url}")
+        return file_url
+    except Exception as e:
+        print(f"❌ Cloudinary upload failed for {file_type} in Review 3: {e}")
+        return None
 # -----------------------------
 # View: Student Upload (Zero Review)
 # -----------------------------
@@ -2948,6 +3229,402 @@ def zero_ma1(request):
 # ============================================
 # 🔹 Student Zero Review File Upload View
 # ============================================
+def one_ma1(request):
+    # ---------------------------
+    # 1️⃣ Get Student Session
+    # ---------------------------
+    student_name = request.session.get("student_name")
+    username = request.session.get("username")
+    print("DEBUG: Student session →", student_name, username)
+
+    if not student_name:
+        return redirect("login")
+
+    # ---------------------------
+    # 2️⃣ Find Student Team
+    # ---------------------------
+    team = Team.objects.filter(member_names__icontains=student_name).first()
+    if not team:
+        return render(request, "student/review/1_ma.html", {
+            "student_name": student_name,
+            "username": username,
+            "error": "Team not found"
+        })
+
+    team_title = team.project_title
+    folder_name = team_title.replace(" ", "_")
+    print("DEBUG: Found team →", team_title)
+
+    # ---------------------------
+    # 3️⃣ Handle POST → Upload PPT Only
+    # ---------------------------
+    if request.method == "POST":
+        ppt_file = request.FILES.get("pptFile")
+        print("DEBUG: File received →", ppt_file)
+
+        uploaded = {}
+
+        if ppt_file:
+            uploaded["ppt"] = upload_to_cloudinary1(ppt_file, "PPT", folder_name)
+
+        print("DEBUG: Uploaded file →", uploaded)
+
+        # ---------------------------
+        # 4️⃣ Update ProjectFile Table (Review 1)
+        # ---------------------------
+        for ftype, url in uploaded.items():
+            if url:
+                obj, created = ProjectFile.objects.update_or_create(
+                    team_name=team_title,
+                    review_type="one",  # Changed from "zero" to "one"
+                    file_type=ftype,
+                    defaults={"cloudinary_url": url}
+                )
+                print(f"DEBUG: ProjectFile {'created' if created else 'updated'} → {ftype}: {url}")
+
+        return JsonResponse({
+            "status": "success",
+            "message": "PPT uploaded to Cloudinary",
+            "files": uploaded
+        })
+
+    # ---------------------------
+    # 5️⃣ GET → Fetch already uploaded PPT
+    # ---------------------------
+    uploaded_files = {}
+    files_qs = ProjectFile.objects.filter(team_name=team_title, review_type="one")  # Changed to "one"
+    for f in files_qs:
+        uploaded_files[f.file_type] = f.cloudinary_url
+    print("DEBUG: Uploaded files fetched →", uploaded_files)
+
+    # ---------------------------
+    # 6️⃣ Get First Review Remarks (GROUPED BY FILE TYPE)
+    # ---------------------------
+    remarks_by_type = {
+        "ppt": []  # Only PPT for review 1
+    }
+    
+    # Fetch all remarks for this team (Review 1)
+    remarks_qs = FirstReviewRemark.objects.filter(team_name=team_title).order_by("created_at")  # Use FirstReviewRemark model
+    
+    for r in remarks_qs:
+        remark_data = {
+            "heading": r.heading,
+            "remark": r.remark,
+            "color": r.color,
+            "created_at": r.created_at,
+            "mentor_name": r.mentor_name if hasattr(r, 'mentor_name') else None
+        }
+        
+        # Determine file type
+        if hasattr(r, 'file_type') and r.file_type:
+            if r.file_type in remarks_by_type:
+                remarks_by_type[r.file_type].append(remark_data)
+            else:
+                remarks_by_type["ppt"].append(remark_data)
+        else:
+            # Default to PPT for review 1
+            remarks_by_type["ppt"].append(remark_data)
+    
+    print("DEBUG: Remarks fetched →", {k: len(v) for k, v in remarks_by_type.items()})
+
+    # ---------------------------
+    # 7️⃣ Get Highlighted PPTs from ProjectRemarks (Review 1)
+    # ---------------------------
+    highlighted_pdfs = {}
+    
+    remarks_files_qs = ProjectRemarks.objects.filter(
+        team_name=team_title,
+        review_type="one"  # Changed to "one"
+    ).select_related('original_file')
+    
+    for remark_file in remarks_files_qs:
+        file_type = remark_file.file_type
+        highlighted_pdfs[file_type] = {
+            "url": remark_file.cloudinary_url,
+            "mentor_name": remark_file.mentor_name,
+            "updated_at": remark_file.updated_at if hasattr(remark_file, 'updated_at') else None,
+            "original_file_type": file_type
+        }
+    
+    print("DEBUG: Highlighted files fetched →", highlighted_pdfs)
+
+    # ---------------------------
+    # 8️⃣ Final Render
+    # ---------------------------
+    return render(request, "student/review/1_ma.html", {
+        "student_name": student_name,
+        "username": username,
+        "team_name": team_title,
+        "uploaded_files": uploaded_files,
+        "remarks_by_type": remarks_by_type,
+        "highlighted_pdfs": highlighted_pdfs,
+    })
+
+def two_ma1(request):
+    # ---------------------------
+    # 1️⃣ Get Student Session
+    # ---------------------------
+    student_name = request.session.get("student_name")
+    username = request.session.get("username")
+    print("DEBUG: Student session →", student_name, username)
+
+    if not student_name:
+        return redirect("login")
+
+    # ---------------------------
+    # 2️⃣ Find Student Team
+    # ---------------------------
+    team = Team.objects.filter(member_names__icontains=student_name).first()
+    if not team:
+        return render(request, "student/review/2_ma.html", {
+            "student_name": student_name,
+            "username": username,
+            "error": "Team not found"
+        })
+
+    team_title = team.project_title
+    folder_name = team_title.replace(" ", "_")
+    print("DEBUG: Found team →", team_title)
+
+    # ---------------------------
+    # 3️⃣ Handle POST → Upload PPT Only
+    # ---------------------------
+    if request.method == "POST":
+        ppt_file = request.FILES.get("pptFile")
+        print("DEBUG: File received →", ppt_file)
+
+        uploaded = {}
+
+        if ppt_file:
+            uploaded["ppt"] = upload_to_cloudinary2(ppt_file, "PPT", folder_name)
+
+        print("DEBUG: Uploaded file →", uploaded)
+
+        # ---------------------------
+        # 4️⃣ Update ProjectFile Table (Review 2)
+        # ---------------------------
+        for ftype, url in uploaded.items():
+            if url:
+                obj, created = ProjectFile.objects.update_or_create(
+                    team_name=team_title,
+                    review_type="two",  # Changed to "two"
+                    file_type=ftype,
+                    defaults={"cloudinary_url": url}
+                )
+                print(f"DEBUG: ProjectFile {'created' if created else 'updated'} → {ftype}: {url}")
+
+        return JsonResponse({
+            "status": "success",
+            "message": "PPT uploaded to Cloudinary",
+            "files": uploaded
+        })
+
+    # ---------------------------
+    # 5️⃣ GET → Fetch already uploaded PPT
+    # ---------------------------
+    uploaded_files = {}
+    files_qs = ProjectFile.objects.filter(team_name=team_title, review_type="two")  # Changed to "two"
+    for f in files_qs:
+        uploaded_files[f.file_type] = f.cloudinary_url
+    print("DEBUG: Uploaded files fetched →", uploaded_files)
+
+    # ---------------------------
+    # 6️⃣ Get Second Review Remarks (GROUPED BY FILE TYPE)
+    # ---------------------------
+    remarks_by_type = {
+        "ppt": []  # Only PPT for review 2
+    }
+    
+    # Fetch all remarks for this team (Review 2)
+    remarks_qs = SecondReviewRemark.objects.filter(team_name=team_title).order_by("created_at")  # Use SecondReviewRemark model
+    
+    for r in remarks_qs:
+        remark_data = {
+            "heading": r.heading,
+            "remark": r.remark,
+            "color": r.color,
+            "created_at": r.created_at,
+            "mentor_name": r.mentor_name if hasattr(r, 'mentor_name') else None
+        }
+        
+        # Determine file type
+        if hasattr(r, 'file_type') and r.file_type:
+            if r.file_type in remarks_by_type:
+                remarks_by_type[r.file_type].append(remark_data)
+            else:
+                remarks_by_type["ppt"].append(remark_data)
+        else:
+            # Default to PPT for review 2
+            remarks_by_type["ppt"].append(remark_data)
+    
+    print("DEBUG: Remarks fetched →", {k: len(v) for k, v in remarks_by_type.items()})
+
+    # ---------------------------
+    # 7️⃣ Get Highlighted PPTs from ProjectRemarks (Review 2)
+    # ---------------------------
+    highlighted_pdfs = {}
+    
+    remarks_files_qs = ProjectRemarks.objects.filter(
+        team_name=team_title,
+        review_type="two"  # Changed to "two"
+    ).select_related('original_file')
+    
+    for remark_file in remarks_files_qs:
+        file_type = remark_file.file_type
+        highlighted_pdfs[file_type] = {
+            "url": remark_file.cloudinary_url,
+            "mentor_name": remark_file.mentor_name,
+            "updated_at": remark_file.updated_at if hasattr(remark_file, 'updated_at') else None,
+            "original_file_type": file_type
+        }
+    
+    print("DEBUG: Highlighted files fetched →", highlighted_pdfs)
+
+    # ---------------------------
+    # 8️⃣ Final Render
+    # ---------------------------
+    return render(request, "student/review/2_ma.html", {
+        "student_name": student_name,
+        "username": username,
+        "team_name": team_title,
+        "uploaded_files": uploaded_files,
+        "remarks_by_type": remarks_by_type,
+        "highlighted_pdfs": highlighted_pdfs,
+    })
+
+def three_ma1(request):
+    # ---------------------------
+    # 1️⃣ Get Student Session
+    # ---------------------------
+    student_name = request.session.get("student_name")
+    username = request.session.get("username")
+    print("DEBUG: Student session →", student_name, username)
+
+    if not student_name:
+        return redirect("login")
+
+    # ---------------------------
+    # 2️⃣ Find Student Team
+    # ---------------------------
+    team = Team.objects.filter(member_names__icontains=student_name).first()
+    if not team:
+        return render(request, "student/review/3_ma.html", {
+            "student_name": student_name,
+            "username": username,
+            "error": "Team not found"
+        })
+
+    team_title = team.project_title
+    folder_name = team_title.replace(" ", "_")
+    print("DEBUG: Found team →", team_title)
+
+    # ---------------------------
+    # 3️⃣ Handle POST → Upload PPT Only
+    # ---------------------------
+    if request.method == "POST":
+        ppt_file = request.FILES.get("pptFile")
+        print("DEBUG: File received →", ppt_file)
+
+        uploaded = {}
+
+        if ppt_file:
+            uploaded["ppt"] = upload_to_cloudinary3(ppt_file, "PPT", folder_name)
+
+        print("DEBUG: Uploaded file →", uploaded)
+
+        # ---------------------------
+        # 4️⃣ Update ProjectFile Table (Review 3)
+        # ---------------------------
+        for ftype, url in uploaded.items():
+            if url:
+                obj, created = ProjectFile.objects.update_or_create(
+                    team_name=team_title,
+                    review_type="three",  # Changed to "three"
+                    file_type=ftype,
+                    defaults={"cloudinary_url": url}
+                )
+                print(f"DEBUG: ProjectFile {'created' if created else 'updated'} → {ftype}: {url}")
+
+        return JsonResponse({
+            "status": "success",
+            "message": "PPT uploaded to Cloudinary",
+            "files": uploaded
+        })
+
+    # ---------------------------
+    # 5️⃣ GET → Fetch already uploaded PPT
+    # ---------------------------
+    uploaded_files = {}
+    files_qs = ProjectFile.objects.filter(team_name=team_title, review_type="three")  # Changed to "three"
+    for f in files_qs:
+        uploaded_files[f.file_type] = f.cloudinary_url
+    print("DEBUG: Uploaded files fetched →", uploaded_files)
+
+    # ---------------------------
+    # 6️⃣ Get Third Review Remarks (GROUPED BY FILE TYPE)
+    # ---------------------------
+    remarks_by_type = {
+        "ppt": []  # Only PPT for review 3
+    }
+    
+    # Fetch all remarks for this team (Review 3)
+    remarks_qs = ThirdReviewRemark.objects.filter(team_name=team_title).order_by("created_at")  # Use ThirdReviewRemark model
+    
+    for r in remarks_qs:
+        remark_data = {
+            "heading": r.heading,
+            "remark": r.remark,
+            "color": r.color,
+            "created_at": r.created_at,
+            "mentor_name": r.mentor_name if hasattr(r, 'mentor_name') else None
+        }
+        
+        # Determine file type
+        if hasattr(r, 'file_type') and r.file_type:
+            if r.file_type in remarks_by_type:
+                remarks_by_type[r.file_type].append(remark_data)
+            else:
+                remarks_by_type["ppt"].append(remark_data)
+        else:
+            # Default to PPT for review 3
+            remarks_by_type["ppt"].append(remark_data)
+    
+    print("DEBUG: Remarks fetched →", {k: len(v) for k, v in remarks_by_type.items()})
+
+    # ---------------------------
+    # 7️⃣ Get Highlighted PPTs from ProjectRemarks (Review 3)
+    # ---------------------------
+    highlighted_pdfs = {}
+    
+    remarks_files_qs = ProjectRemarks.objects.filter(
+        team_name=team_title,
+        review_type="three"  # Changed to "three"
+    ).select_related('original_file')
+    
+    for remark_file in remarks_files_qs:
+        file_type = remark_file.file_type
+        highlighted_pdfs[file_type] = {
+            "url": remark_file.cloudinary_url,
+            "mentor_name": remark_file.mentor_name,
+            "updated_at": remark_file.updated_at if hasattr(remark_file, 'updated_at') else None,
+            "original_file_type": file_type
+        }
+    
+    print("DEBUG: Highlighted files fetched →", highlighted_pdfs)
+
+    # ---------------------------
+    # 8️⃣ Final Render
+    # ---------------------------
+    return render(request, "student/review/3_ma.html", {
+        "student_name": student_name,
+        "username": username,
+        "team_name": team_title,
+        "uploaded_files": uploaded_files,
+        "remarks_by_type": remarks_by_type,
+        "highlighted_pdfs": highlighted_pdfs,
+    })
+
 
 
 from django.http import JsonResponse
@@ -3063,6 +3740,299 @@ def save_zeroth_remark(request):
         "inserted": inserted,
         "updated": updated,
         "deleted": deleted_count
+    })
+
+def save_first_remark(request):
+    """
+    Save remarks for PPT in First Review.
+    """
+    print("🔥 save_first_remark CALLED")
+
+    if request.method != "POST":
+        return JsonResponse({"status": "fail", "message": "Invalid request"})
+
+    mentor_name = request.session.get("mentor_name")
+    print("Mentor:", mentor_name)
+
+    allocation = AllocationResult.objects.filter(
+        mentor_name=mentor_name
+    ).first()
+
+    if not allocation:
+        print("❌ No allocation found")
+        return JsonResponse({"status": "fail", "message": "No team allocated"})
+
+    team_name = allocation.team_name
+    print("Team:", team_name)
+
+    try:
+        data = json.loads(request.body)
+        remarks = data.get("remarks", [])
+        deleted = data.get("deleted", [])
+        
+        # FIXED: Only PPT for first review
+        file_type = "ppt"
+            
+        print("File type:", file_type)
+        print("Remarks count:", len(remarks))
+        print("Deleted count:", len(deleted))
+        
+    except Exception as e:
+        print("❌ JSON error:", e)
+        return JsonResponse({"status": "fail", "message": "Invalid JSON"})
+
+    inserted = 0
+    updated = 0
+    deleted_count = 0
+
+    # Handle deletions
+    if deleted:
+        for heading in deleted:
+            heading = heading.strip()
+            if not heading:
+                continue
+                
+            print(f"🗑️ Deleting: '{heading}' for {file_type}")
+            
+            deleted_count += FirstReviewRemark.objects.filter(
+                team_name=team_name,
+                mentor_name=mentor_name,
+                heading=heading,
+                file_type=file_type
+            ).delete()[0]
+
+    # Handle upserts
+    for r in remarks:
+        heading = (r.get("heading") or "").strip()
+        remark = (r.get("remark") or "").strip()
+        color = r.get("color") or "#ffe066"
+        slide_number = r.get("slideNumber") or None
+
+        if not heading or not remark:
+            continue
+
+        print(f"💾 Saving: '{heading}' for {file_type}")
+
+        obj, created = FirstReviewRemark.objects.update_or_create(
+            team_name=team_name,
+            mentor_name=mentor_name,
+            heading=heading,
+            file_type=file_type,
+            defaults={
+                "remark": remark,
+                "color": color,
+            }
+        )
+
+        if created:
+            inserted += 1
+        else:
+            updated += 1
+
+    print(f"✅ Done for First Review {file_type}: {inserted} new, {updated} updated, {deleted_count} deleted")
+    
+    return JsonResponse({
+        "status": "success",
+        "file_type": file_type,
+        "inserted": inserted,
+        "updated": updated,
+        "deleted": deleted_count
+    })
+
+
+def save_second_remark(request):
+    """
+    Save remarks for PPT in Second Review.
+    """
+    print("🔥 save_second_remark CALLED")
+
+    if request.method != "POST":
+        return JsonResponse({"status": "fail", "message": "Invalid request"})
+
+    mentor_name = request.session.get("mentor_name")
+    print("Mentor:", mentor_name)
+
+    allocation = AllocationResult.objects.filter(
+        mentor_name=mentor_name
+    ).first()
+
+    if not allocation:
+        print("❌ No allocation found")
+        return JsonResponse({"status": "fail", "message": "No team allocated"})
+
+    team_name = allocation.team_name
+    print("Team:", team_name)
+
+    try:
+        data = json.loads(request.body)
+        remarks = data.get("remarks", [])
+        deleted = data.get("deleted", [])
+        
+        # FIXED: Only PPT for second review
+        file_type = "ppt"
+            
+        print("File type:", file_type)
+        print("Remarks count:", len(remarks))
+        print("Deleted count:", len(deleted))
+        
+    except Exception as e:
+        print("❌ JSON error:", e)
+        return JsonResponse({"status": "fail", "message": "Invalid JSON"})
+
+    inserted = 0
+    updated = 0
+    deleted_count = 0
+
+    # Handle deletions
+    if deleted:
+        for heading in deleted:
+            heading = heading.strip()
+            if not heading:
+                continue
+                
+            print(f"🗑️ Deleting: '{heading}' for {file_type}")
+            
+            deleted_count += SecondReviewRemark.objects.filter(
+                team_name=team_name,
+                mentor_name=mentor_name,
+                heading=heading,
+                file_type=file_type
+            ).delete()[0]
+
+    # Handle upserts
+    for r in remarks:
+        heading = (r.get("heading") or "").strip()
+        remark = (r.get("remark") or "").strip()
+        color = r.get("color") or "#ffe066"
+        slide_number = r.get("slideNumber") or None
+
+        if not heading or not remark:
+            continue
+
+        print(f"💾 Saving: '{heading}' for {file_type}")
+
+        obj, created = SecondReviewRemark.objects.update_or_create(
+            team_name=team_name,
+            mentor_name=mentor_name,
+            heading=heading,
+            file_type=file_type,
+            defaults={
+                "remark": remark,
+                "color": color,
+            }
+        )
+
+        if created:
+            inserted += 1
+        else:
+            updated += 1
+
+    print(f"✅ Done for Second Review {file_type}: {inserted} new, {updated} updated, {deleted_count} deleted")
+    
+    return JsonResponse({
+        "status": "success",
+        "file_type": file_type,
+        "inserted": inserted,
+        "updated": updated,
+        "deleted": deleted_count
+    })
+
+
+def save_third_remark(request):
+    """
+    Save remarks for PPT in Third Review.
+    """
+    print("🔥 save_third_remark CALLED")
+
+    if request.method != "POST":
+        return JsonResponse({"status": "fail", "message": "Invalid request"})
+
+    mentor_name = request.session.get("mentor_name")
+    print("Mentor:", mentor_name)
+
+    allocation = AllocationResult.objects.filter(
+        mentor_name=mentor_name
+    ).first()
+
+    if not allocation:
+        print("❌ No allocation found")
+        return JsonResponse({"status": "fail", "message": "No team allocated"})
+
+    team_name = allocation.team_name
+    print("Team:", team_name)
+
+    try:
+        data = json.loads(request.body)
+        remarks = data.get("remarks", [])
+        deleted = data.get("deleted", [])
+        
+        # FIXED: Only PPT for third review
+        file_type = "ppt"
+            
+        print("File type:", file_type)
+        print("Remarks count:", len(remarks))
+        print("Deleted count:", len(deleted))
+        
+    except Exception as e:
+        print("❌ JSON error:", e)
+        return JsonResponse({"status": "fail", "message": "Invalid JSON"})
+
+    inserted = 0
+    updated = 0
+    deleted_count = 0
+
+    # Handle deletions
+    if deleted:
+        for heading in deleted:
+            heading = heading.strip()
+            if not heading:
+                continue
+                
+            print(f"🗑️ Deleting: '{heading}' for {file_type}")
+            
+            deleted_count += ThirdReviewRemark.objects.filter(
+                team_name=team_name,
+                mentor_name=mentor_name,
+                heading=heading,
+                file_type=file_type
+            ).delete()[0]
+
+    # Handle upserts
+    for r in remarks:
+        heading = (r.get("heading") or "").strip()
+        remark = (r.get("remark") or "").strip()
+        color = r.get("color") or "#ffe066"
+        slide_number = r.get("slideNumber") or None
+
+        if not heading or not remark:
+            continue
+
+        print(f"💾 Saving: '{heading}' for {file_type}")
+
+        obj, created = ThirdReviewRemark.objects.update_or_create(
+            team_name=team_name,
+            mentor_name=mentor_name,
+            heading=heading,
+            file_type=file_type,
+            defaults={
+                "remark": remark,
+                "color": color,
+            }
+        )
+
+        if created:
+            inserted += 1
+        else:
+            updated += 1
+
+    print(f"✅ Done for Third Review {file_type}: {inserted} new, {updated} updated, {deleted_count} deleted")
+    
+    return JsonResponse({
+        "status": "success",
+        "file_type": file_type,
+        "inserted": inserted,
+        "updated": updated,
+        "deleted_count": deleted_count
     })
 
 def clean_text(text):

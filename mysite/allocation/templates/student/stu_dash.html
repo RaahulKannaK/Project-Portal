@@ -577,8 +577,7 @@ body{
     </div>
 
   <nav class="sidebar-nav">
-    <nav class="sidebar-nav">
-  <a href="#" id="overviewLink" class="nav-item active"><i class="fas fa-home"></i>Overview</a>
+    <a class="nav-item active" id="overviewLink"><i class="fas fa-home"></i>Overview</a>
     <a href="{% url 'zero_stu' %}" class="nav-item"><i class="fas fa-trophy"></i>Reviews</a>
     <a href="#" class="nav-item"><i class="fas fa-chart-line"></i>Reports</a>
     <a href="#" id="settingsLink" class="nav-item"><i class="fas fa-cog"></i>Settings</a>
@@ -603,13 +602,11 @@ body{
     </div>
 
     <div class="dropdown">
-      <button class="more-options-btn dropdown-toggle" data-bs-toggle="dropdown">
-        <i class="fas fa-ellipsis-h"></i>
+      <button class="more-options-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
+        <i class="fas fa-user-circle"></i>
       </button>
       <ul class="dropdown-menu dropdown-menu-end">
-        <li class="dropdown-item text-center fw-bold">
-          {{ student_id }} – {{ student_name }}
-        </li>
+        <li><a class="dropdown-item" href="#"><i class="fas fa-id-badge me-2"></i>Profile</a></li>
         <li><hr class="dropdown-divider"></li>
         <li>
           <a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}">
@@ -842,13 +839,27 @@ body{
 const dashboard = document.getElementById('dashboardView');
 const settings = document.getElementById('settingsView');
 const settingsLink = document.getElementById('settingsLink');
+const overviewLink = document.getElementById('overviewLink');
 const backBtn = document.getElementById('backBtn');
 const overviewLink = document.getElementById('overviewLink');
 
+function showDashboard() {
+  settings.style.display = 'none';
+  dashboard.style.display = 'block';
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  overviewLink.classList.add('active');
+}
+
+function showSettings() {
+  dashboard.style.display = 'none';
+  settings.style.display = 'block';
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  settingsLink.classList.add('active');
+}
+
 settingsLink.addEventListener('click', (e)=>{
   e.preventDefault();
-  dashboard.style.display='none';
-  settings.style.display='block';
+  showSettings();
 });
 overviewLink.addEventListener('click', (e)=>{
   e.preventDefault();
@@ -856,10 +867,12 @@ overviewLink.addEventListener('click', (e)=>{
   dashboard.style.display='block';
 });
 
-backBtn.addEventListener('click', ()=>{
-  settings.style.display='none';
-  dashboard.style.display='block';
+overviewLink.addEventListener('click', (e)=>{
+  e.preventDefault();
+  showDashboard();
 });
+
+backBtn.addEventListener('click', showDashboard);
 
 // Slide Panel Functions
 function openAnnouncementsPanel() {
