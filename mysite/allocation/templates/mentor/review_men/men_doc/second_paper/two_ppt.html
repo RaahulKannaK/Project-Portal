@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Guide Hub - PPT Review</title>
+<title>Guide Hub - Second Review PPT</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -12,11 +12,11 @@
 
 <style>
 :root {
-  --primary: #6a0dad;        /* 🟣 Purple - Same as abstract */
-  --secondary: #c7a4e0;      /* 🟣 Light purple - Same as abstract */
-  --accent: #f9ddeb;         /* 🟣 Pink accent - Same as abstract */
+  --primary: #6a0dad;        /* 🟣 Purple - Same as zero */
+  --secondary: #c7a4e0;      /* 🟣 Light purple - Same as zero */
+  --accent: #f9ddeb;         /* 🟣 Pink accent - Same as zero */
   --background: #f8f9fc;
-  --ppt-indicator: #9b59b6;  /* 🟣 Slightly different purple for PPT badge only */
+  --review-indicator: #17a2b8; /* 🔵 Cyan for Review 2 indicator */
 }
 
 body{
@@ -88,7 +88,6 @@ body{
   border-radius: 14px;
   margin-bottom: 20px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-  /* 🟣 Same as abstract - no special border */
 }
 
 .main-card h5 {
@@ -112,7 +111,6 @@ body{
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
-/* 🟣 Same glass button style as abstract */
 .glass-btn.ppt-action {
   background: var(--accent);
   color: #2e2e2e;
@@ -142,7 +140,6 @@ body{
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* 🟣 PPT Viewer Panel - Same styling as abstract PDF panel */
 .ppt-container {
   background: #fff;
   border-radius: 12px;
@@ -151,7 +148,6 @@ body{
   height: 75vh;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-  /* 🟣 No special border - same as abstract */
 }
 
 .ppt-toolbar{
@@ -169,7 +165,6 @@ body{
   font-size: 14px;
 }
 
-/* 🟣 PPT iframe styling */
 .ppt-viewer {
   width: 100%;
   height: 100%;
@@ -192,11 +187,10 @@ body{
 
 .ppt-placeholder i {
   font-size: 64px;
-  color: var(--primary);  /* 🟣 Purple */
+  color: var(--primary);
   margin-bottom: 20px;
 }
 
-/* 🟣 Remark Panel - Same as abstract */
 .remark-panel {
   background: #fff;
   border-radius: 12px;
@@ -204,7 +198,6 @@ body{
   height: 75vh;
   overflow-y: auto;
   box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-  /* 🟣 No special border - same as abstract */
 }
 
 .remark-panel h6 {
@@ -215,14 +208,13 @@ body{
   border-bottom: 2px solid var(--accent);
 }
 
-/* 🟣 Stats box - Same as abstract */
 .ppt-stats {
   background: var(--accent);
   padding: 10px;
   border-radius: 8px;
   margin-bottom: 15px;
   font-size: 12px;
-  border-left: 4px solid var(--primary);  /* 🟣 Purple */
+  border-left: 4px solid var(--primary);
 }
 
 .ppt-stats span {
@@ -236,12 +228,11 @@ body{
   border-radius: 10px;
   margin-bottom: 10px;
   font-size: 13px;
-  border-left: 4px solid var(--primary);  /* 🟣 Purple */
+  border-left: 4px solid var(--primary);
   transition: 0.3s;
   position: relative;
 }
 
-/* 🟣 Same tag styling as abstract */
 .tag-item.ppt-tag {
   border-left-color: var(--primary);
   background: linear-gradient(135deg, var(--accent), #fff);
@@ -280,7 +271,6 @@ body{
   color: #fff;
 }
 
-/* 🟣 Same heading badge as abstract */
 .heading-badge.ppt-heading {
   background: #e9ecef;
   color: #495057;
@@ -334,13 +324,11 @@ body{
   background: rgba(255,255,255,0.2);
 }
 
-/* 🟣 Same status badge as abstract */
 .status-badge.ppt-status {
   background: rgba(255,255,255,0.2);
   color: #fff;
 }
 
-/* 🟣 Slide selector - Styled like abstract input */
 .slide-selector {
   background: #f8f9fa;
   padding: 10px;
@@ -368,14 +356,13 @@ body{
 .slide-input:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(106, 13, 173, 0.2);  /* 🟣 Purple shadow */
+  box-shadow: 0 0 0 3px rgba(106, 13, 173, 0.2);
 }
 
-/* 🟣 PPT type indicator - Subtle difference only */
-.ppt-indicator {
+.review-indicator {
   display: inline-flex;
   align-items: center;
-  background: var(--ppt-indicator);  /* 🟣 Slightly different purple */
+  background: var(--review-indicator);
   color: #fff;
   padding: 4px 12px;
   border-radius: 20px;
@@ -390,7 +377,6 @@ body{
   50% { opacity: 0.7; }
 }
 
-/* 🟣 Visual difference indicators */
 .diff-badge {
   display: inline-block;
   padding: 2px 8px;
@@ -402,26 +388,10 @@ body{
 }
 
 .diff-badge.ppt {
-  background: var(--primary);  /* 🟣 Purple */
+  background: var(--primary);
   color: #fff;
 }
 
-/* 🟣 Current slide display */
-.current-slide-display {
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  color: #fff;
-  padding: 10px 15px;
-  border-radius: 8px;
-  margin-bottom: 15px;
-  text-align: center;
-  font-weight: 600;
-}
-
-.current-slide-display i {
-  margin-right: 8px;
-}
-
-/* 🟣 Color picker buttons - Same as abstract */
 .color-btn{
   width: 30px;
   height: 30px;
@@ -450,13 +420,11 @@ body{
 <!-- SIDEBAR -->
 <div class="sidebar">
   <div class="sidebar-header">
-    <h5><i class="fas fa-folder-open me-2"></i>Zero Review</h5>
+    <h5><i class="fas fa-folder-open me-2"></i>Second Review</h5>
   </div>
   <nav>
-    <a href="{% url 'zero_ppt' %}" class="active"><i class="fas fa-file-powerpoint me-2"></i>PPT</a>
-    <a href="{% url 'zero_form' %}"><i class="fas fa-clipboard-list me-2"></i>Review Form</a>
-    <a href="{% url 'zero_review' %}"><i class="fas fa-file-alt me-2"></i>Review Paper</a>
-    <a href="{% url 'zero_base' %}"><i class="fas fa-file-pdf me-2"></i>Base Paper</a>
+    <a href="{% url 'two_ppt' %}" class="active"><i class="fas fa-file-powerpoint me-2"></i>PPT</a>
+
   </nav>
 </div>
 
@@ -469,7 +437,7 @@ body{
     <div>
       <h5>
         <i class="fas fa-file-powerpoint me-2"></i>Review PPT 
-        <span class="ppt-indicator"><i class="fas fa-presentation"></i>PPT MODE</span>
+        <span class="review-indicator"><i class="fas fa-presentation"></i>REVIEW 2</span>
       </h5>
       <small class="opacity-75">
         Team: {{ team_name|default:"Not Assigned" }} | 
@@ -538,7 +506,7 @@ body{
     <span id="remarkCount">0</span> remarks for this PPT
   </div>
 
-  <!-- 🟣 Slide number input (replaces text selection) -->
+  <!-- Slide number input -->
   <div class="slide-selector">
     <label><i class="fas fa-slide me-1"></i>Current Slide Number</label>
     <input type="number" id="slideNumber" class="slide-input" 
@@ -581,7 +549,7 @@ body{
   </div>
   {% endif %}
 
-  <!-- 🟣 Color Picker - Same as abstract -->
+  <!-- Color Picker -->
   <div class="mb-3">
     <label class="form-label"><i class="fas fa-palette me-1"></i>Tag Color</label>
     <div>
@@ -632,7 +600,7 @@ body{
 </div>
 
 <script>
-  // 🟣 Inject DB remarks for JS access - PPT specific
+  // Inject DB remarks for JS access - Second Review PPT specific
 const DB_SAVED_REMARKS = [
   {% for r in saved_remarks %}
   {
@@ -652,21 +620,21 @@ document.addEventListener("DOMContentLoaded", () => {
   let tags = [];
   let deletedHeadings = [];
   let sending = false;
-  let selectedColor = "#ffe066"; // 🟣 Default yellow - same as abstract
+  let selectedColor = "#ffe066";
 
-  const STORAGE_KEY = "zero_ppt_remarks_v1";
-  const DELETED_REMARKS_KEY = "zero_ppt_deleted_remarks_v1";
+  const STORAGE_KEY = "second_review_ppt_remarks_v1";
+  const DELETED_REMARKS_KEY = "second_review_ppt_deleted_remarks_v1";
   
-  // 🟣 Document info for PPT
+  // Document info for Second Review PPT
   const DOC_INFO = {
     type: "ppt",
     file_type: "ppt",
-    filename: "{{ team_name|escapejs }}_PPT",
+    filename: "{{ team_name|escapejs }}_Review2_PPT",
     teamName: "{{ team_name|escapejs }}",
     documentSection: "ppt",
-    pageType: "ppt_review",
+    pageType: "second_review_ppt",
     metadata: {
-      source: "zeroth_review",
+      source: "second_review",
       documentFormat: "ppt",
       reviewType: "ppt_assessment",
       timestamp: new Date().toISOString()
@@ -688,11 +656,10 @@ document.addEventListener("DOMContentLoaded", () => {
     pptViewer: document.getElementById("pptViewer")
   };
 
-  // 🟣 Initialize on page load
   initializeSystem();
 
   function initializeSystem() {
-    // 🟣 Load ONLY PPT remarks from DB
+    // Load ONLY PPT remarks from DB for Second Review
     tags = DB_SAVED_REMARKS
       .filter(r => r.file_type === "ppt" || r.file_type === "all" || !r.file_type)
       .map(r => ({
@@ -706,15 +673,12 @@ document.addEventListener("DOMContentLoaded", () => {
         documentSection: r.document_section || "ppt"
       }));
     
-    console.log(`Loaded ${tags.length} PPT remarks from DB`);
+    console.log(`Loaded ${tags.length} Second Review PPT remarks from DB`);
     renderTags();
     updateStats();
-    
-    // Restore from localStorage
     restoreFromStorage();
   }
 
-  // Restore from localStorage
   function restoreFromStorage() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -733,7 +697,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const hoursOld = age / (1000 * 60 * 60);
         
         if (hoursOld < 24) {
-          // Merge with DB tags, avoiding duplicates
           data.tags.forEach(localTag => {
             if (!tags.find(t => t.heading === localTag.heading && t.remark === localTag.remark)) {
               tags.push({...localTag, fromDB: false});
@@ -741,7 +704,7 @@ document.addEventListener("DOMContentLoaded", () => {
           });
           renderTags();
           updateStats();
-          console.log("✅ Restored PPT remarks from localStorage");
+          console.log("✅ Restored Second Review PPT remarks from localStorage");
         }
       }
     } catch (e) {
@@ -749,7 +712,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Save to localStorage
   function saveToStorage() {
     try {
       const data = {
@@ -760,11 +722,11 @@ document.addEventListener("DOMContentLoaded", () => {
         timestamp: new Date().toISOString(),
         metadata: {
           version: "1.0",
-          source: "zeroth_review_ppt"
+          source: "second_review_ppt"
         }
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      console.log("✅ Saved PPT remarks to localStorage");
+      console.log("✅ Saved Second Review PPT remarks to localStorage");
     } catch (e) {
       console.error("Failed to save to localStorage:", e);
     }
@@ -787,7 +749,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 🟣 Color picker event listeners - Same as abstract
   document.querySelectorAll(".color-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".color-btn").forEach(b => b.classList.remove("active"));
@@ -796,7 +757,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // 🟣 Slide number input handler
   if (elements.slideNumber) {
     elements.slideNumber.addEventListener("input", (e) => {
       const slideNum = e.target.value;
@@ -839,7 +799,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 200);
   };
 
-  // 🟣 Save tag function (No highlighting, just save remark)
   window.saveTag = () => {
     const heading = elements.detectedHeading.value.trim();
     const remark = elements.remarkText.value.trim();
@@ -860,7 +819,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const finalHeading = heading || `Slide ${slideNum}`;
     
-    // 🟣 Check duplicates only within PPT tags
     const pptTags = tags.filter(t => t.fileType === "ppt" || !t.fileType);
     const exactDup = pptTags.findIndex(t => t.heading === finalHeading && t.remark === remark);
     if (exactDup !== -1) {
@@ -893,7 +851,6 @@ document.addEventListener("DOMContentLoaded", () => {
       documentSection: "ppt"
     });
 
-    // Clear inputs
     elements.detectedHeading.value = "";
     elements.remarkText.value = "";
     elements.slideNumber.value = "";
@@ -903,7 +860,6 @@ document.addEventListener("DOMContentLoaded", () => {
     updateStats();
     saveToStorage();
     
-    // Visual feedback
     const btn = event.target;
     const originalHTML = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-check me-2"></i>Saved!';
@@ -917,11 +873,10 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderTags() {
     if (!elements.savedTags) return;
     
-    // 🟣 Only render PPT tags
     const pptTags = tags.filter(t => t.fileType === "ppt" || !t.fileType);
     
     if (pptTags.length === 0) {
-      elements.savedTags.innerHTML = '<small class="text-muted">No PPT remarks added yet. Add slide number/title and remarks.</small>';
+      elements.savedTags.innerHTML = '<small class="text-muted">No Second Review PPT remarks added yet. Add slide number/title and remarks.</small>';
       return;
     }
 
@@ -992,7 +947,7 @@ document.addEventListener("DOMContentLoaded", () => {
       elements.savedCount.textContent = count;
     }
     
-    console.log(`PPT Stats updated - Remarks: ${count}`);
+    console.log(`Second Review PPT Stats updated - Remarks: ${count}`);
   }
 
   function showSuccessFeedback(message = "Saved!") {
@@ -1011,7 +966,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 1200);
   }
 
-  // 🟣 Send to Student function
   window.sendRemarksToStudent = () => {
     if (sending) return;
     
@@ -1024,12 +978,12 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     
-    if (!confirm(`Save ${unsaved.length} new and delete ${deletedHeadings.length} remarks for PPT?`)) return;
+    if (!confirm(`Save ${unsaved.length} new and delete ${deletedHeadings.length} remarks for Second Review PPT?`)) return;
     
     sending = true;
     if (elements.sendBtn) {
       elements.sendBtn.disabled = true;
-      elements.sendBtn.innerHTML = '<span class="loading-spinner me-2"></span>Saving PPT...';
+      elements.sendBtn.innerHTML = '<span class="loading-spinner me-2"></span>Saving Review 2...';
     }
 
     const payload = {
@@ -1044,13 +998,13 @@ document.addEventListener("DOMContentLoaded", () => {
       document_section: "ppt",
       team_name: "{{ team_name|escapejs }}",
       metadata: {
-        source: "zeroth_review",
+        source: "second_review",
         version: "1.0",
         savedAt: new Date().toISOString()
       }
     };
 
-    fetch("{% url 'save_zeroth_remark' %}", {
+    fetch("{% url 'save_second_remark' %}", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1074,9 +1028,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const deleted = d.deleted || 0;
         const totalSaved = inserted + updated;
         
-        showSuccessFeedback(`Saved: ${totalSaved} PPT remarks`);
+        showSuccessFeedback(`Saved: ${totalSaved} Review 2 remarks`);
         
-        // Mark all PPT tags as saved
         tags.forEach(t => {
           if (t.fileType === "ppt" || !t.fileType) {
             t.fromDB = true;
@@ -1089,7 +1042,7 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.removeItem(DELETED_REMARKS_KEY);
         localStorage.removeItem(STORAGE_KEY);
         
-        console.log("✅ PPT database save:", d);
+        console.log("✅ Second Review database save:", d);
         
         setTimeout(() => {
           if (elements.sendBtn) {
@@ -1103,8 +1056,8 @@ document.addEventListener("DOMContentLoaded", () => {
     })
     .catch(err => {
       sending = false;
-      console.error("PPT save error:", err);
-      alert("❌ Error saving PPT: " + err.message);
+      console.error("Second Review save error:", err);
+      alert("❌ Error saving Second Review: " + err.message);
       
       if (elements.sendBtn) {
         elements.sendBtn.disabled = false;
@@ -1113,7 +1066,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
-  // Keyboard shortcuts
   document.addEventListener("keydown", (e) => {
     if (!elements.splitView.classList.contains("active")) return;
     
@@ -1130,13 +1082,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Before unload warning
   window.addEventListener("beforeunload", (e) => {
     const pptTags = tags.filter(t => t.fileType === "ppt" || !t.fileType);
     const hasUnsaved = pptTags.some(t => !t.fromDB) || deletedHeadings.length > 0;
     if (hasUnsaved && !sending) {
       e.preventDefault();
-      e.returnValue = "You have unsaved PPT changes. Are you sure you want to leave?";
+      e.returnValue = "You have unsaved Second Review changes. Are you sure you want to leave?";
     }
   });
 
