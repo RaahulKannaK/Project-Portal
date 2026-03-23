@@ -1,0 +1,44 @@
+/* Back Button Styling */
+.back-btn-container {
+    margin-bottom: 25px;
+    display: flex;
+    align-items: center;
+}
+
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    background: #ffffff;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.btn-back i {
+    font-size: 0.9rem;
+    transition: transform 0.3s ease;
+}
+
+.btn-back:hover {
+    background: var(--primary);
+    color: #ffffff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.btn-back:hover i {
+    transform: translateX(-5px);
+}
+
+@media (max-width: 768px) {
+    .btn-back {
+        padding: 8px 16px;
+        font-size: 0.9rem;
+    }
+}

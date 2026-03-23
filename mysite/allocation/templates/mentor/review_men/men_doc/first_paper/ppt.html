@@ -276,14 +276,7 @@
           <div class="profile-avatar">S</div>
           <span class="welcome-text">Welcome, {{ user.username }}!</span>
         </div>
-        <div class="dropdown">
-          <button class="more-options-btn dropdown-toggle" type="button" id="moreOptionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="fas fa-ellipsis-h"></i>
-          </button>
-          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="moreOptionsDropdown">
-            <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
-          </ul>
-        </div>
+        {% include 'logout_button.html' %}
       </div>
 
       <div class="content-grid">

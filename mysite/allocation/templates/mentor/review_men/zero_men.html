@@ -269,20 +269,7 @@
           <div class="profile-avatar">{{ request.session.mentor_name|slice:":1" }}</div>
           <span class="welcome-text">Welcome, {{ mentor_name }}!</span>
         </div>
-        <div class="dropdown">
-          <button class="more-options-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            <i class="fas fa-user-circle"></i>
-          </button>
-          <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item" href="{% url 'men_dash' %}"><i class="fas fa-home me-2"></i>Dashboard</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li>
-              <a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}">
-                <i class="fas fa-sign-out-alt me-2"></i>Logout
-              </a>
-            </li>
-          </ul>
-        </div>
+        {% include 'logout_button.html' %}
       </div>
 
       <div class="content-grid">

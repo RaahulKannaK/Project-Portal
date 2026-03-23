@@ -168,10 +168,9 @@ iframe{
 <div class="top-header">
   <div></div>
   <div class="d-flex align-items-center">
-    <div class="profile-avatar">{{ mentor_name|slice:":1" }}</div>
     <div class="welcome-text">Welcome, {{ mentor_name }}</div>
   </div>
-  <a href="{% url 'logout' %}" class="glass-btn">Logout</a>
+  {% include 'logout_button.html' %}
 </div>
 
 <!-- CARD -->

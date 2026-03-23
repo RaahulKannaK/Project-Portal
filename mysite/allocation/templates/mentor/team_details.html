@@ -429,14 +429,7 @@
           <h2>Welcome, {{ mentor_name }}!</h2>
         </div>
       </div>
-      <div class="dropdown">
-        <button class="menu-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
-          <i class="fas fa-ellipsis-v"></i>
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-2" style="border-radius: 12px;">
-          <li><a class="dropdown-item rounded-3 py-2" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2 text-danger"></i>Logout</a></li>
-        </ul>
-      </div>
+      {% include 'logout_button.html' %}
     </div>
 
     <!-- Team Selector (if multiple teams) -->

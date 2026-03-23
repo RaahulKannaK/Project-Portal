@@ -7,6 +7,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/back_button.css' %}">
 
   <style>
 :root {
@@ -318,26 +319,14 @@ body {
   <div class="main-content">
     <div class="top-header">
       <div class="user-greeting">
-        <div class="profile-avatar">A</div>
-        <span class="welcome-text">Welcome, {{student_name}}</span>
+        <a href="{% url 'stu_dash' %}" class="btn-back me-3">
+          <i class="fas fa-chevron-left"></i> Back
+        </a>
+        <div class="profile-avatar">{{ student_name|slice:":1" }}</div>
+        <div class="welcome-text">Welcome, {{ student_name }}!</div>
       </div>
-      <div class="dropdown">
-        <button class="more-options-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
-          <i class="fas fa-user-circle"></i>
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end">
-          <li><a class="dropdown-item" href="{% url 'stu_dash' %}"><i class="fas fa-home me-2"></i>Dashboard</a></li>
-          <li><hr class="dropdown-divider"></li>
-          <li>
-            <a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}">
-              <i class="fas fa-sign-out-alt me-2"></i>Logout
-            </a>
-          </li>
-        </ul>
-      </div>
+      {% include 'logout_button.html' %}
     </div>
-
-    <a href="{% url 'student_dashboard' %}" class="back-button"><i class="fas fa-arrow-left"></i>&nbsp; Back</a>
 
     <div class="main-card">
       <h6>Zeroth Review Tasks</h6>

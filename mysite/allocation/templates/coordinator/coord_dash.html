@@ -13,11 +13,11 @@
 
   <style>
     :root {
-      --primary: #013328;
-      --secondary: #1F6B58;
-      --accent: #A3D2C6;
-      --background: #F0F6F5;
-      --text-dark: #012019;
+      --primary: #4C1D95;
+      --secondary: #6D28D9;
+      --accent: #DDD6FE;
+      --background: #F5F3FF;
+      --text-dark: #2E1065;
       --text-light: #FFFFFF;
       --success: #10b981;
       --warning: #f59e0b;
@@ -294,20 +294,7 @@
 
         <div class="d-flex align-items-center gap-4">
           <div id="clock"></div>
-          <div class="dropdown">
-            <button class="more-options-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
-              <i class="fas fa-user-circle"></i>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" href="#"><i class="fas fa-id-badge me-2"></i>Profile</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li>
-                <a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}">
-                  <i class="fas fa-sign-out-alt me-2"></i>Logout
-                </a>
-              </li>
-            </ul>
-          </div>
+          {% include 'logout_button.html' %}
         </div>
       </div>
 
@@ -354,6 +341,9 @@
       <!-- Announcements -->
       <div id="announce" class="section">
         <div class="form-section">
+          <button type="button" class="btn btn-sm btn-outline-secondary mb-3" onclick="showSection('overview', document.getElementById('overview-btn'))">
+            <i class="fas fa-arrow-left me-2"></i>Back to Overview
+          </button>
           <h4 class="mb-4">📢 Create Announcement</h4>
           <form method="post">
             {% csrf_token %}

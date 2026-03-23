@@ -224,6 +224,17 @@
       <div class="welcome-card" id="welcomeCard">
         <h4><i class="fas fa-sign-in-alt me-2"></i> Welcome Again!!</h4>
         <hr class="card-divider">
+
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-danger py-2 px-3 mb-3 border-0 rounded-3 shadow-sm" 
+                 style="font-size: 0.85rem; background: rgba(239, 68, 68, 0.1); color: #ef4444; display: flex; align-items: center;">
+              <i class="fas fa-exclamation-circle me-2"></i> 
+              <span>{{ message }}</span>
+            </div>
+          {% endfor %}
+        {% endif %}
+
         <form id="loginForm" method="post">
           {% csrf_token %}
           <div class="mb-2">
@@ -298,10 +309,10 @@
         lottie: "https://assets2.lottiefiles.com/packages/lf20_tutvdkg0.json"
       },
       coordinator: {
-        L3: "#E8F0EF", L2: "#C1DED7", L1: "#F2F7F6",
-        text: "#012019", quote: "#013328",
-        btn: "#013328", btnText: "#fff",
-        border: "#C1DED7", placeholder: "#82A9A1",
+        L3: "#F5F3FF", L2: "#DDD6FE", L1: "#FFFFFF",
+        text: "#2E1065", quote: "#4C1D95",
+        btn: "#4C1D95", btnText: "#fff",
+        border: "#4C1D95", placeholder: "#6D28D9",
         lottie: "https://assets10.lottiefiles.com/packages/lf20_V9t630.json"
       },
       hod: {

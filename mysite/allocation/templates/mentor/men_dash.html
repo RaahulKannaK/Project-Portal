@@ -317,20 +317,7 @@
           <span class="welcome-text">Welcome, {{ mentor_name }}!</span>
         </div>
 
-        <div class="dropdown">
-          <button class="more-options-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            <i class="fas fa-user-circle"></i>
-          </button>
-          <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item" href="#"><i class="fas fa-id-badge me-2"></i>Profile</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li>
-              <a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}">
-                <i class="fas fa-sign-out-alt me-2"></i>Logout
-              </a>
-            </li>
-          </ul>
-        </div>
+        {% include 'logout_button.html' %}
       </div>
 
       <!-- Overview Section -->
@@ -389,10 +376,10 @@
           
           <!-- Review Tabs -->
           <div class="review-tabs">
-            <button class="review-tab active" onclick="switchReview({{ forloop.counter0 }}, 'zeroth')">0th Review</button>
-            <button class="review-tab" onclick="switchReview({{ forloop.counter0 }}, 'first')">1st Review</button>
-            <button class="review-tab" onclick="switchReview({{ forloop.counter0 }}, 'second')">2nd Review</button>
-            <button class="review-tab" onclick="switchReview({{ forloop.counter0 }}, 'third')">3rd Review</button>
+            <button class="review-tab active" onclick="switchReview('{{ forloop.counter0 }}', 'zeroth')">0th Review</button>
+            <button class="review-tab" onclick="switchReview('{{ forloop.counter0 }}', 'first')">1st Review</button>
+            <button class="review-tab" onclick="switchReview('{{ forloop.counter0 }}', 'second')">2nd Review</button>
+            <button class="review-tab" onclick="switchReview('{{ forloop.counter0 }}', 'third')">3rd Review</button>
           </div>
 
           {% with team_idx=forloop.counter0 %}

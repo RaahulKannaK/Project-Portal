@@ -13,11 +13,11 @@
 
   <style>
     :root {
-      --primary: #06B6D4;
-      --secondary: #0891B2;
-      --accent: #22D3EE;
-      --background: #ECFEFF;
-      --text-dark: #164E63;
+      --primary: #0F4C81;
+      --secondary: #1565AC;
+      --accent: #B0CCE1;
+      --background: #F0F7FC;
+      --text-dark: #0A3459;
       --text-light: #FFFFFF;
       --success: #10b981;
       --warning: #f59e0b;
@@ -416,21 +416,7 @@
             <i class="fas fa-search"></i>
           </div>
           <div id="clock"></div>
-          <div class="dropdown">
-            <button class="more-options-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
-              <i class="fas fa-user-circle"></i>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" href="#"><i class="fas fa-id-badge me-2"></i>Profile</a></li>
-              <li><a class="dropdown-item" href="#" id="theme-toggle"><i class="fas fa-moon me-2"></i>Dark Mode</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li>
-                <a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}">
-                  <i class="fas fa-sign-out-alt me-2"></i>Logout
-                </a>
-              </li>
-            </ul>
-          </div>
+          {% include 'logout_button.html' %}
         </div>
       </div>
 
