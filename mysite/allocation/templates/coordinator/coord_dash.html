@@ -263,20 +263,64 @@
     .btn-primary:hover { background: var(--text-dark); }
 
     #clock { font-weight: 600; font-size: 1.1rem; color: var(--primary); }
+
+    /* Settings Styles */
+    .settings-card {
+      max-width: 720px;
+      width: 100%;
+      margin: auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,.2);
+    }
+
+    .settings-grid {
+      display: flex;
+      justify-content: center;
+    }
+
+    /* Mobile Responsive */
+    .menu-toggle {
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      .menu-toggle {
+        display: block;
+      }
+      .sidebar {
+        position: fixed;
+        left: -280px;
+        top: 0;
+        height: 100%;
+        z-index: 1050;
+        transition: 0.3s;
+      }
+      .sidebar.active {
+        left: 0;
+      }
+    }
   </style>
 </head>
 
 <body>
   <div class="dashboard-wrapper">
     <!-- Sidebar -->
-    <div class="sidebar">
-      <div class="sidebar-header">
-        <h4><i class="fas fa-user-tie me-2"></i> Coordinator Hub</h4>
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header d-flex justify-content-between align-items-center">
+        <h4 class="mb-0"><i class="fas fa-user-tie me-2"></i> Coordinator Hub</h4>
+        <button class="menu-toggle" onclick="toggleSidebar()" style="background: transparent; border: none; color: white; font-size: 1.2rem;">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
       <nav class="sidebar-nav">
         <a class="nav-item active" id="overview-btn" onclick="showSection('overview', this)"><i class="fas fa-home"></i> Overview</a>
-        <a class="nav-item" onclick="showSection('announce', this)"><i class="fas fa-bullhorn"></i> Announcements</a>
-        <a class="nav-item" onclick="showSection('csvUpload', this)"><i class="fas fa-file-csv"></i> Student CSV Upload</a>
+        <a class="nav-item" id="announce-btn" onclick="showSection('announce', this)"><i class="fas fa-bullhorn"></i> Announcements</a>
+        <a class="nav-item" id="studentCsv-btn" onclick="showSection('studentCsv', this)"><i class="fas fa-file-csv"></i> Student CSV</a>
+        <a class="nav-item" id="mentorCsv-btn" onclick="showSection('mentorCsv', this)"><i class="fas fa-file-csv"></i> Mentor CSV</a>
+        <a class="nav-item" id="hodCsv-btn" onclick="showSection('hodCsv', this)"><i class="fas fa-file-csv"></i> HOD CSV</a>
+        <a class="nav-item" id="settings-btn" onclick="showSection('settings', this)"><i class="fas fa-cog"></i> Settings</a>
       </nav>
     </div>
 
@@ -285,6 +329,9 @@
       <!-- Header -->
       <div class="top-header">
         <div class="user-greeting">
+          <button class="menu-toggle me-3" onclick="toggleSidebar()" style="background: var(--primary); color: white; border: none; width: 40px; height: 40px; border-radius: 8px;">
+            <i class="fas fa-bars"></i>
+          </button>
           <div class="profile-avatar">{{ coordinator.name|default:"C"|slice:":1" }}</div>
           <div>
             <span class="welcome-text">Welcome, {{ coordinator.name|default:"Coordinator" }}!</span>
@@ -299,7 +346,7 @@
               <i class="fas fa-user-circle"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" href="#"><i class="fas fa-id-badge me-2"></i>Profile</a></li>
+              <li><a class="dropdown-item" href="#" onclick="showSection('settings'); return false;"><i class="fas fa-cog me-2"></i>Settings</a></li>
               <li><hr class="dropdown-divider"></li>
               <li>
                 <a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}">
@@ -318,7 +365,7 @@
             <i class="fas fa-bullhorn"></i>
             <h6>Post Announcement</h6>
             <p>Share deadlines, schedules & instructions with others.</p>
-            <a class="glass-button" onclick="showSection('announce')">Create Now</a>
+            <a class="glass-button" onclick="showSection('announce', document.getElementById('announce-btn'))">Create Now</a>
           </div>
 
           <div class="main-card gradient-light">
@@ -348,6 +395,9 @@
             <p>Distribute evaluation criteria to all mentors.</p>
             <a class="glass-button" href="#">Share Details</a>
           </div>
+        </div>
+        <div class="footer">
+          © 2025 Project Portal. All Rights Reserved.
         </div>
       </div>
 
@@ -421,10 +471,13 @@
             <button class="btn btn-primary w-100 mt-2">Send Announcement</button>
           </form>
         </div>
+        <div class="footer">
+          © 2025 Project Portal. All Rights Reserved.
+        </div>
       </div>
 
-      <!-- CSV Upload -->
-      <div id="csvUpload" class="section">
+      <!-- Student CSV Upload -->
+      <div id="studentCsv" class="section">
         <div class="form-section">
           <h4 class="mb-4">📤 Student CSV Upload</h4>
           
@@ -433,16 +486,16 @@
             <div class="table-responsive mt-2">
               <table class="table table-sm" style="color: inherit;">
                 <thead>
-                  <tr><th>student_id</th><th>name</th><th>cgpa</th><th>class</th></tr>
+                  <tr><th>student_id</th><th>name</th><th>cgpa</th><th>class</th><th>username</th><th>password</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td>24UCS201</td><td>Salis</td><td>8.5</td><td>CSE-B</td></tr>
+                  <tr><td>24UCS201</td><td>Salis</td><td>8.5</td><td>CSE-B</td><td>salis_24</td><td>pass123</td></tr>
                 </tbody>
               </table>
             </div>
           </div>
 
-          <form method="post" enctype="multipart/form-data" action="{% url 'upload_csv' %}">
+          <form method="post" enctype="multipart/form-data" action="{% url 'upload_student_csv' %}">
             {% csrf_token %}
             <div class="mb-4">
               <label class="form-label">Select CSV File</label>
@@ -451,11 +504,11 @@
             <button type="submit" class="btn btn-primary w-100">Upload to System</button>
           </form>
 
-          {% if error %}
+          {% if error and active_tab == 'student_csv' %}
             <div class="alert alert-danger mt-4">{{ error }}</div>
           {% endif %}
 
-          {% if show_results %}
+          {% if show_student_results %}
             <div class="mt-5">
               {% if allowed %}
                 <div class="mb-4">
@@ -463,11 +516,11 @@
                   <div class="table-responsive">
                     <table class="table table-hover table-bordered bg-white">
                       <thead class="table-light">
-                        <tr><th>ID</th><th>Name</th><th>CGPA</th><th>Class</th></tr>
+                        <tr><th>ID</th><th>Name</th><th>CGPA</th><th>Class</th><th>Username</th></tr>
                       </thead>
                       <tbody>
                         {% for s in allowed %}
-                        <tr><td>{{ s.student_id }}</td><td>{{ s.name }}</td><td>{{ s.cgpa }}</td><td>{{ s.class }}</td></tr>
+                        <tr><td>{{ s.student_id }}</td><td>{{ s.name }}</td><td>{{ s.cgpa }}</td><td>{{ s.class }}</td><td>{{ s.username }}</td></tr>
                         {% endfor %}
                       </tbody>
                     </table>
@@ -495,10 +548,225 @@
             </div>
           {% endif %}
         </div>
+        <div class="footer">
+          © 2025 Project Portal. All Rights Reserved.
+        </div>
       </div>
-      
-      <div class="footer">
-        © 2025 Project Portal. All Rights Reserved.
+
+      <!-- Mentor CSV Upload -->
+      <div id="mentorCsv" class="section">
+        <div class="form-section">
+          <h4 class="mb-4">📤 Mentor CSV Upload</h4>
+          
+          <div class="alert alert-info border-0 mb-4" style="background: rgba(167, 139, 250, 0.1); color: var(--primary);">
+            <strong><i class="fas fa-info-circle me-2"></i>CSV Format Required:</strong>
+            <div class="table-responsive mt-2">
+              <table class="table table-sm" style="color: inherit;">
+                <thead>
+                  <tr><th>username</th><th>name</th><th>primary_domain</th><th>experience</th><th>alternative_domains</th><th>password</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>mentor001</td><td>Dr. Smith</td><td>AI</td><td>5</td><td>ML,DL,Data Science</td><td>mentor123</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <small class="text-muted">* alternative_domains is optional (comma-separated)</small>
+          </div>
+
+          <form method="post" enctype="multipart/form-data" action="{% url 'upload_mentor_csv' %}">
+            {% csrf_token %}
+            <div class="mb-4">
+              <label class="form-label">Select CSV File</label>
+              <input type="file" name="file" accept=".csv" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Upload to System</button>
+          </form>
+
+          {% if error and active_tab == 'mentor_csv' %}
+            <div class="alert alert-danger mt-4">{{ error }}</div>
+          {% endif %}
+
+          {% if show_mentor_results %}
+            <div class="mt-5">
+              {% if allowed %}
+                <div class="mb-4">
+                  <h6 class="text-success"><i class="fas fa-check-circle me-2"></i>Imported Successfully ({{ allowed|length }})</h6>
+                  <div class="table-responsive">
+                    <table class="table table-hover table-bordered bg-white">
+                      <thead class="table-light">
+                        <tr><th>Username</th><th>Name</th><th>Primary Domain</th><th>Experience</th></tr>
+                      </thead>
+                      <tbody>
+                        {% for m in allowed %}
+                        <tr><td>{{ m.username }}</td><td>{{ m.name }}</td><td>{{ m.primary_domain }}</td><td>{{ m.experience }} years</td></tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              {% endif %}
+
+              {% if not_allowed %}
+                <div>
+                  <h6 class="text-danger"><i class="fas fa-times-circle me-2"></i>Failed Records ({{ not_allowed|length }})</h6>
+                  <div class="table-responsive">
+                    <table class="table table-hover table-bordered bg-white">
+                      <thead class="table-light">
+                        <tr><th>Username</th><th>Name</th><th>Reason</th></tr>
+                      </thead>
+                      <tbody>
+                        {% for m in not_allowed %}
+                        <tr><td>{{ m.username }}</td><td>{{ m.name }}</td><td>{{ m.reason }}</td></tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+        <div class="footer">
+          © 2025 Project Portal. All Rights Reserved.
+        </div>
+      </div>
+
+      <!-- HOD CSV Upload -->
+      <div id="hodCsv" class="section">
+        <div class="form-section">
+          <h4 class="mb-4">📤 HOD CSV Upload</h4>
+          
+          <div class="alert alert-info border-0 mb-4" style="background: rgba(167, 139, 250, 0.1); color: var(--primary);">
+            <strong><i class="fas fa-info-circle me-2"></i>CSV Format Required:</strong>
+            <div class="table-responsive mt-2">
+              <table class="table table-sm" style="color: inherit;">
+                <thead>
+                  <tr><th>username</th><th>name</th><th>password</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>hod_cse</td><td>Dr. Williams</td><td>hod123</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <form method="post" enctype="multipart/form-data" action="{% url 'upload_hod_csv' %}">
+            {% csrf_token %}
+            <div class="mb-4">
+              <label class="form-label">Select CSV File</label>
+              <input type="file" name="file" accept=".csv" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Upload to System</button>
+          </form>
+
+          {% if error and active_tab == 'hod_csv' %}
+            <div class="alert alert-danger mt-4">{{ error }}</div>
+          {% endif %}
+
+          {% if show_hod_results %}
+            <div class="mt-5">
+              {% if allowed %}
+                <div class="mb-4">
+                  <h6 class="text-success"><i class="fas fa-check-circle me-2"></i>Imported Successfully ({{ allowed|length }})</h6>
+                  <div class="table-responsive">
+                    <table class="table table-hover table-bordered bg-white">
+                      <thead class="table-light">
+                        <tr><th>Username</th><th>Name</th></tr>
+                      </thead>
+                      <tbody>
+                        {% for h in allowed %}
+                        <tr><td>{{ h.username }}</td><td>{{ h.name }}</td></tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              {% endif %}
+
+              {% if not_allowed %}
+                <div>
+                  <h6 class="text-danger"><i class="fas fa-times-circle me-2"></i>Failed Records ({{ not_allowed|length }})</h6>
+                  <div class="table-responsive">
+                    <table class="table hover table-bordered bg-white">
+                      <thead class="table-light">
+                        <tr><th>Username</th><th>Name</th><th>Reason</th></tr>
+                      </thead>
+                      <tbody>
+                        {% for h in not_allowed %}
+                        <tr><td>{{ h.username }}</td><td>{{ h.name }}</td><td>{{ h.reason }}</td></tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+        <div class="footer">
+          © 2025 Project Portal. All Rights Reserved.
+        </div>
+      </div>
+
+      <!-- Settings Section -->
+      <div id="settings" class="section">
+        <div class="top-header mb-4">
+          <div class="user-greeting">
+            <div class="profile-avatar">{{ coordinator.name|default:"C"|slice:":1" }}</div>
+            <div>
+              <div class="welcome-text">Account Settings</div>
+              <small style="color: var(--secondary);">Update your profile and password</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-grid">
+          <!-- Combined Profile + Password Card -->
+          <div class="main-card gradient-purple" style="max-width: 720px; width: 100%;">
+            <i class="fas fa-user-cog"></i>
+            <h6 class="mb-3">Coordinator Profile</h6>
+            <p><strong>Username:</strong> {{ coordinator.username }}</p>
+            <p><strong>Name:</strong> {{ coordinator.name }}</p>
+            <p class="mb-4"><strong>Institute:</strong> KGISL Institute</p>
+
+            <hr style="border-color: rgba(255,255,255,0.3);">
+
+            <h6 class="mt-3 mb-3">Change Password</h6>
+
+            <form method="post" action="{% url 'coordinator_dashboard' %}">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="reset_password">
+
+              <div class="mb-2">
+                <input type="password" class="form-control" name="new_password" placeholder="New Password" required>
+              </div>
+
+              <div class="mb-2">
+                <input type="password" class="form-control" name="confirm_password" placeholder="Confirm Password" required>
+              </div>
+
+              <button type="submit" class="glass-button w-100 mt-2">
+                Update Password
+              </button>
+            </form>
+
+            {% if password_updated %}
+            <div class="alert alert-success mt-3">
+              <i class="fas fa-check-circle me-2"></i>Password updated successfully!
+            </div>
+            {% endif %}
+
+            {% if password_error %}
+            <div class="alert alert-danger mt-3">
+              <i class="fas fa-exclamation-circle me-2"></i>{{ password_error }}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="footer">
+          © 2025 Project Portal. All Rights Reserved.
+        </div>
       </div>
 
     </div>
@@ -512,7 +780,21 @@
       if (activeSection) activeSection.classList.add('active');
 
       document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      
+      // Find the nav item by id if not passed
+      if (!el) {
+        el = document.getElementById(id + '-btn');
+      }
       if (el) el.classList.add('active');
+
+      // Close sidebar on mobile after selection
+      if (window.innerWidth <= 768) {
+        document.getElementById('sidebar').classList.remove('active');
+      }
+    }
+
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('active');
     }
 
     const clock = document.getElementById("clock");
@@ -527,9 +809,6 @@
       const instructionFields = document.getElementById("instructionFields");
 
       if (!annType) return;
-      deadlineFields.classList.remove("active");
-      scheduleFields.classList.remove("active");
-      instructionFields.classList.remove("active");
       
       deadlineFields.style.display = "none";
       scheduleFields.style.display = "none";
@@ -541,7 +820,11 @@
     }
 
     document.addEventListener("DOMContentLoaded", function () {
-      // Defaulting to overview is handled by CSS and initial state
+      // Check for URL hash to show specific section
+      const hash = window.location.hash.replace('#', '');
+      if (hash && document.getElementById(hash)) {
+        showSection(hash);
+      }
     });
   </script>
 </body>

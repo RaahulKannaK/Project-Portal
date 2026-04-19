@@ -219,64 +219,73 @@
     .review-content.active { display: block; }
 
     .footer { text-align: center; color: var(--text-muted); margin-top: 20px; font-size: 0.9rem; }
-  /* Hamburger Button */
-.hamburger-btn{
-  background: var(--primary);
-  color:white;
-  border:none;
-  width:45px;
-  height:45px;
-  border-radius:8px;
-  font-size:20px;
-  cursor:pointer;
-  display:none;
-}
 
-/* Mobile Sidebar */
-@media (max-width: 992px){
+    /* Settings Section Styles */
+    .settings-card {
+      max-width: 720px;
+      width: 100%;
+      margin: auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,.2);
+    }
 
-  .sidebar{
-    position:fixed;
-    left:-280px;
-    top:0;
-    height:100%;
-    z-index:1000;
-    transition:0.3s;
-  }
+    /* Hamburger Button */
+    .hamburger-btn{
+      background: var(--primary);
+      color:white;
+      border:none;
+      width:45px;
+      height:45px;
+      border-radius:8px;
+      font-size:20px;
+      cursor:pointer;
+      display:none;
+    }
 
-  .sidebar.active{
-    left:0;
-  }
+    /* Mobile Sidebar */
+    @media (max-width: 992px){
+      .sidebar{
+        position:fixed;
+        left:-280px;
+        top:0;
+        height:100%;
+        z-index:1000;
+        transition:0.3s;
+      }
+      .sidebar.active{
+        left:0;
+      }
+      .hamburger-btn{
+        display:block;
+      }
+      .dashboard-wrapper{
+        width:100%;
+        height:100vh;
+      }
+    }
 
-  .hamburger-btn{
-    display:block;
-  }
+    /* Sidebar close button */
+    .close-sidebar{
+      background:transparent;
+      border:none;
+      color:white;
+      font-size:20px;
+      cursor:pointer;
+      display:none;
+    }
 
-  .dashboard-wrapper{
-    width:100%;
-    height:100vh;
-  }
+    /* Mobile */
+    @media (max-width:992px){
+      .close-sidebar{
+        display:block;
+      }
+    }
 
-}
-/* Sidebar close button */
-.close-sidebar{
-  background:transparent;
-  border:none;
-  color:white;
-  font-size:20px;
-  cursor:pointer;
-  display:none;
-}
-
-/* Mobile */
-@media (max-width:992px){
-
-  .close-sidebar{
-    display:block;
-  }
-
-}
-
+    /* View Sections */
+    .view-section { display: none; }
+    .view-section.active { display: block; }
   </style>
 </head>
 
@@ -284,12 +293,10 @@
 <div class="dashboard-wrapper">
 
   <div class="sidebar">
-
     <div class="sidebar-header d-flex justify-content-between align-items-center">
       <h4 class="mb-0">
         <i class="fas fa-graduation-cap me-2"></i> Mentor Hub
       </h4>
-
       <button class="close-sidebar" id="close-sidebar">
         <i class="fas fa-times"></i>
       </button>
@@ -299,595 +306,664 @@
       <a class="nav-item active" id="overview-btn"><i class="fas fa-file-alt"></i> Overview</a>
       <a class="nav-item" id="review-btn"><i class="fas fa-trophy"></i> Review</a>
       <a class="nav-item" id="team-btn"><i class="fas fa-chart-line"></i> Team Details</a>
-      <a class="nav-item"><i class="fas fa-cog"></i> Settings</a>
+      <a class="nav-item" id="settings-btn"><i class="fas fa-cog"></i> Settings</a>
     </nav>
-
   </div>
 
-    <!-- Main Content -->
-    <div class="main-content">
-      <!-- Header -->
-      <div class="top-header">
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Header -->
+    <div class="top-header">
       <!-- Hamburger Menu -->
       <button class="hamburger-btn" id="menu-toggle">
         <i class="fas fa-bars"></i>
       </button>
-        <div class="user-greeting">
-          <div class="profile-avatar">{{ request.session.mentor_name|slice:":1" }}</div>
-          <span class="welcome-text">Welcome, {{ mentor_name }}!</span>
-        </div>
-
-        <div class="dropdown">
-          <button class="more-options-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            <i class="fas fa-user-circle"></i>
-          </button>
-          <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item" href="#"><i class="fas fa-id-badge me-2"></i>Profile</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li>
-              <a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}">
-                <i class="fas fa-sign-out-alt me-2"></i>Logout
-              </a>
-            </li>
-          </ul>
-        </div>
+      <div class="user-greeting">
+        <div class="profile-avatar">{{ mentor_name|slice:":1" }}</div>
+        <span class="welcome-text">Welcome, {{ mentor_name }}!</span>
       </div>
 
-      <!-- Overview Section -->
-      <div id="overview-section">
-        <div class="content-grid">
-          <div class="main-card gradient-purple">
-            <i class="fas fa-users-cog"></i>
-            <h6>Mentor Registration</h6>
-            <p>Add a mentor's expertise and experience.</p>
-            <a href="{% url 'add_men' %}" class="glass-button">Register</a>
-          </div>
-
-          <div class="main-card gradient-pink">
-            <i class="fas fa-globe"></i>
-            <h6>Circular Center</h6>
-            <p>View all circulars shared for your projects.</p>
-            <a href="{% url 'login' %}" class="glass-button">View Circulars</a>
-          </div>
-
-          <div class="main-card gradient-mixed">
-            <i class="fas fa-chalkboard-teacher"></i>
-            <h6>Assigned Teams</h6>
-            <p>Check your allocated project teams.</p>
-            <a href="{% url 'mentor_teams' %}" class="glass-button">View Teams</a>
-          </div>
-        </div>
+      <div class="dropdown">
+        <button class="more-options-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          <i class="fas fa-user-circle"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="#"><i class="fas fa-id-badge me-2"></i>Profile</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li>
+            <a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}">
+              <i class="fas fa-sign-out-alt me-2"></i>Logout
+            </a>
+          </li>
+        </ul>
       </div>
-
-      <!-- Review Section -->
-      <div id="review-section" style="display:none;">
-        <div class="main-card gradient-purple text-center">
-          <i class="fas fa-trophy"></i>
-          <h6>Review Portal</h6>
-          <p>Go to the review page to manage all student submissions and remarks.</p>
-          <a href="{% url 'zero_men' %}" class="glass-button">Go to Reviews</a>
-        </div>
-      </div>
-
-      <!-- Team Details Section -->
-      <div id="team-section" style="display:none;">
-        {% for team in team_details %}
-        <div class="team-card">
-          <h5><i class="fas fa-users me-2"></i>Team Information</h5>
-          <p><b>Project Title:</b> {{ team.project_title }}</p>
-          <p><b>Domain:</b> {{ team.domain }}</p>
-          <p><b>Team Members:</b></p>
-          <ul>
-            {% for name, reg in team.members %}
-              <li>{{ name }} – {{ reg }}</li>
-            {% endfor %}
-          </ul>
-        </div>
-
-        <div class="team-card">
-          <h5><i class="fas fa-clipboard-check me-2"></i>Review Details</h5>
-          
-          <!-- Review Tabs -->
-          <div class="review-tabs">
-            <button class="review-tab active" onclick="switchReview({{ forloop.counter0 }}, 'zeroth')">0th Review</button>
-            <button class="review-tab" onclick="switchReview({{ forloop.counter0 }}, 'first')">1st Review</button>
-            <button class="review-tab" onclick="switchReview({{ forloop.counter0 }}, 'second')">2nd Review</button>
-            <button class="review-tab" onclick="switchReview({{ forloop.counter0 }}, 'third')">3rd Review</button>
-          </div>
-
-          {% with team_idx=forloop.counter0 %}
-          
-          <!-- 0th Review -->
-          <div class="review-content active" id="review-zeroth-{{ team_idx }}">
-            <div class="table-container">
-              <table class="custom-table">
-                <thead>
-                  <tr>
-                    <th>Document</th>
-                    <th>Submitted</th>
-                    <th>View</th>
-                    <th>Mentor Remarks</th>
-                    <th>Seen</th>
-                    <th>Re-upload Status</th>
-                    <th>Final PPT</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <!-- PPT -->
-                  <tr>
-                    <td><i class="fas fa-file-powerpoint text-warning me-2"></i>PPT</td>
-                    <td>
-                      {% if team.documents.zeroth.ppt %}
-                        <span class="status-badge status-yes"><i class="fas fa-check"></i> Yes</span>
-                      {% else %}
-                        <span class="status-badge status-no"><i class="fas fa-times"></i> No</span>
-                      {% endif %}
-                    </td>
-                    <td>
-                      {% if team.documents.zeroth.ppt %}
-                        <a href="{{ team.documents.zeroth.ppt.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-eye"></i> View</a>
-                      {% else %}
-                        <button class="glass-btn" disabled>Not Available</button>
-                      {% endif %}
-                    </td>
-                    <td>
-                      <select class="remark-select" onchange="updateRemark('{{ team.project_title }}', 'zeroth', 'ppt', this.value)">
-                        <option value="no" {% if not team.remarks.zeroth.ppt %}selected{% endif %}>No</option>
-                        <option value="yes" {% if team.remarks.zeroth.ppt %}selected{% endif %}>Yes</option>
-                      </select>
-                    </td>
-                    <td>
-                      {% if team.remarks.zeroth.ppt %}<i class="fas fa-check-circle text-success"></i>{% else %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
-                    </td>
-                    <td>
-                      {% if team.remarks.zeroth.ppt %}<span class="status-badge status-yes">Re-uploaded</span>{% else %}<span class="status-badge status-pending">Pending</span>{% endif %}
-                    </td>
-                    <td>
-                      {% if team.documents.zeroth.ppt %}
-                        <a href="{{ team.documents.zeroth.ppt.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-file-powerpoint"></i> View PPT</a>
-                      {% else %}-{% endif %}
-                    </td>
-                  </tr>
-                  <!-- Abstract -->
-                  <tr>
-                    <td><i class="fas fa-file-pdf text-danger me-2"></i>Abstract</td>
-                    <td>
-                      {% if team.documents.zeroth.abstract %}
-                        <span class="status-badge status-yes"><i class="fas fa-check"></i> Yes</span>
-                      {% else %}
-                        <span class="status-badge status-no"><i class="fas fa-times"></i> No</span>
-                      {% endif %}
-                    </td>
-                    <td>
-                      {% if team.documents.zeroth.abstract %}
-                        <a href="{{ team.documents.zeroth.abstract.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-eye"></i> View</a>
-                      {% else %}
-                        <button class="glass-btn" disabled>Not Available</button>
-                      {% endif %}
-                    </td>
-                    <td>
-                      <select class="remark-select" onchange="updateRemark('{{ team.project_title }}', 'zeroth', 'abstract', this.value)">
-                        <option value="no" {% if not team.remarks.zeroth.abstract %}selected{% endif %}>No</option>
-                        <option value="yes" {% if team.remarks.zeroth.abstract %}selected{% endif %}>Yes</option>
-                      </select>
-                    </td>
-                    <td>
-                      {% if team.remarks.zeroth.abstract %}<i class="fas fa-check-circle text-success"></i>{% else %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
-                    </td>
-                    <td>
-                      {% if team.remarks.zeroth.abstract %}<span class="status-badge status-yes">Re-uploaded</span>{% elif team.documents.zeroth.abstract %}<span class="status-badge status-pending">Pending</span>{% else %}-{% endif %}
-                    </td>
-                    <td>-</td>
-                  </tr>
-                  <!-- Base Paper -->
-                  <tr>
-                    <td><i class="fas fa-file-alt text-primary me-2"></i>Base Paper</td>
-                    <td>
-                      {% if team.documents.zeroth.report %}
-                        <span class="status-badge status-yes"><i class="fas fa-check"></i> Yes</span>
-                      {% else %}
-                        <span class="status-badge status-no"><i class="fas fa-times"></i> No</span>
-                      {% endif %}
-                    </td>
-                    <td>
-                      {% if team.documents.zeroth.report %}
-                        <a href="{{ team.documents.zeroth.report.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-eye"></i> View</a>
-                      {% else %}
-                        <button class="glass-btn" disabled>Not Available</button>
-                      {% endif %}
-                    </td>
-                    <td>
-                      <select class="remark-select" onchange="updateRemark('{{ team.project_title }}', 'zeroth', 'report', this.value)">
-                        <option value="no" {% if not team.remarks.zeroth.report %}selected{% endif %}>No</option>
-                        <option value="yes" {% if team.remarks.zeroth.report %}selected{% endif %}>Yes</option>
-                      </select>
-                    </td>
-                    <td>
-                      {% if team.remarks.zeroth.report %}<i class="fas fa-check-circle text-success"></i>{% else %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
-                    </td>
-                    <td>
-                      {% if team.remarks.zeroth.report %}<span class="status-badge status-yes">Re-uploaded</span>{% elif team.documents.zeroth.report %}<span class="status-badge status-pending">Pending</span>{% else %}-{% endif %}
-                    </td>
-                    <td>-</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- 1st Review -->
-          <div class="review-content" id="review-first-{{ team_idx }}">
-            <div class="table-container">
-              <table class="custom-table">
-                <thead>
-                  <tr>
-                    <th>Document</th>
-                    <th>Submitted</th>
-                    <th>View</th>
-                    <th>Mentor Remarks</th>
-                    <th>Seen</th>
-                    <th>Re-upload Status</th>
-                    <th>Final PPT</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><i class="fas fa-file-powerpoint text-warning me-2"></i>PPT</td>
-                    <td>
-                      {% if team.documents.first.ppt %}
-                        <span class="status-badge status-yes"><i class="fas fa-check"></i> Yes</span>
-                      {% else %}
-                        <span class="status-badge status-no"><i class="fas fa-times"></i> No</span>
-                      {% endif %}
-                    </td>
-                    <td>
-                      {% if team.documents.first.ppt %}
-                        <a href="{{ team.documents.first.ppt.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-eye"></i> View</a>
-                      {% else %}
-                        <button class="glass-btn" disabled>Not Available</button>
-                      {% endif %}
-                    </td>
-                    <td>
-                      <select class="remark-select" onchange="updateRemark('{{ team.project_title }}', 'first', 'ppt', this.value)">
-                        <option value="no" {% if not team.remarks.first.ppt %}selected{% endif %}>No</option>
-                        <option value="yes" {% if team.remarks.first.ppt %}selected{% endif %}>Yes</option>
-                      </select>
-                    </td>
-                    <td>
-                      {% if team.remarks.first.ppt %}<i class="fas fa-check-circle text-success"></i>{% else %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
-                    </td>
-                    <td>
-                      {% if team.remarks.first.ppt %}<span class="status-badge status-yes">Re-uploaded</span>{% else %}<span class="status-badge status-pending">Pending</span>{% endif %}
-                    </td>
-                    <td>
-                      {% if team.documents.first.ppt %}
-                        <a href="{{ team.documents.first.ppt.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-file-powerpoint"></i> View PPT</a>
-                      {% else %}-{% endif %}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td><i class="fas fa-file-pdf text-danger me-2"></i>Report</td>
-                    <td>
-                      {% if team.documents.first.report %}
-                        <span class="status-badge status-yes"><i class="fas fa-check"></i> Yes</span>
-                      {% else %}
-                        <span class="status-badge status-no"><i class="fas fa-times"></i> No</span>
-                      {% endif %}
-                    </td>
-                    <td>
-                      {% if team.documents.first.report %}
-                        <a href="{{ team.documents.first.report.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-eye"></i> View</a>
-                      {% else %}
-                        <button class="glass-btn" disabled>Not Available</button>
-                      {% endif %}
-                    </td>
-                    <td>
-                      <select class="remark-select" onchange="updateRemark('{{ team.project_title }}', 'first', 'report', this.value)">
-                        <option value="no" {% if not team.remarks.first.report %}selected{% endif %}>No</option>
-                        <option value="yes" {% if team.remarks.first.report %}selected{% endif %}>Yes</option>
-                      </select>
-                    </td>
-                    <td>
-                      {% if team.remarks.first.report %}<i class="fas fa-check-circle text-success"></i>{% else %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
-                    </td>
-                    <td>
-                      {% if team.remarks.first.report %}<span class="status-badge status-yes">Re-uploaded</span>{% elif team.documents.first.report %}<span class="status-badge status-pending">Pending</span>{% else %}-{% endif %}
-                    </td>
-                    <td>-</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- 2nd Review -->
-          <div class="review-content" id="review-second-{{ team_idx }}">
-            <div class="table-container">
-              <table class="custom-table">
-                <thead>
-                  <tr>
-                    <th>Document</th>
-                    <th>Submitted</th>
-                    <th>View</th>
-                    <th>Mentor Remarks</th>
-                    <th>Seen</th>
-                    <th>Re-upload Status</th>
-                    <th>Final PPT</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><i class="fas fa-file-powerpoint text-warning me-2"></i>PPT</td>
-                    <td>
-                      {% if team.documents.second.ppt %}
-                        <span class="status-badge status-yes"><i class="fas fa-check"></i> Yes</span>
-                      {% else %}
-                        <span class="status-badge status-no"><i class="fas fa-times"></i> No</span>
-                      {% endif %}
-                    </td>
-                    <td>
-                      {% if team.documents.second.ppt %}
-                        <a href="{{ team.documents.second.ppt.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-eye"></i> View</a>
-                      {% else %}
-                        <button class="glass-btn" disabled>Not Available</button>
-                      {% endif %}
-                    </td>
-                    <td>
-                      <select class="remark-select" onchange="updateRemark('{{ team.project_title }}', 'second', 'ppt', this.value)">
-                        <option value="no" {% if not team.remarks.second.ppt %}selected{% endif %}>No</option>
-                        <option value="yes" {% if team.remarks.second.ppt %}selected{% endif %}>Yes</option>
-                      </select>
-                    </td>
-                    <td>
-                      {% if team.remarks.second.ppt %}<i class="fas fa-check-circle text-success"></i>{% else %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
-                    </td>
-                    <td>
-                      {% if team.remarks.second.ppt %}<span class="status-badge status-yes">Re-uploaded</span>{% else %}<span class="status-badge status-pending">Pending</span>{% endif %}
-                    </td>
-                    <td>
-                      {% if team.documents.second.ppt %}
-                        <a href="{{ team.documents.second.ppt.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-file-powerpoint"></i> View PPT</a>
-                      {% else %}-{% endif %}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td><i class="fas fa-file-pdf text-danger me-2"></i>Report</td>
-                    <td>
-                      {% if team.documents.second.report %}
-                        <span class="status-badge status-yes"><i class="fas fa-check"></i> Yes</span>
-                      {% else %}
-                        <span class="status-badge status-no"><i class="fas fa-times"></i> No</span>
-                      {% endif %}
-                    </td>
-                    <td>
-                      {% if team.documents.second.report %}
-                        <a href="{{ team.documents.second.report.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-eye"></i> View</a>
-                      {% else %}
-                        <button class="glass-btn" disabled>Not Available</button>
-                      {% endif %}
-                    </td>
-                    <td>
-                      <select class="remark-select" onchange="updateRemark('{{ team.project_title }}', 'second', 'report', this.value)">
-                        <option value="no" {% if not team.remarks.second.report %}selected{% endif %}>No</option>
-                        <option value="yes" {% if team.remarks.second.report %}selected{% endif %}>Yes</option>
-                      </select>
-                    </td>
-                    <td>
-                      {% if team.remarks.second.report %}<i class="fas fa-check-circle text-success"></i>{% else %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
-                    </td>
-                    <td>
-                      {% if team.remarks.second.report %}<span class="status-badge status-yes">Re-uploaded</span>{% elif team.documents.second.report %}<span class="status-badge status-pending">Pending</span>{% else %}-{% endif %}
-                    </td>
-                    <td>-</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- 3rd Review -->
-          <div class="review-content" id="review-third-{{ team_idx }}">
-            <div class="table-container">
-              <table class="custom-table">
-                <thead>
-                  <tr>
-                    <th>Document</th>
-                    <th>Submitted</th>
-                    <th>View</th>
-                    <th>Mentor Remarks</th>
-                    <th>Seen</th>
-                    <th>Re-upload Status</th>
-                    <th>Final PPT</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><i class="fas fa-file-powerpoint text-warning me-2"></i>Final PPT</td>
-                    <td>
-                      {% if team.documents.third.ppt %}
-                        <span class="status-badge status-yes"><i class="fas fa-check"></i> Yes</span>
-                      {% else %}
-                        <span class="status-badge status-no"><i class="fas fa-times"></i> No</span>
-                      {% endif %}
-                    </td>
-                    <td>
-                      {% if team.documents.third.ppt %}
-                        <a href="{{ team.documents.third.ppt.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-eye"></i> View</a>
-                      {% else %}
-                        <button class="glass-btn" disabled>Not Available</button>
-                      {% endif %}
-                    </td>
-                    <td>
-                      <select class="remark-select" onchange="updateRemark('{{ team.project_title }}', 'third', 'ppt', this.value)">
-                        <option value="no" {% if not team.remarks.third.ppt %}selected{% endif %}>No</option>
-                        <option value="yes" {% if team.remarks.third.ppt %}selected{% endif %}>Yes</option>
-                      </select>
-                    </td>
-                    <td>
-                      {% if team.remarks.third.ppt %}<i class="fas fa-check-circle text-success"></i>{% else %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
-                    </td>
-                    <td>
-                      {% if team.remarks.third.ppt %}<span class="status-badge status-yes">Approved</span>{% else %}<span class="status-badge status-pending">Pending</span>{% endif %}
-                    </td>
-                    <td>
-                      {% if team.documents.third.ppt %}
-                        <a href="{{ team.documents.third.ppt.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-trophy"></i> Final PPT</a>
-                      {% else %}-{% endif %}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td><i class="fas fa-file-pdf text-danger me-2"></i>Final Report</td>
-                    <td>
-                      {% if team.documents.third.report %}
-                        <span class="status-badge status-yes"><i class="fas fa-check"></i> Yes</span>
-                      {% else %}
-                        <span class="status-badge status-no"><i class="fas fa-times"></i> No</span>
-                      {% endif %}
-                    </td>
-                    <td>
-                      {% if team.documents.third.report %}
-                        <a href="{{ team.documents.third.report.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-eye"></i> View</a>
-                      {% else %}
-                        <button class="glass-btn" disabled>Not Available</button>
-                      {% endif %}
-                    </td>
-                    <td>
-                      <select class="remark-select" onchange="updateRemark('{{ team.project_title }}', 'third', 'report', this.value)">
-                        <option value="no" {% if not team.remarks.third.report %}selected{% endif %}>No</option>
-                        <option value="yes" {% if team.remarks.third.report %}selected{% endif %}>Yes</option>
-                      </select>
-                    </td>
-                    <td>
-                      {% if team.remarks.third.report %}<i class="fas fa-check-circle text-success"></i>{% else %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
-                    </td>
-                    <td>
-                      {% if team.remarks.third.report %}<span class="status-badge status-yes">Approved</span>{% elif team.documents.third.report %}<span class="status-badge status-pending">Pending</span>{% else %}-{% endif %}
-                    </td>
-                    <td>-</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {% endwith %}
-        </div>
-        {% empty %}
-        <div class="team-card text-center">
-          <i class="fas fa-inbox fa-3x mb-3 text-muted"></i>
-          <h5>No Teams Allocated</h5>
-          <p class="text-muted">You don't have any teams assigned to you yet.</p>
-        </div>
-        {% endfor %}
-
-        <div class="footer">
-          © 2025 Your College Name. All Rights Reserved.
-        </div>
-      </div>
-
     </div>
+
+    <!-- Overview Section -->
+    <div id="overview-section" class="view-section active">
+      <div class="content-grid">
+        <div class="main-card gradient-purple">
+          <i class="fas fa-users-cog"></i>
+          <h6>Mentor Registration</h6>
+          <p>Add a mentor's expertise and experience.</p>
+          <a href="{% url 'add_men' %}" class="glass-button">Register</a>
+        </div>
+
+        <div class="main-card gradient-pink">
+          <i class="fas fa-globe"></i>
+          <h6>Circular Center</h6>
+          <p>View all circulars shared for your projects.</p>
+          <a href="{% url 'login' %}" class="glass-button">View Circulars</a>
+        </div>
+
+        <div class="main-card gradient-mixed">
+          <i class="fas fa-chalkboard-teacher"></i>
+          <h6>Assigned Teams</h6>
+          <p>Check your allocated project teams.</p>
+          <a href="{% url 'mentor_teams' %}" class="glass-button">View Teams</a>
+        </div>
+      </div>
+      <div class="footer">
+        © 2025 Your College Name. All Rights Reserved.
+      </div>
+    </div>
+
+    <!-- Review Section -->
+    <div id="review-section" class="view-section">
+      <div class="main-card gradient-purple text-center">
+        <i class="fas fa-trophy"></i>
+        <h6>Review Portal</h6>
+        <p>Go to the review page to manage all student submissions and remarks.</p>
+        <a href="{% url 'zero_men' %}" class="glass-button">Go to Reviews</a>
+      </div>
+      <div class="footer">
+        © 2025 Your College Name. All Rights Reserved.
+      </div>
+    </div>
+
+    <!-- Team Details Section -->
+    <div id="team-section" class="view-section">
+      {% for team in team_details %}
+      <div class="team-card">
+        <h5><i class="fas fa-users me-2"></i>Team Information</h5>
+        <p><b>Project Title:</b> {{ team.project_title }}</p>
+        <p><b>Domain:</b> {{ team.domain }}</p>
+        <p><b>Team Members:</b></p>
+        <ul>
+          {% for name, reg in team.members %}
+            <li>{{ name }} – {{ reg }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="team-card">
+        <h5><i class="fas fa-clipboard-check me-2"></i>Review Details</h5>
+        
+        <!-- Review Tabs -->
+        <div class="review-tabs">
+          <button class="review-tab active" onclick="switchReview({{ forloop.counter0 }}, 'zeroth')">0th Review</button>
+          <button class="review-tab" onclick="switchReview({{ forloop.counter0 }}, 'first')">1st Review</button>
+          <button class="review-tab" onclick="switchReview({{ forloop.counter0 }}, 'second')">2nd Review</button>
+          <button class="review-tab" onclick="switchReview({{ forloop.counter0 }}, 'third')">3rd Review</button>
+        </div>
+
+        {% with team_idx=forloop.counter0 %}
+        
+        <!-- 0th Review -->
+        <div class="review-content active" id="review-zeroth-{{ team_idx }}">
+          <div class="table-container">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Document</th>
+                  <th>Submitted</th>
+                  <th>View</th>
+                  <th>Mentor Remarks</th>
+                  <th>Seen</th>
+                  <th>Re-upload Status</th>
+                  <th>Final PPT</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- PPT -->
+                <tr>
+                  <td><i class="fas fa-file-powerpoint text-warning me-2"></i>PPT</td>
+                  <td>
+                    {% if team.documents.zeroth.ppt %}
+                      <span class="status-badge status-yes"><i class="fas fa-check"></i> Yes</span>
+                    {% else %}
+                      <span class="status-badge status-no"><i class="fas fa-times"></i> No</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if team.documents.zeroth.ppt %}
+                      <a href="{{ team.documents.zeroth.ppt.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-eye"></i> View</a>
+                    {% else %}
+                      <button class="glass-btn" disabled>Not Available</button>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <select class="remark-select" onchange="updateRemark('{{ team.project_title }}', 'zeroth', 'ppt', this.value)">
+                      <option value="no" {% if not team.remarks.zeroth.ppt %}selected{% endif %}>No</option>
+                      <option value="yes" {% if team.remarks.zeroth.ppt %}selected{% endif %}>Yes</option>
+                    </select>
+                  </td>
+                  <td>
+                    {% if team.remarks.zeroth.ppt %}<i class="fas fa-check-circle text-success"></i>{% else %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
+                  </td>
+                  <td>
+                    {% if team.remarks.zeroth.ppt %}<span class="status-badge status-yes">Re-uploaded</span>{% else %}<span class="status-badge status-pending">Pending</span>{% endif %}
+                  </td>
+                  <td>
+                    {% if team.documents.zeroth.ppt %}
+                      <a href="{{ team.documents.zeroth.ppt.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-file-powerpoint"></i> View PPT</a>
+                    {% else %}-{% endif %}
+                  </td>
+                </tr>
+                <!-- Abstract -->
+                <tr>
+                  <td><i class="fas fa-file-pdf text-danger me-2"></i>Abstract</td>
+                  <td>
+                    {% if team.documents.zeroth.abstract %}
+                      <span class="status-badge status-yes"><i class="fas fa-check"></i> Yes</span>
+                    {% else %}
+                      <span class="status-badge status-no"><i class="fas fa-times"></i> No</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if team.documents.zeroth.abstract %}
+                      <a href="{{ team.documents.zeroth.abstract.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-eye"></i> View</a>
+                    {% else %}
+                      <button class="glass-btn" disabled>Not Available</button>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <select class="remark-select" onchange="updateRemark('{{ team.project_title }}', 'zeroth', 'abstract', this.value)">
+                      <option value="no" {% if not team.remarks.zeroth.abstract %}selected{% endif %}>No</option>
+                      <option value="yes" {% if team.remarks.zeroth.abstract %}selected{% endif %}>Yes</option>
+                    </select>
+                  </td>
+                  <td>
+                    {% if team.remarks.zeroth.abstract %}<i class="fas fa-check-circle text-success"></i>{% else %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
+                  </td>
+                  <td>
+                    {% if team.remarks.zeroth.abstract %}<span class="status-badge status-yes">Re-uploaded</span>{% elif team.documents.zeroth.abstract %}<span class="status-badge status-pending">Pending</span>{% else %}-{% endif %}
+                  </td>
+                  <td>-</td>
+                </tr>
+                <!-- Base Paper -->
+                <tr>
+                  <td><i class="fas fa-file-alt text-primary me-2"></i>Base Paper</td>
+                  <td>
+                    {% if team.documents.zeroth.report %}
+                      <span class="status-badge status-yes"><i class="fas fa-check"></i> Yes</span>
+                    {% else %}
+                      <span class="status-badge status-no"><i class="fas fa-times"></i> No</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if team.documents.zeroth.report %}
+                      <a href="{{ team.documents.zeroth.report.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-eye"></i> View</a>
+                    {% else %}
+                      <button class="glass-btn" disabled>Not Available</button>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <select class="remark-select" onchange="updateRemark('{{ team.project_title }}', 'zeroth', 'report', this.value)">
+                      <option value="no" {% if not team.remarks.zeroth.report %}selected{% endif %}>No</option>
+                      <option value="yes" {% if team.remarks.zeroth.report %}selected{% endif %}>Yes</option>
+                    </select>
+                  </td>
+                  <td>
+                    {% if team.remarks.zeroth.report %}<i class="fas fa-check-circle text-success"></i>{% else %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
+                  </td>
+                  <td>
+                    {% if team.remarks.zeroth.report %}<span class="status-badge status-yes">Re-uploaded</span>{% elif team.documents.zeroth.report %}<span class="status-badge status-pending">Pending</span>{% else %}-{% endif %}
+                  </td>
+                  <td>-</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 1st Review -->
+        <div class="review-content" id="review-first-{{ team_idx }}">
+          <div class="table-container">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Document</th>
+                  <th>Submitted</th>
+                  <th>View</th>
+                  <th>Mentor Remarks</th>
+                  <th>Seen</th>
+                  <th>Re-upload Status</th>
+                  <th>Final PPT</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><i class="fas fa-file-powerpoint text-warning me-2"></i>PPT</td>
+                  <td>
+                    {% if team.documents.first.ppt %}
+                      <span class="status-badge status-yes"><i class="fas fa-check"></i> Yes</span>
+                    {% else %}
+                      <span class="status-badge status-no"><i class="fas fa-times"></i> No</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if team.documents.first.ppt %}
+                      <a href="{{ team.documents.first.ppt.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-eye"></i> View</a>
+                    {% else %}
+                      <button class="glass-btn" disabled>Not Available</button>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <select class="remark-select" onchange="updateRemark('{{ team.project_title }}', 'first', 'ppt', this.value)">
+                      <option value="no" {% if not team.remarks.first.ppt %}selected{% endif %}>No</option>
+                      <option value="yes" {% if team.remarks.first.ppt %}selected{% endif %}>Yes</option>
+                    </select>
+                  </td>
+                  <td>
+                    {% if team.remarks.first.ppt %}<i class="fas fa-check-circle text-success"></i>{% else %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
+                  </td>
+                  <td>
+                    {% if team.remarks.first.ppt %}<span class="status-badge status-yes">Re-uploaded</span>{% else %}<span class="status-badge status-pending">Pending</span>{% endif %}
+                  </td>
+                  <td>
+                    {% if team.documents.first.ppt %}
+                      <a href="{{ team.documents.first.ppt.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-file-powerpoint"></i> View PPT</a>
+                    {% else %}-{% endif %}
+                  </td>
+                </tr>
+                <tr>
+                  <td><i class="fas fa-file-pdf text-danger me-2"></i>Report</td>
+                  <td>
+                    {% if team.documents.first.report %}
+                      <span class="status-badge status-yes"><i class="fas fa-check"></i> Yes</span>
+                    {% else %}
+                      <span class="status-badge status-no"><i class="fas fa-times"></i> No</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if team.documents.first.report %}
+                      <a href="{{ team.documents.first.report.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-eye"></i> View</a>
+                    {% else %}
+                      <button class="glass-btn" disabled>Not Available</button>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <select class="remark-select" onchange="updateRemark('{{ team.project_title }}', 'first', 'report', this.value)">
+                      <option value="no" {% if not team.remarks.first.report %}selected{% endif %}>No</option>
+                      <option value="yes" {% if team.remarks.first.report %}selected{% endif %}>Yes</option>
+                    </select>
+                  </td>
+                  <td>
+                    {% if team.remarks.first.report %}<i class="fas fa-check-circle text-success"></i>{% else %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
+                  </td>
+                  <td>
+                    {% if team.remarks.first.report %}<span class="status-badge status-yes">Re-uploaded</span>{% elif team.documents.first.report %}<span class="status-badge status-pending">Pending</span>{% else %}-{% endif %}
+                  </td>
+                  <td>-</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 2nd Review -->
+        <div class="review-content" id="review-second-{{ team_idx }}">
+          <div class="table-container">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Document</th>
+                  <th>Submitted</th>
+                  <th>View</th>
+                  <th>Mentor Remarks</th>
+                  <th>Seen</th>
+                  <th>Re-upload Status</th>
+                  <th>Final PPT</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><i class="fas fa-file-powerpoint text-warning me-2"></i>PPT</td>
+                  <td>
+                    {% if team.documents.second.ppt %}
+                      <span class="status-badge status-yes"><i class="fas fa-check"></i> Yes</span>
+                    {% else %}
+                      <span class="status-badge status-no"><i class="fas fa-times"></i> No</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if team.documents.second.ppt %}
+                      <a href="{{ team.documents.second.ppt.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-eye"></i> View</a>
+                    {% else %}
+                      <button class="glass-btn" disabled>Not Available</button>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <select class="remark-select" onchange="updateRemark('{{ team.project_title }}', 'second', 'ppt', this.value)">
+                      <option value="no" {% if not team.remarks.second.ppt %}selected{% endif %}>No</option>
+                      <option value="yes" {% if team.remarks.second.ppt %}selected{% endif %}>Yes</option>
+                    </select>
+                  </td>
+                  <td>
+                    {% if team.remarks.second.ppt %}<i class="fas fa-check-circle text-success"></i>{% else %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
+                  </td>
+                  <td>
+                    {% if team.remarks.second.ppt %}<span class="status-badge status-yes">Re-uploaded</span>{% else %}<span class="status-badge status-pending">Pending</span>{% endif %}
+                  </td>
+                  <td>
+                    {% if team.documents.second.ppt %}
+                      <a href="{{ team.documents.second.ppt.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-file-powerpoint"></i> View PPT</a>
+                    {% else %}-{% endif %}
+                  </td>
+                </tr>
+                <tr>
+                  <td><i class="fas fa-file-pdf text-danger me-2"></i>Report</td>
+                  <td>
+                    {% if team.documents.second.report %}
+                      <span class="status-badge status-yes"><i class="fas fa-check"></i> Yes</span>
+                    {% else %}
+                      <span class="status-badge status-no"><i class="fas fa-times"></i> No</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if team.documents.second.report %}
+                      <a href="{{ team.documents.second.report.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-eye"></i> View</a>
+                    {% else %}
+                      <button class="glass-btn" disabled>Not Available</button>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <select class="remark-select" onchange="updateRemark('{{ team.project_title }}', 'second', 'report', this.value)">
+                      <option value="no" {% if not team.remarks.second.report %}selected{% endif %}>No</option>
+                      <option value="yes" {% if team.remarks.second.report %}selected{% endif %}>Yes</option>
+                    </select>
+                  </td>
+                  <td>
+                    {% if team.remarks.second.report %}<i class="fas fa-check-circle text-success"></i>{% else %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
+                  </td>
+                  <td>
+                    {% if team.remarks.second.report %}<span class="status-badge status-yes">Re-uploaded</span>{% elif team.documents.second.report %}<span class="status-badge status-pending">Pending</span>{% else %}-{% endif %}
+                  </td>
+                  <td>-</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 3rd Review -->
+        <div class="review-content" id="review-third-{{ team_idx }}">
+          <div class="table-container">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Document</th>
+                  <th>Submitted</th>
+                  <th>View</th>
+                  <th>Mentor Remarks</th>
+                  <th>Seen</th>
+                  <th>Re-upload Status</th>
+                  <th>Final PPT</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><i class="fas fa-file-powerpoint text-warning me-2"></i>Final PPT</td>
+                  <td>
+                    {% if team.documents.third.ppt %}
+                      <span class="status-badge status-yes"><i class="fas fa-check"></i> Yes</span>
+                    {% else %}
+                      <span class="status-badge status-no"><i class="fas fa-times"></i> No</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if team.documents.third.ppt %}
+                      <a href="{{ team.documents.third.ppt.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-eye"></i> View</a>
+                    {% else %}
+                      <button class="glass-btn" disabled>Not Available</button>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <select class="remark-select" onchange="updateRemark('{{ team.project_title }}', 'third', 'ppt', this.value)">
+                      <option value="no" {% if not team.remarks.third.ppt %}selected{% endif %}>No</option>
+                      <option value="yes" {% if team.remarks.third.ppt %}selected{% endif %}>Yes</option>
+                    </select>
+                  </td>
+                  <td>
+                    {% if team.remarks.third.ppt %}<i class="fas fa-check-circle text-success"></i>{% else %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
+                  </td>
+                  <td>
+                    {% if team.remarks.third.ppt %}<span class="status-badge status-yes">Approved</span>{% else %}<span class="status-badge status-pending">Pending</span>{% endif %}
+                  </td>
+                  <td>
+                    {% if team.documents.third.ppt %}
+                      <a href="{{ team.documents.third.ppt.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-trophy"></i> Final PPT</a>
+                    {% else %}-{% endif %}
+                  </td>
+                </tr>
+                <tr>
+                  <td><i class="fas fa-file-pdf text-danger me-2"></i>Final Report</td>
+                  <td>
+                    {% if team.documents.third.report %}
+                      <span class="status-badge status-yes"><i class="fas fa-check"></i> Yes</span>
+                    {% else %}
+                      <span class="status-badge status-no"><i class="fas fa-times"></i> No</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if team.documents.third.report %}
+                      <a href="{{ team.documents.third.report.file_url }}" target="_blank" class="glass-btn"><i class="fas fa-eye"></i> View</a>
+                    {% else %}
+                      <button class="glass-btn" disabled>Not Available</button>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <select class="remark-select" onchange="updateRemark('{{ team.project_title }}', 'third', 'report', this.value)">
+                      <option value="no" {% if not team.remarks.third.report %}selected{% endif %}>No</option>
+                      <option value="yes" {% if team.remarks.third.report %}selected{% endif %}>Yes</option>
+                    </select>
+                  </td>
+                  <td>
+                    {% if team.remarks.third.report %}<i class="fas fa-check-circle text-success"></i>{% else %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
+                  </td>
+                  <td>
+                    {% if team.remarks.third.report %}<span class="status-badge status-yes">Approved</span>{% elif team.documents.third.report %}<span class="status-badge status-pending">Pending</span>{% else %}-{% endif %}
+                  </td>
+                  <td>-</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {% endwith %}
+      </div>
+      {% empty %}
+      <div class="team-card text-center">
+        <i class="fas fa-inbox fa-3x mb-3 text-muted"></i>
+        <h5>No Teams Allocated</h5>
+        <p class="text-muted">You don't have any teams assigned to you yet.</p>
+      </div>
+      {% endfor %}
+
+      <div class="footer">
+        © 2025 Your College Name. All Rights Reserved.
+      </div>
+    </div>
+
+    <!-- Settings Section -->
+    <div id="settings-section" class="view-section">
+      <div class="top-header mb-4">
+        <div class="user-greeting">
+          <div class="profile-avatar">{{ mentor_name|slice:":1" }}</div>
+          <div>
+            <div class="welcome-text">Account Settings</div>
+            <small style="color: var(--secondary);">Update your profile and password</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-grid" style="display: flex; justify-content: center;">
+        <!-- Combined Profile + Password Card -->
+        <div class="main-card gradient-purple" style="max-width: 720px; width: 100%;">
+          <i class="fas fa-user-cog"></i>
+          <h6 class="mb-3">Mentor Profile</h6>
+          <p><strong>Username:</strong> {{ username }}</p>
+          <p class="mb-4"><strong>Name:</strong> {{ mentor_name }}</p>
+
+          <hr style="border-color: rgba(255,255,255,0.3);">
+
+          <h6 class="mt-3 mb-3">Change Password</h6>
+
+          <form method="post" action="{% url 'mentor_dashboard' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="reset_password">
+
+            <div class="mb-2">
+              <input type="password" class="form-control" name="new_password" placeholder="New Password" required>
+            </div>
+
+            <div class="mb-2">
+              <input type="password" class="form-control" name="confirm_password" placeholder="Confirm Password" required>
+            </div>
+
+            <button type="submit" class="glass-button w-100 mt-2">
+              Update Password
+            </button>
+          </form>
+
+          {% if password_updated %}
+          <div class="alert alert-success mt-3">
+            <i class="fas fa-check-circle me-2"></i>Password updated successfully!
+          </div>
+          {% endif %}
+
+          {% if password_error %}
+          <div class="alert alert-danger mt-3">
+            <i class="fas fa-exclamation-circle me-2"></i>{{ password_error }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="footer">
+        © 2025 Your College Name. All Rights Reserved.
+      </div>
+    </div>
+
   </div>
+</div>
 
-  <!-- JS -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    // Section toggle
-    const overviewBtn = document.getElementById("overview-btn");
-    const reviewBtn = document.getElementById("review-btn");
-    const teamBtn = document.getElementById("team-btn");
-    const overviewSection = document.getElementById("overview-section");
-    const reviewSection = document.getElementById("review-section");
-    const teamSection = document.getElementById("team-section");
+<!-- JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Section toggle
+  const overviewBtn = document.getElementById("overview-btn");
+  const reviewBtn = document.getElementById("review-btn");
+  const teamBtn = document.getElementById("team-btn");
+  const settingsBtn = document.getElementById("settings-btn");
+  
+  const overviewSection = document.getElementById("overview-section");
+  const reviewSection = document.getElementById("review-section");
+  const teamSection = document.getElementById("team-section");
+  const settingsSection = document.getElementById("settings-section");
 
-    overviewBtn.addEventListener("click", () => {
-      overviewSection.style.display = "block";
-      reviewSection.style.display = "none";
-      teamSection.style.display = "none";
-      overviewBtn.classList.add("active");
-      reviewBtn.classList.remove("active");
-      teamBtn.classList.remove("active");
-    });
+  function showSection(sectionToShow) {
+    // Hide all sections
+    overviewSection.classList.remove("active");
+    reviewSection.classList.remove("active");
+    teamSection.classList.remove("active");
+    settingsSection.classList.remove("active");
+    
+    // Remove active from all nav items
+    overviewBtn.classList.remove("active");
+    reviewBtn.classList.remove("active");
+    teamBtn.classList.remove("active");
+    settingsBtn.classList.remove("active");
+    
+    // Show selected section and activate nav item
+    sectionToShow.classList.add("active");
+    
+    if (sectionToShow === overviewSection) overviewBtn.classList.add("active");
+    else if (sectionToShow === reviewSection) reviewBtn.classList.add("active");
+    else if (sectionToShow === teamSection) teamBtn.classList.add("active");
+    else if (sectionToShow === settingsSection) settingsBtn.classList.add("active");
+  }
 
-    reviewBtn.addEventListener("click", () => {
-      overviewSection.style.display = "none";
-      reviewSection.style.display = "block";
-      teamSection.style.display = "none";
-      overviewBtn.classList.remove("active");
-      reviewBtn.classList.add("active");
-      teamBtn.classList.remove("active");
-    });
+  overviewBtn.addEventListener("click", () => showSection(overviewSection));
+  reviewBtn.addEventListener("click", () => showSection(reviewSection));
+  teamBtn.addEventListener("click", () => showSection(teamSection));
+  settingsBtn.addEventListener("click", () => showSection(settingsSection));
 
-    teamBtn.addEventListener("click", () => {
-      overviewSection.style.display = "none";
-      reviewSection.style.display = "none";
-      teamSection.style.display = "block";
-      overviewBtn.classList.remove("active");
-      reviewBtn.classList.remove("active");
-      teamBtn.classList.add("active");
-    });
+  // Switch review tabs
+  function switchReview(teamIdx, reviewType) {
+    // Update tabs
+    const tabs = document.querySelectorAll('#team-section .review-tab');
+    tabs.forEach(tab => tab.classList.remove('active'));
+    event.target.classList.add('active');
 
-    // Switch review tabs
-    function switchReview(teamIdx, reviewType) {
-      // Update tabs
-      const tabs = document.querySelectorAll('#team-section .review-tab');
-      tabs.forEach(tab => tab.classList.remove('active'));
-      event.target.classList.add('active');
+    // Update content
+    const contents = document.querySelectorAll('[id^="review-"][id$="-' + teamIdx + '"]');
+    contents.forEach(el => el.classList.remove('active'));
+    document.getElementById('review-' + reviewType + '-' + teamIdx).classList.add('active');
+  }
 
-      // Update content
-      const contents = document.querySelectorAll('[id^="review-"][id$="-' + teamIdx + '"]');
-      contents.forEach(el => el.classList.remove('active'));
-      document.getElementById('review-' + reviewType + '-' + teamIdx).classList.add('active');
-    }
-
-    // Update remark
-    function updateRemark(teamName, reviewStage, docType, value) {
-      fetch('/update-remark/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({
-          team_name: teamName,
-          review_stage: reviewStage,
-          doc_type: docType,
-          status: value
-        })
+  // Update remark
+  function updateRemark(teamName, reviewStage, docType, value) {
+    fetch('/update-remark/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({
+        team_name: teamName,
+        review_stage: reviewStage,
+        doc_type: docType,
+        status: value
       })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) location.reload();
-        else alert('Error: ' + data.error);
-      });
-    }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) location.reload();
+      else alert('Error: ' + data.error);
+    });
+  }
 
-    function getCookie(name) {
-      let cookieValue = null;
-      if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-          const cookie = cookies[i].trim();
-          if (cookie.substring(0, name.length + 1) === (name + '=')) {
-            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-            break;
-          }
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
         }
       }
-      return cookieValue;
     }
-    // Hamburger toggle
-const menuToggle = document.getElementById("menu-toggle");
-const sidebar = document.querySelector(".sidebar");
+    return cookieValue;
+  }
 
-menuToggle.addEventListener("click", function(){
-  sidebar.classList.toggle("active");
-});
+  // Hamburger toggle
+  const menuToggle = document.getElementById("menu-toggle");
+  const sidebar = document.querySelector(".sidebar");
 
-const closeSidebar = document.getElementById("close-sidebar");
+  menuToggle.addEventListener("click", function(){
+    sidebar.classList.toggle("active");
+  });
 
-closeSidebar.addEventListener("click", function(){
-  sidebar.classList.remove("active");
-});
-  </script>
+  const closeSidebar = document.getElementById("close-sidebar");
+
+  closeSidebar.addEventListener("click", function(){
+    sidebar.classList.remove("active");
+  });
+</script>
 </body>
 </html>
