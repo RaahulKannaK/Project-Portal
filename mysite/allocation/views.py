@@ -216,12 +216,41 @@ from django.shortcuts import render
 from allocation.models import AllocationResult, Team, ProjectDocument, ZerothReviewRemark
 
 def mentor_dashboard(request):
+    # ===============================
+    # SESSION CHECK
+    # ===============================
     mentor_name = request.session.get("mentor_name")
     username = request.session.get("username")
 
     if not mentor_name:
         return redirect("mentor_login")
 
+    # ===============================
+    # PASSWORD RESET HANDLER
+    # ===============================
+    password_updated = False
+    password_error = None
+
+    if request.method == "POST" and request.POST.get("action") == "reset_password":
+        new_password = request.POST.get("new_password")
+        confirm_password = request.POST.get("confirm_password")
+
+        if not new_password or not confirm_password:
+            password_error = "Both fields are required."
+        elif new_password != confirm_password:
+            password_error = "Passwords do not match."
+        else:
+            try:
+                user = Men_Login.objects.get(username=username)
+                user.password = new_password  # ⚠️ plain text as per your current setup
+                user.save()
+                password_updated = True
+            except Men_Login.DoesNotExist:
+                password_error = "User not found."
+
+    # ===============================
+    # FETCH ALLOCATIONS & TEAM DETAILS
+    # ===============================
     allocations = AllocationResult.objects.filter(mentor_name=mentor_name)
     team_details = []
 
@@ -273,92 +302,102 @@ def mentor_dashboard(request):
             "remarks": all_remarks,      # All 4 stages
         })
 
+    # ===============================
+    # RENDER DASHBOARD
+    # ===============================
     return render(request, "mentor/men_dash.html", {
         "mentor_name": mentor_name,
         "username": username,
         "team_details": team_details,
+        "password_updated": password_updated,
+        "password_error": password_error,
     })
 
 def hod_dashboard(request):
     return render(request, "accounts/hod_dash.html")
 
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
-from django.utils import timezone
-from .models import Announcement,AnnouncementStatus
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
-from django.utils import timezone
-
-
 import pandas as pd
-from django.shortcuts import render
-from .models import Student
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.utils import timezone
+from .models import (
+    Student, Stu_Login, 
+    Mentor, Mentor_Login, 
+    Coordinator_Login,  # Using this as HOD model based on your structure
+    Announcement, AnnouncementStatus
+)
 
-REQUIRED_COLUMNS = {"student_id", "name", "cgpa", "class"}
+# =========================
+# STUDENT CSV UPLOAD (ENHANCED)
+# =========================
 
-def upload_csv(request):
+REQUIRED_STUDENT_COLUMNS = {"student_id", "name", "cgpa", "class", "username", "password"}
+
+def upload_student_csv(request):
     allowed = []
     not_allowed = []
 
     if request.method == 'POST':
         file = request.FILES.get('file')
 
-        # ❌ No file
         if not file:
             return render(request, 'coordinator/coord_dash.html', {
-                'error': 'No file uploaded'
+                'error': 'No file uploaded',
+                'active_tab': 'student_csv'
             })
 
-        # ❌ Excel file uploaded
         if file.name.endswith(('.xlsx', '.xls')):
             return render(request, 'coordinator/coord_dash.html', {
-                'error': 'Excel files are not supported. Please upload a CSV file.'
+                'error': 'Excel files are not supported. Please upload a CSV file.',
+                'active_tab': 'student_csv'
             })
 
-        # ❌ Not CSV
         if not file.name.endswith('.csv'):
             return render(request, 'coordinator/coord_dash.html', {
-                'error': 'Invalid file type. Only CSV files are allowed.'
+                'error': 'Invalid file type. Only CSV files are allowed.',
+                'active_tab': 'student_csv'
             })
 
-        # ❌ CSV read error
         try:
             df = pd.read_csv(file)
         except Exception:
             return render(request, 'coordinator/coord_dash.html', {
-                'error': 'Unable to read CSV file. Please check the format.'
+                'error': 'Unable to read CSV file. Please check the format.',
+                'active_tab': 'student_csv'
             })
 
-        # ❌ Empty file
         if df.empty:
             return render(request, 'coordinator/coord_dash.html', {
-                'error': 'CSV file is empty.'
+                'error': 'CSV file is empty.',
+                'active_tab': 'student_csv'
             })
 
-        # 🔥 Normalize column names
+        # Normalize column names
         df.columns = df.columns.str.strip().str.lower()
 
-        # ❌ Missing required columns
-        if not REQUIRED_COLUMNS.issubset(set(df.columns)):
+        if not REQUIRED_STUDENT_COLUMNS.issubset(set(df.columns)):
             return render(request, 'coordinator/coord_dash.html', {
-                'error': f'CSV must contain columns: {", ".join(REQUIRED_COLUMNS)}'
+                'error': f'CSV must contain columns: {", ".join(REQUIRED_STUDENT_COLUMNS)}',
+                'active_tab': 'student_csv'
             })
 
-        # ✅ Process rows
+        # Process rows
         for _, row in df.iterrows():
             try:
                 student_id = str(row['student_id']).strip()
                 name = str(row['name']).strip()
                 cgpa = float(row['cgpa'])
                 class_name = str(row['class']).strip()
+                username = str(row['username']).strip()
+                password = str(row['password']).strip()
 
-                if not student_id or not name or not class_name:
+                if not student_id or not name or not class_name or not username or not password:
                     raise ValueError("Missing required fields")
 
                 if cgpa < 0 or cgpa > 10:
                     raise ValueError("CGPA must be between 0 and 10")
 
+                # Create/Update Student
                 Student.objects.update_or_create(
                     student_id=student_id,
                     defaults={
@@ -368,47 +407,292 @@ def upload_csv(request):
                     }
                 )
 
+                # Create/Update Student Login
+                Stu_Login.objects.update_or_create(
+                    username=username,
+                    defaults={
+                        'password': password
+                    }
+                )
+
                 allowed.append({
                     'student_id': student_id,
                     'name': name,
                     'cgpa': cgpa,
-                    'class': class_name
+                    'class': class_name,
+                    'username': username
                 })
 
             except Exception as e:
                 not_allowed.append({
-                    'student_id': row.get('student_id', ''),
-                    'name': row.get('name', ''),
+                    'student_id': str(row.get('student_id', '')),
+                    'name': str(row.get('name', '')),
                     'reason': str(e)
                 })
 
         return render(request, 'coordinator/coord_dash.html', {
             'allowed': allowed,
             'not_allowed': not_allowed,
-            'show_results': True
+            'show_student_results': True,
+            'active_tab': 'student_csv'
         })
 
-    return render(request, 'coordinator/coord_dash.html')
+    return render(request, 'coordinator/coord_dash.html', {'active_tab': 'student_csv'})
+
+
+# =========================
+# MENTOR CSV UPLOAD
+# =========================
+
+REQUIRED_MENTOR_COLUMNS = {"username", "name", "primary_domain", "experience", "password"}
+OPTIONAL_MENTOR_COLUMNS = {"alternative_domains"}
+
+def upload_mentor_csv(request):
+    allowed = []
+    not_allowed = []
+
+    if request.method == 'POST':
+        file = request.FILES.get('file')
+
+        if not file:
+            return render(request, 'coordinator/coord_dash.html', {
+                'error': 'No file uploaded',
+                'active_tab': 'mentor_csv'
+            })
+
+        if file.name.endswith(('.xlsx', '.xls')):
+            return render(request, 'coordinator/coord_dash.html', {
+                'error': 'Excel files are not supported. Please upload a CSV file.',
+                'active_tab': 'mentor_csv'
+            })
+
+        if not file.name.endswith('.csv'):
+            return render(request, 'coordinator/coord_dash.html', {
+                'error': 'Invalid file type. Only CSV files are allowed.',
+                'active_tab': 'mentor_csv'
+            })
+
+        try:
+            df = pd.read_csv(file)
+        except Exception:
+            return render(request, 'coordinator/coord_dash.html', {
+                'error': 'Unable to read CSV file. Please check the format.',
+                'active_tab': 'mentor_csv'
+            })
+
+        if df.empty:
+            return render(request, 'coordinator/coord_dash.html', {
+                'error': 'CSV file is empty.',
+                'active_tab': 'mentor_csv'
+            })
+
+        # Normalize column names
+        df.columns = df.columns.str.strip().str.lower()
+
+        if not REQUIRED_MENTOR_COLUMNS.issubset(set(df.columns)):
+            return render(request, 'coordinator/coord_dash.html', {
+                'error': f'CSV must contain columns: {", ".join(REQUIRED_MENTOR_COLUMNS)}',
+                'active_tab': 'mentor_csv'
+            })
+
+        # Process rows
+        for _, row in df.iterrows():
+            try:
+                username = str(row['username']).strip()
+                name = str(row['name']).strip()
+                primary_domain = str(row['primary_domain']).strip()
+                experience = int(row['experience'])
+                password = str(row['password']).strip()
+                alternative_domains = str(row.get('alternative_domains', '')).strip()
+
+                if not username or not name or not primary_domain or not password:
+                    raise ValueError("Missing required fields")
+
+                if experience < 0:
+                    raise ValueError("Experience cannot be negative")
+
+                # Create/Update Mentor
+                Mentor.objects.update_or_create(
+                    username=username,
+                    defaults={
+                        'name': name,
+                        'primary_domain': primary_domain,
+                        'experience': experience,
+                        'alternative_domains': alternative_domains if alternative_domains else None
+                    }
+                )
+
+                # Create/Update Mentor Login
+                Mentor_Login.objects.update_or_create(
+                    username=username,
+                    defaults={
+                        'name': name,
+                        'password': password
+                    }
+                )
+
+                allowed.append({
+                    'username': username,
+                    'name': name,
+                    'primary_domain': primary_domain,
+                    'experience': experience
+                })
+
+            except Exception as e:
+                not_allowed.append({
+                    'username': str(row.get('username', '')),
+                    'name': str(row.get('name', '')),
+                    'reason': str(e)
+                })
+
+        return render(request, 'coordinator/coord_dash.html', {
+            'allowed': allowed,
+            'not_allowed': not_allowed,
+            'show_mentor_results': True,
+            'active_tab': 'mentor_csv'
+        })
+
+    return render(request, 'coordinator/coord_dash.html', {'active_tab': 'mentor_csv'})
+
+
+# =========================
+# HOD CSV UPLOAD
+# =========================
+
+REQUIRED_HOD_COLUMNS = {"username", "name", "password"}
+
+def upload_hod_csv(request):
+    allowed = []
+    not_allowed = []
+
+    if request.method == 'POST':
+        file = request.FILES.get('file')
+
+        if not file:
+            return render(request, 'coordinator/coord_dash.html', {
+                'error': 'No file uploaded',
+                'active_tab': 'hod_csv'
+            })
+
+        if file.name.endswith(('.xlsx', '.xls')):
+            return render(request, 'coordinator/coord_dash.html', {
+                'error': 'Excel files are not supported. Please upload a CSV file.',
+                'active_tab': 'hod_csv'
+            })
+
+        if not file.name.endswith('.csv'):
+            return render(request, 'coordinator/coord_dash.html', {
+                'error': 'Invalid file type. Only CSV files are allowed.',
+                'active_tab': 'hod_csv'
+            })
+
+        try:
+            df = pd.read_csv(file)
+        except Exception:
+            return render(request, 'coordinator/coord_dash.html', {
+                'error': 'Unable to read CSV file. Please check the format.',
+                'active_tab': 'hod_csv'
+            })
+
+        if df.empty:
+            return render(request, 'coordinator/coord_dash.html', {
+                'error': 'CSV file is empty.',
+                'active_tab': 'hod_csv'
+            })
+
+        # Normalize column names
+        df.columns = df.columns.str.strip().str.lower()
+
+        if not REQUIRED_HOD_COLUMNS.issubset(set(df.columns)):
+            return render(request, 'coordinator/coord_dash.html', {
+                'error': f'CSV must contain columns: {", ".join(REQUIRED_HOD_COLUMNS)}',
+                'active_tab': 'hod_csv'
+            })
+
+        # Process rows
+        for _, row in df.iterrows():
+            try:
+                username = str(row['username']).strip()
+                name = str(row['name']).strip()
+                password = str(row['password']).strip()
+
+                if not username or not name or not password:
+                    raise ValueError("Missing required fields")
+
+                # Create/Update HOD (using Coordinator_Login as HOD model)
+                # If you have a separate HOD model, replace Coordinator_Login with HOD_Login
+                Coordinator_Login.objects.update_or_create(
+                    username=username,
+                    defaults={
+                        'name': name,
+                        'password': password
+                    }
+                )
+
+                allowed.append({
+                    'username': username,
+                    'name': name
+                })
+
+            except Exception as e:
+                not_allowed.append({
+                    'username': str(row.get('username', '')),
+                    'name': str(row.get('name', '')),
+                    'reason': str(e)
+                })
+
+        return render(request, 'coordinator/coord_dash.html', {
+            'allowed': allowed,
+            'not_allowed': not_allowed,
+            'show_hod_results': True,
+            'active_tab': 'hod_csv'
+        })
+
+    return render(request, 'coordinator/coord_dash.html', {'active_tab': 'hod_csv'})
 
 def coordinator_dashboard(request):
-
-    # 🔐 SESSION CHECK (VERY IMPORTANT)
+    # ===============================
+    # SESSION CHECK
+    # ===============================
     coordinator_id = request.session.get("coordinator_id")
     if not coordinator_id:
         return redirect("login")
 
     coordinator = get_object_or_404(Coordinator_Login, id=coordinator_id)
 
+    # ===============================
+    # PASSWORD RESET HANDLER
+    # ===============================
+    password_updated = False
+    password_error = None
+
+    if request.method == "POST" and request.POST.get("action") == "reset_password":
+        new_password = request.POST.get("new_password")
+        confirm_password = request.POST.get("confirm_password")
+
+        if not new_password or not confirm_password:
+            password_error = "Both fields are required."
+        elif new_password != confirm_password:
+            password_error = "Passwords do not match."
+        else:
+            try:
+                user = Coordinator_Login.objects.get(username=coordinator.username)
+                user.password = new_password  # ⚠️ plain text as per your current setup
+                user.save()
+                password_updated = True
+            except Coordinator_Login.DoesNotExist:
+                password_error = "User not found."
+
     # =========================================================
     # 📢 CREATE ANNOUNCEMENT
     # =========================================================
-    if request.method == "POST":
+    if request.method == "POST" and 'title' in request.POST:
 
         print("POST DATA:", request.POST)
 
         title = request.POST.get("title")
-        ann_type = request.POST.get("ann_type")        # deadline / schedule / instruction
-        target = request.POST.get("target")            # student / mentor / both
+        ann_type = request.POST.get("ann_type")
+        target = request.POST.get("target")
 
         deadline_date = request.POST.get("deadline_date")
         deadline_time = request.POST.get("deadline_time")
@@ -419,19 +703,12 @@ def coordinator_dashboard(request):
 
         message = request.POST.get("message")
 
-        # -----------------------------------------------------
-        # COMMON VALIDATION
-        # -----------------------------------------------------
         if not title or not ann_type or not target:
             messages.error(request, "Please fill all required fields")
             return redirect("coordinator_dashboard")
 
-        # -----------------------------------------------------
-        # ANNOUNCEMENT CREATION (BASED ON TYPE)
-        # -----------------------------------------------------
         announcement = None
 
-        # 🔔 DEADLINE
         if ann_type == "deadline":
             if not deadline_date or not deadline_time:
                 messages.error(request, "Deadline date and time required")
@@ -447,7 +724,6 @@ def coordinator_dashboard(request):
                 created_by_name=coordinator.name
             )
 
-        # 🗓️ SCHEDULE
         elif ann_type == "schedule":
             if not schedule_date or not schedule_time or not venue:
                 messages.error(request, "Schedule date, time and venue required")
@@ -464,7 +740,6 @@ def coordinator_dashboard(request):
                 created_by_name=coordinator.name
             )
 
-        # 📝 INSTRUCTION
         elif ann_type == "instruction":
             if not message:
                 messages.error(request, "Instruction message required")
@@ -483,9 +758,6 @@ def coordinator_dashboard(request):
             messages.error(request, "Invalid announcement type")
             return redirect("coordinator_dashboard")
 
-        # -----------------------------------------------------
-        # 🎯 ASSIGN ANNOUNCEMENT TO USERS
-        # -----------------------------------------------------
         status_objects = []
 
         if target == "student":
@@ -512,7 +784,7 @@ def coordinator_dashboard(request):
                     )
                 )
 
-        else:  # BOTH
+        else:
             students = Student.objects.all()
             mentors = Mentor_Login.objects.all()
 
@@ -548,9 +820,14 @@ def coordinator_dashboard(request):
         created_by_username=coordinator.username
     ).order_by("-created_at")
 
+    # ===============================
+    # RENDER DASHBOARD
+    # ===============================
     return render(request, "coordinator/coord_dash.html", {
         "coordinator": coordinator,
-        "announcements": announcements
+        "announcements": announcements,
+        "password_updated": password_updated,
+        "password_error": password_error,
     })
 
 def logout_view(request):

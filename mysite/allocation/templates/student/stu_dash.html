@@ -840,8 +840,6 @@ const dashboard = document.getElementById('dashboardView');
 const settings = document.getElementById('settingsView');
 const settingsLink = document.getElementById('settingsLink');
 const overviewLink = document.getElementById('overviewLink');
-const backBtn = document.getElementById('backBtn');
-const overviewLink = document.getElementById('overviewLink');
 
 function showDashboard() {
   settings.style.display = 'none';
@@ -861,18 +859,11 @@ settingsLink.addEventListener('click', (e)=>{
   e.preventDefault();
   showSettings();
 });
-overviewLink.addEventListener('click', (e)=>{
-  e.preventDefault();
-  settings.style.display='none';
-  dashboard.style.display='block';
-});
 
 overviewLink.addEventListener('click', (e)=>{
   e.preventDefault();
   showDashboard();
 });
-
-backBtn.addEventListener('click', showDashboard);
 
 // Slide Panel Functions
 function openAnnouncementsPanel() {
@@ -893,19 +884,18 @@ document.addEventListener('keydown', function(e) {
     closeAnnouncementsPanel();
   }
 });
-function toggleSidebar(){
 
+function toggleSidebar(){
   const sidebar = document.querySelector(".sidebar");
   const menuBtn = document.getElementById("topMenuBtn");
 
   sidebar.classList.toggle("active");
 
   if(sidebar.classList.contains("active")){
-      menuBtn.style.display="none";   // sidebar open → menu hide
+      menuBtn.style.display="none";
   }else{
-      menuBtn.style.display="block";  // sidebar close → menu show
+      menuBtn.style.display="block";
   }
-
 }
 </script>
 </body>

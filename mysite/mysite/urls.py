@@ -13,7 +13,7 @@ from allocation.views import (
     mentor_list, zero_ma, allocate_view, zero_men, one_men, three_men, two_men,
     zero_review, zero_base, zero_ppt, zero_form, men_ppt, hod_dashboard, coordinator_dashboard,
     team_list, save_evaluation, clean_text, zero_stu, one_stu, two_stu, three_stu,
-    approve_team, modify_team, zero_ma1, download_docx, download_pdf, one_ma, two_ma, three_ma, upload_csv,
+    approve_team, modify_team, zero_ma1, download_docx, download_pdf, one_ma, two_ma, three_ma, upload_student_csv,upload_mentor_csv,upload_hod_csv,
     save_evaluation_review1, save_evaluation_review2, save_evaluation_review3, serve_pdf, save_zeroth_remark, 
     acknowledge_announcement, serve_temp_html, student_result_view, mentor_result_view,
     # 🔥 NEW: Import highlight views
@@ -111,7 +111,10 @@ urlpatterns = [
     path('mentor/pdf/<str:team_name>/<str:pdf_type>/', serve_pdf, name='serve_pdf'),
     
     # ---------------- CSV Upload ----------------
-    path("coordinator/upload-csv/", upload_csv, name="upload_csv"),
+    path('upload/student/', upload_student_csv, name='upload_student_csv'),
+    path('upload/mentor/', upload_mentor_csv, name='upload_mentor_csv'),
+    path('upload/hod/', upload_hod_csv, name='upload_hod_csv'),
+    
 
     # ---------------- Announcements ----------------
     path("student/my-mentor/", student_result_view, name="student_mentor"),
