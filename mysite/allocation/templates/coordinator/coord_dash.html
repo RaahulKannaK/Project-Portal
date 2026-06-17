@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Coordinator Hub - Dashboard</title>
 
-  <!-- Bootstrap & Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -22,6 +21,7 @@
       --success: #10b981;
       --warning: #f59e0b;
       --danger: #ef4444;
+      --info: #3b82f6;
     }
 
     * { box-sizing: border-box; }
@@ -47,7 +47,6 @@
       box-shadow: 0 20px 50px rgba(0,0,0,0.25);
     }
 
-    /* SIDEBAR */
     .sidebar {
       width: 280px;
       padding: 30px 20px;
@@ -100,7 +99,6 @@
       font-weight: 600;
     }
 
-    /* MAIN */
     .main-content {
       flex: 1;
       padding: 30px;
@@ -109,7 +107,6 @@
       position: relative;
     }
 
-    /* TOP HEADER */
     .top-header {
       display: flex;
       justify-content: space-between;
@@ -142,7 +139,6 @@
       color: var(--text-dark);
     }
 
-    /* DROPDOWN BUTTON */
     .more-options-btn {
       background: var(--primary);
       color: var(--text-light);
@@ -161,14 +157,12 @@
       background: var(--secondary);
     }
 
-    /* GRID */
     .content-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 25px;
     }
 
-    /* CARDS */
     .main-card {
       position: relative;
       padding: 25px;
@@ -210,7 +204,6 @@
     .gradient-purple { background: linear-gradient(135deg, var(--primary), var(--accent)); }
     .gradient-light { background: linear-gradient(135deg, var(--accent), var(--secondary)); color: var(--text-dark); }
 
-    /* BUTTON */
     .glass-button {
       background: var(--accent);
       padding: 10px 18px;
@@ -244,7 +237,6 @@
     .section { display: none; }
     .section.active { display: block; }
     
-    /* Footer */
     .footer {
       margin-top:25px;
       text-align:center;
@@ -255,16 +247,14 @@
       opacity: 0.8;
     }
 
-    /* Form Styles */
     .form-section { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
     .form-control, .form-select { border-radius: 10px; padding: 12px; border: 1.5px solid #e2e8f0; }
-    .form-control:focus, .form-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.2); }
+    .form-control:focus, .form-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(163, 210, 198, 0.3); }
     .btn-primary { background: var(--primary); border: none; padding: 12px 25px; border-radius: 10px; font-weight: 600; }
     .btn-primary:hover { background: var(--text-dark); }
 
     #clock { font-weight: 600; font-size: 1.1rem; color: var(--primary); }
 
-    /* Settings Styles */
     .settings-card {
       max-width: 720px;
       width: 100%;
@@ -280,7 +270,177 @@
       justify-content: center;
     }
 
-    /* Mobile Responsive */
+    .csv-template-card {
+      background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+      border: 2px dashed var(--info);
+      border-radius: 16px;
+      padding: 25px;
+      text-align: center;
+      margin-bottom: 25px;
+      transition: 0.3s;
+    }
+
+    .csv-template-card:hover {
+      border-color: var(--primary);
+      background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    }
+
+    .csv-template-card i {
+      font-size: 2.5rem;
+      color: var(--info);
+      margin-bottom: 15px;
+    }
+
+    .btn-download-template {
+      background: var(--info);
+      color: white;
+      border: none;
+      padding: 10px 25px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-download-template:hover {
+      background: #2563eb;
+      transform: translateY(-2px);
+    }
+
+    .btn-view-data {
+      background: var(--secondary);
+      color: white;
+      border: none;
+      padding: 10px 25px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-view-data:hover {
+      background: var(--primary);
+      transform: translateY(-2px);
+    }
+
+    .data-table-container {
+      background: white;
+      border-radius: 16px;
+      padding: 25px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      margin-top: 25px;
+      display: none;
+    }
+
+    .data-table-container.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 6px;
+    }
+
+    .data-table th {
+      background: var(--primary);
+      color: white;
+      padding: 14px 16px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .data-table th:first-child { border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
+    .data-table th:last-child { border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
+
+    .data-table td {
+      background: #f8fafc;
+      padding: 14px 16px;
+      font-size: 0.9rem;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .data-table td:first-child { border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
+    .data-table td:last-child { border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
+
+    .data-table tr:hover td {
+      background: #f0f9ff;
+    }
+
+    .badge-count {
+      background: var(--primary);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .validation-error {
+      background: #fef2f2;
+      border-left: 4px solid var(--danger);
+      padding: 15px 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      color: var(--danger);
+    }
+
+    .validation-success {
+      background: #f0fdf4;
+      border-left: 4px solid var(--success);
+      padding: 15px 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      color: var(--success);
+    }
+
+    .stats-bar {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+
+    .stat-pill {
+      background: white;
+      padding: 12px 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stat-pill i {
+      font-size: 1.3rem;
+      color: var(--secondary);
+    }
+
+    .stat-pill .number {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .stat-pill .label {
+      font-size: 0.8rem;
+      color: #666;
+    }
+
     .menu-toggle {
       display: none;
     }
@@ -476,17 +636,106 @@
         </div>
       </div>
 
-      <!-- Student CSV Upload -->
+      <!-- ==================== STUDENT CSV ==================== -->
       <div id="studentCsv" class="section">
         <div class="form-section">
           <h4 class="mb-4">📤 Student CSV Upload</h4>
           
-          <div class="alert alert-info border-0 mb-4" style="background: rgba(167, 139, 250, 0.1); color: var(--primary);">
+          <!-- Download Template -->
+          <div class="csv-template-card">
+            <i class="fas fa-download"></i>
+            <h5>Download CSV Template</h5>
+            <p class="text-muted">Get the correct format before uploading</p>
+            <button class="btn-download-template" onclick="downloadTemplate('student')">
+              <i class="fas fa-file-csv"></i> Download Template
+            </button>
+          </div>
+
+          <!-- View Existing Data -->
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="mb-0"><i class="fas fa-database me-2 text-primary"></i>Existing Students</h5>
+            <button class="btn-view-data" onclick="toggleDataView('student')">
+              <i class="fas fa-eye"></i> <span id="studentViewBtnText">View Data</span>
+            </button>
+          </div>
+
+          <!-- Stats -->
+          <div class="stats-bar">
+            <div class="stat-pill">
+              <i class="fas fa-users"></i>
+              <div>
+                <div class="number">{{ student_count|default:"0" }}</div>
+                <div class="label">Total Students</div>
+              </div>
+            </div>
+            <div class="stat-pill">
+              <i class="fas fa-check-circle"></i>
+              <div>
+                <div class="number">{{ student_uploaded|default:"0" }}</div>
+                <div class="label">This Session</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Data Table -->
+          <div class="data-table-container" id="studentDataView">
+            {% if students_data %}
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>CGPA</th>
+                    <th>Class</th>
+                    <th>Username</th>
+                    <th>Password</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for s in students_data %}
+                  <tr>
+                    <td>{{ s.student_id }}</td>
+                    <td>{{ s.name }}</td>
+                    <td>{{ s.cgpa }}</td>
+                    <td>{{ s.clas }}</td>
+                    <td>{{ s.username }}</td>
+                    <td>{{ s.password }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4 text-muted">
+              <i class="fas fa-inbox fa-2x mb-2"></i>
+              <p>No student data found. Upload a CSV to get started.</p>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Upload Form -->
+          <hr class="my-4">
+          <h5 class="mb-3"><i class="fas fa-upload me-2 text-primary"></i>Upload New Data</h5>
+
+          {% if error and active_tab == 'student_csv' %}
+            <div class="validation-error">
+              <i class="fas fa-exclamation-triangle me-2"></i>{{ error|safe }}
+            </div>
+          {% endif %}
+
+          {% if success_msg and active_tab == 'student_csv' %}
+            <div class="validation-success">
+              <i class="fas fa-check-circle me-2"></i>{{ success_msg }}
+            </div>
+          {% endif %}
+
+          <div class="alert alert-info border-0 mb-4" style="background: rgba(59, 130, 246, 0.1); color: var(--primary);">
             <strong><i class="fas fa-info-circle me-2"></i>CSV Format Required:</strong>
             <div class="table-responsive mt-2">
               <table class="table table-sm" style="color: inherit;">
                 <thead>
-                  <tr><th>student_id</th><th>name</th><th>cgpa</th><th>class</th><th>username</th><th>password</th></tr>
+                  <tr><th>student_id</th><th>name</th><th>cgpa</th><th>clas</th><th>username</th><th>password</th></tr>
                 </thead>
                 <tbody>
                   <tr><td>24UCS201</td><td>Salis</td><td>8.5</td><td>CSE-B</td><td>salis_24</td><td>pass123</td></tr>
@@ -504,10 +753,6 @@
             <button type="submit" class="btn btn-primary w-100">Upload to System</button>
           </form>
 
-          {% if error and active_tab == 'student_csv' %}
-            <div class="alert alert-danger mt-4">{{ error }}</div>
-          {% endif %}
-
           {% if show_student_results %}
             <div class="mt-5">
               {% if allowed %}
@@ -520,7 +765,7 @@
                       </thead>
                       <tbody>
                         {% for s in allowed %}
-                        <tr><td>{{ s.student_id }}</td><td>{{ s.name }}</td><td>{{ s.cgpa }}</td><td>{{ s.class }}</td><td>{{ s.username }}</td></tr>
+                        <tr><td>{{ s.student_id }}</td><td>{{ s.name }}</td><td>{{ s.cgpa }}</td><td>{{ s.clas }}</td><td>{{ s.username }}</td></tr>
                         {% endfor %}
                       </tbody>
                     </table>
@@ -553,12 +798,101 @@
         </div>
       </div>
 
-      <!-- Mentor CSV Upload -->
+      <!-- ==================== MENTOR CSV ==================== -->
       <div id="mentorCsv" class="section">
         <div class="form-section">
           <h4 class="mb-4">📤 Mentor CSV Upload</h4>
           
-          <div class="alert alert-info border-0 mb-4" style="background: rgba(167, 139, 250, 0.1); color: var(--primary);">
+          <!-- Download Template -->
+          <div class="csv-template-card">
+            <i class="fas fa-download"></i>
+            <h5>Download CSV Template</h5>
+            <p class="text-muted">Get the correct format before uploading</p>
+            <button class="btn-download-template" onclick="downloadTemplate('mentor')">
+              <i class="fas fa-file-csv"></i> Download Template
+            </button>
+          </div>
+
+          <!-- View Existing Data -->
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="mb-0"><i class="fas fa-database me-2 text-primary"></i>Existing Mentors</h5>
+            <button class="btn-view-data" onclick="toggleDataView('mentor')">
+              <i class="fas fa-eye"></i> <span id="mentorViewBtnText">View Data</span>
+            </button>
+          </div>
+
+          <!-- Stats -->
+          <div class="stats-bar">
+            <div class="stat-pill">
+              <i class="fas fa-chalkboard-teacher"></i>
+              <div>
+                <div class="number">{{ mentor_count|default:"0" }}</div>
+                <div class="label">Total Mentors</div>
+              </div>
+            </div>
+            <div class="stat-pill">
+              <i class="fas fa-check-circle"></i>
+              <div>
+                <div class="number">{{ mentor_uploaded|default:"0" }}</div>
+                <div class="label">This Session</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Data Table -->
+          <div class="data-table-container" id="mentorDataView">
+            {% if mentors_data %}
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Username</th>
+                    <th>Name</th>
+                    <th>Primary Domain</th>
+                    <th>Experience</th>
+                    <th>Alternative Domains</th>
+                    <th>Password</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for m in mentors_data %}
+                  <tr>
+                    <td>{{ m.username }}</td>
+                    <td>{{ m.name }}</td>
+                    <td><span class="badge-count">{{ m.primary_domain }}</span></td>
+                    <td>{{ m.experience }} years</td>
+                    <td>{{ m.alternative_domains|default:"-" }}</td>
+                    <td>{{ m.password }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4 text-muted">
+              <i class="fas fa-inbox fa-2x mb-2"></i>
+              <p>No mentor data found. Upload a CSV to get started.</p>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Upload Form -->
+          <hr class="my-4">
+          <h5 class="mb-3"><i class="fas fa-upload me-2 text-primary"></i>Upload New Data</h5>
+
+          {% if error and active_tab == 'mentor_csv' %}
+            <div class="validation-error">
+              <i class="fas fa-exclamation-triangle me-2"></i>{{ error|safe }}
+            </div>
+          {% endif %}
+
+          {% if success_msg and active_tab == 'mentor_csv' %}
+            <div class="validation-success">
+              <i class="fas fa-check-circle me-2"></i>{{ success_msg }}
+            </div>
+          {% endif %}
+
+          <div class="alert alert-info border-0 mb-4" style="background: rgba(59, 130, 246, 0.1); color: var(--primary);">
             <strong><i class="fas fa-info-circle me-2"></i>CSV Format Required:</strong>
             <div class="table-responsive mt-2">
               <table class="table table-sm" style="color: inherit;">
@@ -581,10 +915,6 @@
             </div>
             <button type="submit" class="btn btn-primary w-100">Upload to System</button>
           </form>
-
-          {% if error and active_tab == 'mentor_csv' %}
-            <div class="alert alert-danger mt-4">{{ error }}</div>
-          {% endif %}
 
           {% if show_mentor_results %}
             <div class="mt-5">
@@ -631,12 +961,95 @@
         </div>
       </div>
 
-      <!-- HOD CSV Upload -->
+      <!-- ==================== HOD CSV ==================== -->
       <div id="hodCsv" class="section">
         <div class="form-section">
           <h4 class="mb-4">📤 HOD CSV Upload</h4>
           
-          <div class="alert alert-info border-0 mb-4" style="background: rgba(167, 139, 250, 0.1); color: var(--primary);">
+          <!-- Download Template -->
+          <div class="csv-template-card">
+            <i class="fas fa-download"></i>
+            <h5>Download CSV Template</h5>
+            <p class="text-muted">Get the correct format before uploading</p>
+            <button class="btn-download-template" onclick="downloadTemplate('hod')">
+              <i class="fas fa-file-csv"></i> Download Template
+            </button>
+          </div>
+
+          <!-- View Existing Data -->
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="mb-0"><i class="fas fa-database me-2 text-primary"></i>Existing HODs</h5>
+            <button class="btn-view-data" onclick="toggleDataView('hod')">
+              <i class="fas fa-eye"></i> <span id="hodViewBtnText">View Data</span>
+            </button>
+          </div>
+
+          <!-- Stats -->
+          <div class="stats-bar">
+            <div class="stat-pill">
+              <i class="fas fa-user-tie"></i>
+              <div>
+                <div class="number">{{ hod_count|default:"0" }}</div>
+                <div class="label">Total HODs</div>
+              </div>
+            </div>
+            <div class="stat-pill">
+              <i class="fas fa-check-circle"></i>
+              <div>
+                <div class="number">{{ hod_uploaded|default:"0" }}</div>
+                <div class="label">This Session</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Data Table -->
+          <div class="data-table-container" id="hodDataView">
+            {% if hods_data %}
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Username</th>
+                    <th>Name</th>
+                    <th>Password</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for h in hods_data %}
+                  <tr>
+                    <td>{{ h.username }}</td>
+                    <td>{{ h.name }}</td>
+                    <td>{{ h.password }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4 text-muted">
+              <i class="fas fa-inbox fa-2x mb-2"></i>
+              <p>No HOD data found. Upload a CSV to get started.</p>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Upload Form -->
+          <hr class="my-4">
+          <h5 class="mb-3"><i class="fas fa-upload me-2 text-primary"></i>Upload New Data</h5>
+
+          {% if error and active_tab == 'hod_csv' %}
+            <div class="validation-error">
+              <i class="fas fa-exclamation-triangle me-2"></i>{{ error|safe }}
+            </div>
+          {% endif %}
+
+          {% if success_msg and active_tab == 'hod_csv' %}
+            <div class="validation-success">
+              <i class="fas fa-check-circle me-2"></i>{{ success_msg }}
+            </div>
+          {% endif %}
+
+          <div class="alert alert-info border-0 mb-4" style="background: rgba(59, 130, 246, 0.1); color: var(--primary);">
             <strong><i class="fas fa-info-circle me-2"></i>CSV Format Required:</strong>
             <div class="table-responsive mt-2">
               <table class="table table-sm" style="color: inherit;">
@@ -658,10 +1071,6 @@
             </div>
             <button type="submit" class="btn btn-primary w-100">Upload to System</button>
           </form>
-
-          {% if error and active_tab == 'hod_csv' %}
-            <div class="alert alert-danger mt-4">{{ error }}</div>
-          {% endif %}
 
           {% if show_hod_results %}
             <div class="mt-5">
@@ -687,7 +1096,7 @@
                 <div>
                   <h6 class="text-danger"><i class="fas fa-times-circle me-2"></i>Failed Records ({{ not_allowed|length }})</h6>
                   <div class="table-responsive">
-                    <table class="table hover table-bordered bg-white">
+                    <table class="table table-hover table-bordered bg-white">
                       <thead class="table-light">
                         <tr><th>Username</th><th>Name</th><th>Reason</th></tr>
                       </thead>
@@ -721,7 +1130,6 @@
         </div>
 
         <div class="settings-grid">
-          <!-- Combined Profile + Password Card -->
           <div class="main-card gradient-purple" style="max-width: 720px; width: 100%;">
             <i class="fas fa-user-cog"></i>
             <h6 class="mb-3">Coordinator Profile</h6>
@@ -781,13 +1189,11 @@
 
       document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
       
-      // Find the nav item by id if not passed
       if (!el) {
         el = document.getElementById(id + '-btn');
       }
       if (el) el.classList.add('active');
 
-      // Close sidebar on mobile after selection
       if (window.innerWidth <= 768) {
         document.getElementById('sidebar').classList.remove('active');
       }
@@ -819,8 +1225,76 @@
       if (annType.value === "instruction") instructionFields.style.display = "block";
     }
 
+    function toggleDataView(type) {
+      const container = document.getElementById(type + 'DataView');
+      const btnText = document.getElementById(type + 'ViewBtnText');
+      
+      if (container.classList.contains('active')) {
+        container.classList.remove('active');
+        btnText.textContent = 'View Data';
+      } else {
+        container.classList.add('active');
+        btnText.textContent = 'Hide Data';
+      }
+    }
+
+    function downloadTemplate(type) {
+      let csvContent = '';
+      let filename = '';
+
+      if (type === 'student') {
+        csvContent = 'student_id,name,cgpa,clas,username,password\n24UCS201,Salis,8.5,CSE-B,salis_24,pass123\n24UCS202,Rahul,9.0,CSE-A,rahul_24,pass456';
+        filename = 'student_template.csv';
+      } else if (type === 'mentor') {
+        csvContent = 'username,name,primary_domain,experience,alternative_domains,password\nmentor001,Dr. Smith,AI,5,"ML,DL,Data Science",mentor123\nmentor002,Dr. Jones,Web Dev,3,"React,Node.js",mentor456';
+        filename = 'mentor_template.csv';
+      } else if (type === 'hod') {
+        csvContent = 'username,name,password\nhod_cse,Dr. Williams,hod123\nhod_it,Dr. Brown,hod456';
+        filename = 'hod_template.csv';
+      }
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showToast('Template downloaded: ' + filename, 'success');
+    }
+
+    function showToast(message, type) {
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#10b981' : '#ef4444'};
+        color: white;
+        padding: 16px 24px;
+        border-radius: 12px;
+        font-weight: 600;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        z-index: 9999;
+        animation: slideIn 0.3s ease;
+      `;
+      toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : 'exclamation'}-circle me-2"></i>${message}`;
+      
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
-      // Check for URL hash to show specific section
       const hash = window.location.hash.replace('#', '');
       if (hash && document.getElementById(hash)) {
         showSection(hash);

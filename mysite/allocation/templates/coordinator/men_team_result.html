@@ -1,9 +1,10 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Allocation Results - Coordinator Hub</title>
+  <title>Allocation Manager - Coordinator Hub</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -14,10 +15,10 @@
       --accent: #A78BFA;
       --background: #F5F3FF;
       --text-dark: #3730A3;
-      --text-light: #FFFFFF;
       --success: #10b981;
       --warning: #f59e0b;
       --danger: #ef4444;
+      --info: #3b82f6;
     }
 
     body {
@@ -90,6 +91,329 @@
       padding: 0 30px 50px;
     }
 
+    .section-card {
+      background: white;
+      border-radius: 24px;
+      padding: 30px;
+      border: none;
+      box-shadow: 0 20px 25px -5px rgba(76, 29, 149, 0.1);
+      margin-bottom: 30px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid var(--background);
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin: 0;
+    }
+
+    .badge-section {
+      background: var(--secondary);
+      color: var(--primary);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    /* Table 1 - Reference */
+    .ref-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 8px;
+    }
+
+    .ref-table th {
+      color: var(--primary);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      padding: 15px 20px;
+      border: none;
+      background: transparent;
+    }
+
+    .ref-table td {
+      background: #fcfaff;
+      padding: 15px 20px;
+      font-size: 0.9rem;
+      border: none;
+      vertical-align: middle;
+    }
+
+    .ref-table td:first-child {
+      border-top-left-radius: 12px;
+      border-bottom-left-radius: 12px;
+      font-weight: 700;
+    }
+
+    .ref-table td:last-child {
+      border-top-right-radius: 12px;
+      border-bottom-right-radius: 12px;
+    }
+
+    .badge-domain {
+      background: var(--secondary);
+      color: var(--primary);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      display: inline-block;
+    }
+
+    .badge-expert {
+      background: #d1fae5;
+      color: var(--success);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+
+    .badge-beginner {
+      background: #fef3c7;
+      color: var(--warning);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+
+    .similarity-high {
+      color: var(--success);
+      font-weight: 700;
+    }
+
+    .similarity-low {
+      color: var(--danger);
+      font-weight: 700;
+    }
+
+    /* Table 2 - Editable */
+    .edit-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 10px;
+    }
+
+    .edit-table th {
+      color: var(--primary);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      padding: 12px 15px;
+      border: none;
+      background: transparent;
+    }
+
+    .edit-table td {
+      background: white;
+      padding: 0;
+      font-size: 0.9rem;
+      border: none;
+      vertical-align: middle;
+      box-shadow: 0 2px 8px rgba(76, 29, 149, 0.06);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .edit-table tr:hover td {
+      box-shadow: 0 4px 15px rgba(76, 29, 149, 0.12);
+    }
+
+    .cell-input {
+      width: 100%;
+      border: none;
+      padding: 14px 15px;
+      font-size: 0.9rem;
+      font-family: 'Montserrat', sans-serif;
+      background: transparent;
+      outline: none;
+      color: var(--text-dark);
+    }
+
+    .cell-input:focus {
+      background: var(--background);
+    }
+
+    .cell-input::placeholder {
+      color: #aaa;
+      font-size: 0.85rem;
+    }
+
+    .cell-display {
+      padding: 14px 15px;
+      font-size: 0.9rem;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+    }
+
+    /* Autocomplete Dropdown */
+    .autocomplete-wrap {
+      position: relative;
+    }
+
+    .autocomplete-list {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(76, 29, 149, 0.15);
+      max-height: 220px;
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+      margin-top: 4px;
+      border: 1px solid var(--secondary);
+    }
+
+    .autocomplete-list.active {
+      display: block;
+    }
+
+    .autocomplete-item {
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: 0.2s;
+      border-bottom: 1px solid #f3f0ff;
+      font-size: 0.9rem;
+    }
+
+    .autocomplete-item:hover,
+    .autocomplete-item.selected {
+      background: var(--background);
+      color: var(--primary);
+    }
+
+    .autocomplete-item .item-domain {
+      font-size: 0.75rem;
+      color: #888;
+      margin-top: 2px;
+    }
+
+    /* Action Buttons */
+    .btn-add-row {
+      background: var(--success);
+      color: white;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: 0.3s;
+      font-size: 1.1rem;
+    }
+
+    .btn-add-row:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-remove-row {
+      background: var(--danger);
+      color: white;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: 0.3s;
+      font-size: 0.85rem;
+    }
+
+    .btn-remove-row:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-save {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .btn-save:hover {
+      background: var(--text-dark);
+      transform: translateY(-2px);
+    }
+
+    .btn-download {
+      background: var(--info);
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-download:hover {
+      background: #2563eb;
+      transform: translateY(-2px);
+    }
+
+    .actions-bar {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .row-number {
+      width: 36px;
+      height: 36px;
+      background: var(--secondary);
+      color: var(--primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 15px;
+      color: var(--secondary);
+    }
+
     .stats-row {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -106,94 +430,85 @@
       box-shadow: 0 10px 20px rgba(76, 29, 149, 0.15);
     }
 
-    .stat-card i { font-size: 2rem; margin-bottom: 10px; opacity: 0.8; }
-    .stat-card h4 { font-size: 1.8rem; font-weight: 700; margin: 0; }
-    .stat-card p { font-size: 0.9rem; opacity: 0.9; margin: 5px 0 0; }
-
-    .card {
-      background: white;
-      border-radius: 24px;
-      padding: 30px;
-      border: none;
-      box-shadow: 0 20px 25px -5px rgba(76, 29, 149, 0.1);
-      margin-bottom: 30px;
+    .stat-card i {
+      font-size: 2rem;
+      margin-bottom: 10px;
+      opacity: 0.8;
     }
 
-    .card-header-styled {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 25px;
-      padding-bottom: 15px;
-      border-bottom: 2px solid var(--background);
-    }
-
-    .card-title-styled {
-      font-size: 1.3rem;
+    .stat-card h4 {
+      font-size: 1.8rem;
       font-weight: 700;
-      color: var(--primary);
       margin: 0;
     }
 
-    .custom-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0 8px;
-    }
-
-    .custom-table th {
-      color: var(--primary);
-      font-weight: 700;
-      text-transform: uppercase;
-      font-size: 0.75rem;
-      letter-spacing: 1px;
-      padding: 15px 20px;
-      border: none;
-    }
-
-    .custom-table td {
-      background: #fcfaff;
-      padding: 15px 20px;
+    .stat-card p {
       font-size: 0.9rem;
+      opacity: 0.9;
+      margin: 5px 0 0;
+    }
+
+    .dropdown-menu {
+      border-radius: 15px;
       border: none;
-      vertical-align: middle;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      padding: 10px;
     }
 
-    .custom-table td:first-child { border-top-left-radius: 12px; border-bottom-left-radius: 12px; font-weight: 700; }
-    .custom-table td:last-child { border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
-
-    .badge-styled {
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-weight: 600;
-      font-size: 0.8rem;
+    .dropdown-item {
+      border-radius: 8px;
+      padding: 10px 15px;
+      font-weight: 500;
     }
 
-    .badge-domain { background: var(--secondary); color: var(--primary); }
-    .badge-expert { background: #d1fae5; color: var(--success); }
-    .badge-beginner { background: #fef3c7; color: var(--warning); }
-
-    .similarity-high { color: var(--success); font-weight: 700; }
-    .similarity-low { color: var(--danger); font-weight: 700; }
-
-    .dropdown-menu { border-radius: 15px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.1); padding: 10px; }
-    .dropdown-item { border-radius: 8px; padding: 10px 15px; font-weight: 500; }
-    .dropdown-item:hover { background: var(--background); color: var(--primary); }
-
-    .btn-action-styled {
-      background: var(--primary);
-      color: white;
-      border-radius: 10px;
-      padding: 10px 20px;
-      font-weight: 600;
-      border: none;
-      transition: 0.3s;
+    .dropdown-item:hover {
+      background: var(--background);
+      color: var(--primary);
     }
 
-    .btn-action-styled:hover { background: var(--text-dark); transform: translateY(-2px); }
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999;
+    }
+
+    .toast-custom {
+      background: white;
+      border-radius: 16px;
+      padding: 16px 24px;
+      box-shadow: 0 10px 30px rgba(76, 29, 149, 0.2);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .toast-success {
+      border-left: 4px solid var(--success);
+    }
+
+    .toast-error {
+      border-left: 4px solid var(--danger);
+    }
   </style>
 </head>
+
 <body>
+
+  <!-- Header -->
   <div class="top-header">
     <div class="brand-section">
       <div class="brand-avatar"><i class="fas fa-list-check"></i></div>
@@ -206,7 +521,9 @@
       </button>
       <ul class="dropdown-menu dropdown-menu-end">
         <li><a class="dropdown-item" href="{% url 'coordinator_dashboard' %}"><i class="fas fa-home me-2"></i>Dashboard</a></li>
-        <li><hr class="dropdown-divider"></li>
+        <li>
+          <hr class="dropdown-divider">
+        </li>
         <li>
           <a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}">
             <i class="fas fa-sign-out-alt me-2"></i>Logout
@@ -217,6 +534,8 @@
   </div>
 
   <div class="main-container">
+
+    <!-- Stats -->
     <div class="stats-row">
       <div class="stat-card">
         <i class="fas fa-users"></i>
@@ -235,49 +554,507 @@
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-header-styled">
-        <h3 class="card-title-styled"><i class="fas fa-table me-2"></i>Allocation Summary</h3>
-        <button class="btn btn-sm btn-outline-primary" onclick="window.print()"><i class="fas fa-print me-2"></i>Print Report</button>
+    <!-- ==================== TABLE 1: REFERENCE (Read-Only) ==================== -->
+    <div class="section-card">
+      <div class="section-header">
+        <div>
+          <h3 class="section-title"><i class="fas fa-table me-2"></i>Current Allocations</h3>
+          <small class="text-muted">Reference view - auto-generated by ML matching</small>
+        </div>
+        <span class="badge-section"><i class="fas fa-lock me-1"></i>Read Only</span>
       </div>
-      
-      <div class="table-container">
-        <table class="custom-table">
+
+      <div class="table-responsive">
+        <table class="ref-table">
           <thead>
             <tr>
               <th>Team</th>
-              <th>Domain</th>
+              <th>Team Domain</th>
               <th>Mentor</th>
+              <th>Mentor Domain</th>
               <th>Match Score</th>
               <th>Experience</th>
-              <th>Reasoning Preview</th>
+              <th>Reasoning</th>
             </tr>
           </thead>
           <tbody>
             {% for row in allocations %}
             <tr>
               <td>{{ row.team_name }}</td>
-              <td><span class="badge-styled badge-domain">{{ row.team_domain }}</span></td>
+              <td><span class="badge-domain">{{ row.team_domain }}</span></td>
               <td><i class="fas fa-user-circle me-2 text-primary"></i>{{ row.mentor_name }}</td>
-              <td class="{% if row.similarity_score >= 80 %}similarity-high{% elif row.similarity_score < 50 %}similarity-low{% endif %}">
+              <td><span class="badge-domain">{{ row.mentor_domain }}</span></td>
+              <td
+                class="{% if row.similarity_score >= 80 %}similarity-high{% elif row.similarity_score < 50 %}similarity-low{% endif %}">
                 {{ row.similarity_score }}%
               </td>
               <td>
                 {% if row.experience == "Expert" %}
-                  <span class="badge-styled badge-expert">Expert</span>
+                <span class="badge-expert">Expert</span>
                 {% else %}
-                  <span class="badge-styled badge-beginner">Beginner</span>
+                <span class="badge-beginner">Beginner</span>
                 {% endif %}
               </td>
               <td><small class="text-muted">{{ row.reason|truncatechars:50 }}</small></td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7">
+                <div class="empty-state">
+                  <i class="fas fa-inbox"></i>
+                  <h5>No allocations yet</h5>
+                  <p class="text-muted">Run the allocation algorithm first</p>
+                </div>
+              </td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
     </div>
+
+    <!-- ==================== TABLE 2: EDITABLE ==================== -->
+    <div class="section-card">
+      <div class="section-header">
+        <div>
+          <h3 class="section-title"><i class="fas fa-edit me-2"></i>Manage Allocations</h3>
+          <small class="text-muted">Edit, add, or remove allocation entries</small>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn-download" onclick="downloadExcel()">
+            <i class="fas fa-file-excel"></i> Download Excel
+          </button>
+          <span class="badge-section"><i class="fas fa-pen me-1"></i>Editable</span>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="edit-table" id="editTable">
+          <thead>
+            <tr>
+              <th style="width: 50px;">#</th>
+              <th>Team</th>
+              <th>Team Domain</th>
+              <th>Mentor Domain</th>
+              <th>Mentor</th>
+              <th style="width: 60px;"></th>
+            </tr>
+          </thead>
+          <tbody id="editTableBody">
+            <!-- Rows inserted by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="actions-bar mt-4">
+        <button class="btn-add-row" onclick="addRow()" title="Add new row">
+          <i class="fas fa-plus"></i>
+        </button>
+        <button class="btn-save" onclick="saveAllocations()">
+          <i class="fas fa-save me-2"></i>Save Changes
+        </button>
+      </div>
+    </div>
+
   </div>
 
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Hidden data for JS -->
+  <script>
+    // 🔥 Inject Django data for autocomplete
+    const TEAMS_DATA = [
+      {% for team in teams_data %}
+      {
+        id: {{ team.id }},
+        name: "{{ team.name|escapejs }}",
+        domain: "{{ team.domain|escapejs }}"
+      }{% if not forloop.last %}, {% endif %}
+      {% endfor %}
+    ];
+
+    const MENTORS_DATA = [
+      {% for mentor in mentors_data %}
+      {
+        id: {{ mentor.id }},
+        name: "{{ mentor.name|escapejs }}",
+        domain: "{{ mentor.domain|escapejs }}",
+        altDomains: {{ mentor.alt_domains|safe }}
+      }{% if not forloop.last %}, {% endif %}
+      {% endfor %}
+    ];
+
+    // Initial allocation data for Table 2
+    const INITIAL_ALLOCATIONS = [
+      {% for row in allocations %}
+      {
+        teamName: "{{ row.team_name|escapejs }}",
+        teamDomain: "{{ row.team_domain|escapejs }}",
+        mentorName: "{{ row.mentor_name|escapejs }}",
+        mentorDomain: "{{ row.mentor_domain|escapejs }}"
+      }{% if not forloop.last %}, {% endif %}
+      {% endfor %}
+    ];
+  </script>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <script>
+    let rowCounter = 0;
+
+    // ==================== AUTOCOMPLETE COMPONENT ====================
+    class AutocompleteInput {
+      constructor(container, dataSource, displayField, filterFields, onSelect) {
+        this.container = container;
+        this.dataSource = dataSource;
+        this.displayField = displayField;
+        this.filterFields = filterFields;
+        this.onSelect = onSelect;
+        this.selectedIndex = -1;
+        this.filteredItems = [];
+
+        this.render();
+        this.attachEvents();
+      }
+
+      render() {
+        this.container.innerHTML = `
+          <div class="autocomplete-wrap">
+            <input type="text" class="cell-input" placeholder="Type to search..." autocomplete="off">
+            <div class="autocomplete-list"></div>
+          </div>
+        `;
+        this.input = this.container.querySelector('input');
+        this.list = this.container.querySelector('.autocomplete-list');
+      }
+
+      attachEvents() {
+        this.input.addEventListener('input', (e) => this.handleInput(e));
+        this.input.addEventListener('keydown', (e) => this.handleKeydown(e));
+        this.input.addEventListener('focus', () => {
+          if (this.input.value.trim()) this.showList();
+        });
+        document.addEventListener('click', (e) => {
+          if (!this.container.contains(e.target)) this.hideList();
+        });
+      }
+
+      handleInput(e) {
+        const query = e.target.value.toLowerCase().trim();
+        if (!query) {
+          this.hideList();
+          return;
+        }
+
+        this.filteredItems = this.dataSource.filter(item => {
+          return this.filterFields.some(field => {
+            const val = (item[field] || '').toLowerCase();
+            return val.includes(query);
+          });
+        });
+
+        this.selectedIndex = -1;
+        this.renderList();
+      }
+
+      handleKeydown(e) {
+        if (!this.list.classList.contains('active')) return;
+
+        switch (e.key) {
+          case 'ArrowDown':
+            e.preventDefault();
+            this.selectedIndex = Math.min(this.selectedIndex + 1, this.filteredItems.length - 1);
+            this.highlightItem();
+            break;
+          case 'ArrowUp':
+            e.preventDefault();
+            this.selectedIndex = Math.max(this.selectedIndex - 1, -1);
+            this.highlightItem();
+            break;
+          case 'Enter':
+            e.preventDefault();
+            if (this.selectedIndex >= 0 && this.filteredItems[this.selectedIndex]) {
+              this.selectItem(this.filteredItems[this.selectedIndex]);
+            }
+            break;
+          case 'Escape':
+            this.hideList();
+            break;
+        }
+      }
+
+      renderList() {
+        if (this.filteredItems.length === 0) {
+          this.list.innerHTML = '<div class="autocomplete-item">No matches found</div>';
+          this.list.classList.add('active');
+          return;
+        }
+
+        this.list.innerHTML = this.filteredItems.map((item, idx) => `
+          <div class="autocomplete-item" data-index="${idx}">
+            <div>${item[this.displayField]}</div>
+            ${item.domain ? `<div class="item-domain">${item.domain}</div>` : ''}
+          </div>
+        `).join('');
+
+        this.list.querySelectorAll('.autocomplete-item').forEach(el => {
+          el.addEventListener('click', () => {
+            const idx = parseInt(el.dataset.index);
+            this.selectItem(this.filteredItems[idx]);
+          });
+        });
+
+        this.list.classList.add('active');
+      }
+
+      highlightItem() {
+        const items = this.list.querySelectorAll('.autocomplete-item');
+        items.forEach((el, idx) => {
+          el.classList.toggle('selected', idx === this.selectedIndex);
+        });
+        if (this.selectedIndex >= 0 && items[this.selectedIndex]) {
+          items[this.selectedIndex].scrollIntoView({ block: 'nearest' });
+        }
+      }
+
+      selectItem(item) {
+        this.input.value = item[this.displayField];
+        this.hideList();
+        if (this.onSelect) this.onSelect(item);
+      }
+
+      hideList() {
+        this.list.classList.remove('active');
+        this.selectedIndex = -1;
+      }
+
+      showList() {
+        if (this.filteredItems.length > 0) {
+          this.list.classList.add('active');
+        }
+      }
+
+      getValue() {
+        return this.input.value;
+      }
+
+      setValue(val) {
+        this.input.value = val;
+      }
+
+      focus() {
+        this.input.focus();
+      }
+    }
+
+    // ==================== TABLE 2: EDITABLE ROWS ====================
+
+    function createRow(data = {}, index) {
+      const tr = document.createElement('tr');
+      tr.dataset.rowId = index;
+
+      // Row number
+      const tdNum = document.createElement('td');
+      tdNum.innerHTML = `<div class="row-number">${index}</div>`;
+      tr.appendChild(tdNum);
+
+      // Team (autocomplete)
+      const tdTeam = document.createElement('td');
+      const teamWrap = document.createElement('div');
+      new AutocompleteInput(teamWrap, TEAMS_DATA, 'name', ['name', 'domain'], (item) => {
+        // Auto-fill team domain when team selected
+        const domainInput = tr.querySelector('[data-field="teamDomain"] input');
+        if (domainInput && item.domain) domainInput.value = item.domain;
+      });
+      if (data.teamName) teamWrap.querySelector('input').value = data.teamName;
+      tdTeam.appendChild(teamWrap);
+      tr.appendChild(tdTeam);
+
+      // Team Domain (autocomplete from team domains)
+      const tdTeamDomain = document.createElement('td');
+      tdTeamDomain.dataset.field = 'teamDomain';
+      const teamDomainWrap = document.createElement('div');
+      // Extract unique domains from teams
+      const teamDomains = [...new Set(TEAMS_DATA.map(t => t.domain).filter(Boolean))].map(d => ({ name: d, domain: d }));
+      new AutocompleteInput(teamDomainWrap, teamDomains, 'name', ['name'], null);
+      if (data.teamDomain) teamDomainWrap.querySelector('input').value = data.teamDomain;
+      tdTeamDomain.appendChild(teamDomainWrap);
+      tr.appendChild(tdTeamDomain);
+
+      // Mentor Domain (autocomplete from mentor domains)
+      const tdMentorDomain = document.createElement('td');
+      const mentorDomainWrap = document.createElement('div');
+      // Extract unique domains from mentors (primary + alt)
+      const mentorDomainsSet = new Set();
+      MENTORS_DATA.forEach(m => {
+        if (m.domain) mentorDomainsSet.add(m.domain);
+        if (m.altDomains) m.altDomains.forEach(d => mentorDomainsSet.add(d));
+      });
+      const mentorDomains = [...mentorDomainsSet].map(d => ({ name: d, domain: d }));
+      new AutocompleteInput(mentorDomainWrap, mentorDomains, 'name', ['name'], null);
+      if (data.mentorDomain) mentorDomainWrap.querySelector('input').value = data.mentorDomain;
+      tdMentorDomain.appendChild(mentorDomainWrap);
+      tr.appendChild(tdMentorDomain);
+
+      // Mentor (autocomplete)
+      const tdMentor = document.createElement('td');
+      const mentorWrap = document.createElement('div');
+      new AutocompleteInput(mentorWrap, MENTORS_DATA, 'name', ['name', 'domain'], (item) => {
+        // Auto-fill mentor domain when mentor selected
+        const domainInput = tr.querySelector('[data-field="mentorDomain"] input');
+        if (domainInput && item.domain) domainInput.value = item.domain;
+      });
+      if (data.mentorName) mentorWrap.querySelector('input').value = data.mentorName;
+      tdMentor.appendChild(mentorWrap);
+      tr.appendChild(tdMentor);
+
+      // Remove button
+      const tdRemove = document.createElement('td');
+      tdRemove.innerHTML = `<button class="btn-remove-row" onclick="removeRow(this)" title="Remove row"><i class="fas fa-times"></i></button>`;
+      tr.appendChild(tdRemove);
+
+      return tr;
+    }
+
+    function addRow(data = {}) {
+      rowCounter++;
+      const tbody = document.getElementById('editTableBody');
+      const row = createRow(data, rowCounter);
+      tbody.appendChild(row);
+      // Focus the first input of new row
+      const firstInput = row.querySelector('input');
+      if (firstInput) firstInput.focus();
+    }
+
+    function removeRow(btn) {
+      const tr = btn.closest('tr');
+      tr.style.opacity = '0';
+      tr.style.transform = 'translateX(20px)';
+      setTimeout(() => tr.remove(), 200);
+    }
+
+    function renumberRows() {
+      const rows = document.querySelectorAll('#editTableBody tr');
+      rows.forEach((row, idx) => {
+        const numDiv = row.querySelector('.row-number');
+        if (numDiv) numDiv.textContent = idx + 1;
+      });
+    }
+
+    // ==================== INITIALIZE ====================
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Load initial data into Table 2
+      if (INITIAL_ALLOCATIONS.length > 0) {
+        INITIAL_ALLOCATIONS.forEach(alloc => addRow(alloc));
+      } else {
+        // Add one empty row if no data
+        addRow();
+      }
+    });
+
+    // ==================== SAVE ====================
+
+    function saveAllocations() {
+      const rows = document.querySelectorAll('#editTableBody tr');
+      const allocations = [];
+
+      rows.forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        const team = inputs[0]?.value?.trim();
+        const teamDomain = inputs[1]?.value?.trim();
+        const mentorDomain = inputs[2]?.value?.trim();
+        const mentor = inputs[3]?.value?.trim();
+
+        if (team || mentor) {
+          allocations.push({
+            teamName: team,
+            teamDomain: teamDomain,
+            mentorDomain: mentorDomain,
+            mentorName: mentor
+          });
+        }
+      });
+
+      console.log('Saving allocations:', allocations);
+
+      fetch("{% url 'save_allocations' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ allocations: allocations })
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === 'success') {
+            showToast('Changes saved successfully!', 'success');
+          } else {
+            showToast('Error: ' + data.message, 'error');
+          }
+        })
+        .catch(err => {
+          showToast('Network error: ' + err.message, 'error');
+        });
+    }
+
+    // ==================== DOWNLOAD EXCEL ====================
+
+    function downloadExcel() {
+      const rows = document.querySelectorAll('#editTableBody tr');
+      const data = [];
+
+      // Header
+      data.push(['#', 'Team', 'Team Domain', 'Mentor Domain', 'Mentor']);
+
+      // Rows
+      rows.forEach((row, idx) => {
+        const inputs = row.querySelectorAll('input');
+        data.push([
+          idx + 1,
+          inputs[0]?.value || '',
+          inputs[1]?.value || '',
+          inputs[2]?.value || '',
+          inputs[3]?.value || ''
+        ]);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Allocations');
+
+      // Auto-width
+      const colWidths = [6, 30, 25, 25, 30];
+      ws['!cols'] = colWidths.map(w => ({ wch: w }));
+
+      const timestamp = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `Team_Mentor_Allocations_${timestamp}.xlsx`);
+
+      showToast('Excel downloaded!', 'success');
+    }
+
+    // ==================== TOAST ====================
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast-custom toast-${type}`;
+      toast.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle text-success' : 'exclamation-circle text-danger'}"></i>
+        <span class="fw-600">${message}</span>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+  </script>
+
 </body>
+
 </html>

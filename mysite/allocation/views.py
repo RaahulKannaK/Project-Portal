@@ -316,70 +316,173 @@ def mentor_dashboard(request):
 def hod_dashboard(request):
     return render(request, "accounts/hod_dash.html")
 
+import csv
+import io
 import pandas as pd
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.utils import timezone
+from django.http import HttpResponse
 from .models import (
     Student, Stu_Login, 
     Mentor, Mentor_Login, 
-    Coordinator_Login,  # Using this as HOD model based on your structure
+    Coordinator_Login,
     Announcement, AnnouncementStatus
 )
 
+
 # =========================
-# STUDENT CSV UPLOAD (ENHANCED)
+# HELPER: Fetch all data for template
 # =========================
 
-REQUIRED_STUDENT_COLUMNS = {"student_id", "name", "cgpa", "class", "username", "password"}
+def get_all_data():
+    """Fetch all existing data for display in coordinator dashboard"""
+    
+    # Students
+    students_qs = Student.objects.all()
+    students_data = []
+    for s in students_qs:
+        # Get login info if exists
+        login = Stu_Login.objects.filter(username=s.student_id).first()
+        students_data.append({
+            'student_id': s.student_id,
+            'name': s.name,
+            'cgpa': s.cgpa,
+            'clas': s.clas,
+            'username': login.username if login else s.student_id,
+            'password': login.password if login else '—'
+        })
+    
+    # Mentors
+    mentors_qs = Mentor.objects.all()
+    mentors_data = []
+    for m in mentors_qs:
+        login = Mentor_Login.objects.filter(username=m.username).first()
+        mentors_data.append({
+            'username': m.username,
+            'name': m.name,
+            'primary_domain': m.primary_domain,
+            'experience': m.experience,
+            'alternative_domains': m.alternative_domains or '-',
+            'password': login.password if login else '—'
+        })
+    
+    # HODs
+    hods_qs = Coordinator_Login.objects.all()
+    hods_data = [{
+        'username': h.username,
+        'name': h.name,
+        'password': h.password
+    } for h in hods_qs]
+    
+    return {
+        'students_data': students_data,
+        'student_count': len(students_data),
+        'mentors_data': mentors_data,
+        'mentor_count': len(mentors_data),
+        'hods_data': hods_data,
+        'hod_count': len(hods_data),
+    }
+
+
+# =========================
+# CSV TEMPLATE DOWNLOAD
+# =========================
+
+def download_csv_template(request, template_type):
+    """Download empty CSV template with correct headers"""
+    
+    if template_type == 'student':
+        headers = ['student_id', 'name', 'cgpa', 'clas', 'username', 'password']
+        filename = 'student_template.csv'
+    elif template_type == 'mentor':
+        headers = ['username', 'name', 'primary_domain', 'experience', 'alternative_domains', 'password']
+        filename = 'mentor_template.csv'
+    elif template_type == 'hod':
+        headers = ['username', 'name', 'password']
+        filename = 'hod_template.csv'
+    else:
+        return HttpResponse("Invalid template type", status=400)
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    writer = csv.writer(response)
+    writer.writerow(headers)
+    
+    return response
+
+
+# =========================
+# STUDENT CSV UPLOAD
+# =========================
+
+REQUIRED_STUDENT_COLUMNS = {"student_id", "name", "cgpa", "clas", "username", "password"}
 
 def upload_student_csv(request):
     allowed = []
     not_allowed = []
+    
+    # Start with all existing data
+    context = get_all_data()
+    context['active_tab'] = 'student_csv'
+    context['student_uploaded'] = 0
 
     if request.method == 'POST':
         file = request.FILES.get('file')
 
         if not file:
-            return render(request, 'coordinator/coord_dash.html', {
-                'error': 'No file uploaded',
-                'active_tab': 'student_csv'
-            })
+            context['error'] = 'No file uploaded'
+            return render(request, 'coordinator/coord_dash.html', context)
 
         if file.name.endswith(('.xlsx', '.xls')):
-            return render(request, 'coordinator/coord_dash.html', {
-                'error': 'Excel files are not supported. Please upload a CSV file.',
-                'active_tab': 'student_csv'
-            })
+            context['error'] = 'Excel files are not supported. Please upload a CSV file.'
+            return render(request, 'coordinator/coord_dash.html', context)
 
         if not file.name.endswith('.csv'):
-            return render(request, 'coordinator/coord_dash.html', {
-                'error': 'Invalid file type. Only CSV files are allowed.',
-                'active_tab': 'student_csv'
-            })
+            context['error'] = 'Invalid file type. Only CSV files are allowed.'
+            return render(request, 'coordinator/coord_dash.html', context)
 
         try:
             df = pd.read_csv(file)
         except Exception:
-            return render(request, 'coordinator/coord_dash.html', {
-                'error': 'Unable to read CSV file. Please check the format.',
-                'active_tab': 'student_csv'
-            })
+            context['error'] = 'Unable to read CSV file. Please check the format.'
+            return render(request, 'coordinator/coord_dash.html', context)
 
         if df.empty:
-            return render(request, 'coordinator/coord_dash.html', {
-                'error': 'CSV file is empty.',
-                'active_tab': 'student_csv'
-            })
+            context['error'] = 'CSV file is empty.'
+            return render(request, 'coordinator/coord_dash.html', context)
 
         # Normalize column names
         df.columns = df.columns.str.strip().str.lower()
 
-        if not REQUIRED_STUDENT_COLUMNS.issubset(set(df.columns)):
-            return render(request, 'coordinator/coord_dash.html', {
-                'error': f'CSV must contain columns: {", ".join(REQUIRED_STUDENT_COLUMNS)}',
-                'active_tab': 'student_csv'
-            })
+        # Validate required columns
+        missing_columns = REQUIRED_STUDENT_COLUMNS - set(df.columns)
+        if missing_columns:
+            context['error'] = f'Missing required columns: {", ".join(missing_columns)}. Please download the template.'
+            return render(request, 'coordinator/coord_dash.html', context)
+
+        # Validate structure
+        validation_errors = []
+        for idx, row in df.iterrows():
+            row_num = idx + 2
+            
+            for col in REQUIRED_STUDENT_COLUMNS:
+                if pd.isna(row.get(col)) or str(row.get(col)).strip() == '':
+                    validation_errors.append(f"Row {row_num}: Missing '{col}'")
+            
+            try:
+                cgpa = float(row.get('cgpa', 0))
+                if cgpa < 0 or cgpa > 10:
+                    validation_errors.append(f"Row {row_num}: CGPA must be between 0 and 10")
+            except (ValueError, TypeError):
+                validation_errors.append(f"Row {row_num}: Invalid CGPA value")
+
+        if validation_errors:
+            context['error'] = f"Validation failed ({len(validation_errors)} errors):<br>" + "<br>".join(validation_errors[:5])
+            if len(validation_errors) > 5:
+                context['error'] += f"<br>... and {len(validation_errors) - 5} more errors"
+            return render(request, 'coordinator/coord_dash.html', context)
 
         # Process rows
         for _, row in df.iterrows():
@@ -387,15 +490,9 @@ def upload_student_csv(request):
                 student_id = str(row['student_id']).strip()
                 name = str(row['name']).strip()
                 cgpa = float(row['cgpa'])
-                class_name = str(row['class']).strip()
+                clas = str(row['clas']).strip()
                 username = str(row['username']).strip()
                 password = str(row['password']).strip()
-
-                if not student_id or not name or not class_name or not username or not password:
-                    raise ValueError("Missing required fields")
-
-                if cgpa < 0 or cgpa > 10:
-                    raise ValueError("CGPA must be between 0 and 10")
 
                 # Create/Update Student
                 Student.objects.update_or_create(
@@ -403,7 +500,7 @@ def upload_student_csv(request):
                     defaults={
                         'name': name,
                         'cgpa': cgpa,
-                        'class_name': class_name
+                        'clas': clas
                     }
                 )
 
@@ -419,7 +516,7 @@ def upload_student_csv(request):
                     'student_id': student_id,
                     'name': name,
                     'cgpa': cgpa,
-                    'class': class_name,
+                    'clas': clas,
                     'username': username
                 })
 
@@ -430,14 +527,21 @@ def upload_student_csv(request):
                     'reason': str(e)
                 })
 
-        return render(request, 'coordinator/coord_dash.html', {
+        # Refresh ALL data after upload
+        context = get_all_data()
+        context.update({
+            'active_tab': 'student_csv',
+            'student_uploaded': len(allowed),
             'allowed': allowed,
             'not_allowed': not_allowed,
             'show_student_results': True,
-            'active_tab': 'student_csv'
+            'success_msg': f'Successfully imported {len(allowed)} students!'
         })
 
-    return render(request, 'coordinator/coord_dash.html', {'active_tab': 'student_csv'})
+        return render(request, 'coordinator/coord_dash.html', context)
+
+    # GET request - just show existing data
+    return render(request, 'coordinator/coord_dash.html', context)
 
 
 # =========================
@@ -445,55 +549,71 @@ def upload_student_csv(request):
 # =========================
 
 REQUIRED_MENTOR_COLUMNS = {"username", "name", "primary_domain", "experience", "password"}
-OPTIONAL_MENTOR_COLUMNS = {"alternative_domains"}
 
 def upload_mentor_csv(request):
     allowed = []
     not_allowed = []
+    
+    # Start with all existing data
+    context = get_all_data()
+    context['active_tab'] = 'mentor_csv'
+    context['mentor_uploaded'] = 0
 
     if request.method == 'POST':
         file = request.FILES.get('file')
 
         if not file:
-            return render(request, 'coordinator/coord_dash.html', {
-                'error': 'No file uploaded',
-                'active_tab': 'mentor_csv'
-            })
+            context['error'] = 'No file uploaded'
+            return render(request, 'coordinator/coord_dash.html', context)
 
         if file.name.endswith(('.xlsx', '.xls')):
-            return render(request, 'coordinator/coord_dash.html', {
-                'error': 'Excel files are not supported. Please upload a CSV file.',
-                'active_tab': 'mentor_csv'
-            })
+            context['error'] = 'Excel files are not supported. Please upload a CSV file.'
+            return render(request, 'coordinator/coord_dash.html', context)
 
         if not file.name.endswith('.csv'):
-            return render(request, 'coordinator/coord_dash.html', {
-                'error': 'Invalid file type. Only CSV files are allowed.',
-                'active_tab': 'mentor_csv'
-            })
+            context['error'] = 'Invalid file type. Only CSV files are allowed.'
+            return render(request, 'coordinator/coord_dash.html', context)
 
         try:
             df = pd.read_csv(file)
         except Exception:
-            return render(request, 'coordinator/coord_dash.html', {
-                'error': 'Unable to read CSV file. Please check the format.',
-                'active_tab': 'mentor_csv'
-            })
+            context['error'] = 'Unable to read CSV file. Please check the format.'
+            return render(request, 'coordinator/coord_dash.html', context)
 
         if df.empty:
-            return render(request, 'coordinator/coord_dash.html', {
-                'error': 'CSV file is empty.',
-                'active_tab': 'mentor_csv'
-            })
+            context['error'] = 'CSV file is empty.'
+            return render(request, 'coordinator/coord_dash.html', context)
 
         # Normalize column names
         df.columns = df.columns.str.strip().str.lower()
 
-        if not REQUIRED_MENTOR_COLUMNS.issubset(set(df.columns)):
-            return render(request, 'coordinator/coord_dash.html', {
-                'error': f'CSV must contain columns: {", ".join(REQUIRED_MENTOR_COLUMNS)}',
-                'active_tab': 'mentor_csv'
-            })
+        # Validate required columns
+        missing_columns = REQUIRED_MENTOR_COLUMNS - set(df.columns)
+        if missing_columns:
+            context['error'] = f'Missing required columns: {", ".join(missing_columns)}. Please download the template.'
+            return render(request, 'coordinator/coord_dash.html', context)
+
+        # Validate structure
+        validation_errors = []
+        for idx, row in df.iterrows():
+            row_num = idx + 2
+            
+            for col in REQUIRED_MENTOR_COLUMNS:
+                if pd.isna(row.get(col)) or str(row.get(col)).strip() == '':
+                    validation_errors.append(f"Row {row_num}: Missing '{col}'")
+            
+            try:
+                exp = int(row.get('experience', 0))
+                if exp < 0:
+                    validation_errors.append(f"Row {row_num}: Experience cannot be negative")
+            except (ValueError, TypeError):
+                validation_errors.append(f"Row {row_num}: Invalid experience value")
+
+        if validation_errors:
+            context['error'] = f"Validation failed ({len(validation_errors)} errors):<br>" + "<br>".join(validation_errors[:5])
+            if len(validation_errors) > 5:
+                context['error'] += f"<br>... and {len(validation_errors) - 5} more errors"
+            return render(request, 'coordinator/coord_dash.html', context)
 
         # Process rows
         for _, row in df.iterrows():
@@ -504,12 +624,6 @@ def upload_mentor_csv(request):
                 experience = int(row['experience'])
                 password = str(row['password']).strip()
                 alternative_domains = str(row.get('alternative_domains', '')).strip()
-
-                if not username or not name or not primary_domain or not password:
-                    raise ValueError("Missing required fields")
-
-                if experience < 0:
-                    raise ValueError("Experience cannot be negative")
 
                 # Create/Update Mentor
                 Mentor.objects.update_or_create(
@@ -545,14 +659,21 @@ def upload_mentor_csv(request):
                     'reason': str(e)
                 })
 
-        return render(request, 'coordinator/coord_dash.html', {
+        # Refresh ALL data after upload
+        context = get_all_data()
+        context.update({
+            'active_tab': 'mentor_csv',
+            'mentor_uploaded': len(allowed),
             'allowed': allowed,
             'not_allowed': not_allowed,
             'show_mentor_results': True,
-            'active_tab': 'mentor_csv'
+            'success_msg': f'Successfully imported {len(allowed)} mentors!'
         })
 
-    return render(request, 'coordinator/coord_dash.html', {'active_tab': 'mentor_csv'})
+        return render(request, 'coordinator/coord_dash.html', context)
+
+    # GET request - just show existing data
+    return render(request, 'coordinator/coord_dash.html', context)
 
 
 # =========================
@@ -564,50 +685,60 @@ REQUIRED_HOD_COLUMNS = {"username", "name", "password"}
 def upload_hod_csv(request):
     allowed = []
     not_allowed = []
+    
+    # Start with all existing data
+    context = get_all_data()
+    context['active_tab'] = 'hod_csv'
+    context['hod_uploaded'] = 0
 
     if request.method == 'POST':
         file = request.FILES.get('file')
 
         if not file:
-            return render(request, 'coordinator/coord_dash.html', {
-                'error': 'No file uploaded',
-                'active_tab': 'hod_csv'
-            })
+            context['error'] = 'No file uploaded'
+            return render(request, 'coordinator/coord_dash.html', context)
 
         if file.name.endswith(('.xlsx', '.xls')):
-            return render(request, 'coordinator/coord_dash.html', {
-                'error': 'Excel files are not supported. Please upload a CSV file.',
-                'active_tab': 'hod_csv'
-            })
+            context['error'] = 'Excel files are not supported. Please upload a CSV file.'
+            return render(request, 'coordinator/coord_dash.html', context)
 
         if not file.name.endswith('.csv'):
-            return render(request, 'coordinator/coord_dash.html', {
-                'error': 'Invalid file type. Only CSV files are allowed.',
-                'active_tab': 'hod_csv'
-            })
+            context['error'] = 'Invalid file type. Only CSV files are allowed.'
+            return render(request, 'coordinator/coord_dash.html', context)
 
         try:
             df = pd.read_csv(file)
         except Exception:
-            return render(request, 'coordinator/coord_dash.html', {
-                'error': 'Unable to read CSV file. Please check the format.',
-                'active_tab': 'hod_csv'
-            })
+            context['error'] = 'Unable to read CSV file. Please check the format.'
+            return render(request, 'coordinator/coord_dash.html', context)
 
         if df.empty:
-            return render(request, 'coordinator/coord_dash.html', {
-                'error': 'CSV file is empty.',
-                'active_tab': 'hod_csv'
-            })
+            context['error'] = 'CSV file is empty.'
+            return render(request, 'coordinator/coord_dash.html', context)
 
         # Normalize column names
         df.columns = df.columns.str.strip().str.lower()
 
-        if not REQUIRED_HOD_COLUMNS.issubset(set(df.columns)):
-            return render(request, 'coordinator/coord_dash.html', {
-                'error': f'CSV must contain columns: {", ".join(REQUIRED_HOD_COLUMNS)}',
-                'active_tab': 'hod_csv'
-            })
+        # Validate required columns
+        missing_columns = REQUIRED_HOD_COLUMNS - set(df.columns)
+        if missing_columns:
+            context['error'] = f'Missing required columns: {", ".join(missing_columns)}. Please download the template.'
+            return render(request, 'coordinator/coord_dash.html', context)
+
+        # Validate structure
+        validation_errors = []
+        for idx, row in df.iterrows():
+            row_num = idx + 2
+            
+            for col in REQUIRED_HOD_COLUMNS:
+                if pd.isna(row.get(col)) or str(row.get(col)).strip() == '':
+                    validation_errors.append(f"Row {row_num}: Missing '{col}'")
+
+        if validation_errors:
+            context['error'] = f"Validation failed ({len(validation_errors)} errors):<br>" + "<br>".join(validation_errors[:5])
+            if len(validation_errors) > 5:
+                context['error'] += f"<br>... and {len(validation_errors) - 5} more errors"
+            return render(request, 'coordinator/coord_dash.html', context)
 
         # Process rows
         for _, row in df.iterrows():
@@ -616,11 +747,7 @@ def upload_hod_csv(request):
                 name = str(row['name']).strip()
                 password = str(row['password']).strip()
 
-                if not username or not name or not password:
-                    raise ValueError("Missing required fields")
-
-                # Create/Update HOD (using Coordinator_Login as HOD model)
-                # If you have a separate HOD model, replace Coordinator_Login with HOD_Login
+                # Create/Update HOD
                 Coordinator_Login.objects.update_or_create(
                     username=username,
                     defaults={
@@ -641,28 +768,35 @@ def upload_hod_csv(request):
                     'reason': str(e)
                 })
 
-        return render(request, 'coordinator/coord_dash.html', {
+        # Refresh ALL data after upload
+        context = get_all_data()
+        context.update({
+            'active_tab': 'hod_csv',
+            'hod_uploaded': len(allowed),
             'allowed': allowed,
             'not_allowed': not_allowed,
             'show_hod_results': True,
-            'active_tab': 'hod_csv'
+            'success_msg': f'Successfully imported {len(allowed)} HODs!'
         })
 
-    return render(request, 'coordinator/coord_dash.html', {'active_tab': 'hod_csv'})
+        return render(request, 'coordinator/coord_dash.html', context)
+
+    # GET request - just show existing data
+    return render(request, 'coordinator/coord_dash.html', context)
+
+
+# =========================
+# COORDINATOR DASHBOARD
+# =========================
 
 def coordinator_dashboard(request):
-    # ===============================
-    # SESSION CHECK
-    # ===============================
     coordinator_id = request.session.get("coordinator_id")
     if not coordinator_id:
         return redirect("login")
 
     coordinator = get_object_or_404(Coordinator_Login, id=coordinator_id)
 
-    # ===============================
-    # PASSWORD RESET HANDLER
-    # ===============================
+    # Password reset handler
     password_updated = False
     password_error = None
 
@@ -677,19 +811,14 @@ def coordinator_dashboard(request):
         else:
             try:
                 user = Coordinator_Login.objects.get(username=coordinator.username)
-                user.password = new_password  # ⚠️ plain text as per your current setup
+                user.password = new_password
                 user.save()
                 password_updated = True
             except Coordinator_Login.DoesNotExist:
                 password_error = "User not found."
 
-    # =========================================================
-    # 📢 CREATE ANNOUNCEMENT
-    # =========================================================
+    # Create announcement
     if request.method == "POST" and 'title' in request.POST:
-
-        print("POST DATA:", request.POST)
-
         title = request.POST.get("title")
         ann_type = request.POST.get("ann_type")
         target = request.POST.get("target")
@@ -813,22 +942,18 @@ def coordinator_dashboard(request):
         messages.success(request, "Announcement circulated successfully!")
         return redirect("coordinator_dashboard")
 
-    # =========================================================
-    # 📊 LOAD DASHBOARD DATA
-    # =========================================================
-    announcements = Announcement.objects.filter(
-        created_by_username=coordinator.username
-    ).order_by("-created_at")
-
-    # ===============================
-    # RENDER DASHBOARD
-    # ===============================
-    return render(request, "coordinator/coord_dash.html", {
+    # Load dashboard data - ALL DATA including lists
+    context = get_all_data()
+    context.update({
         "coordinator": coordinator,
-        "announcements": announcements,
+        "announcements": Announcement.objects.filter(
+            created_by_username=coordinator.username
+        ).order_by("-created_at"),
         "password_updated": password_updated,
         "password_error": password_error,
     })
+
+    return render(request, "coordinator/coord_dash.html", context)
 
 def logout_view(request):
     logout(request)
@@ -1110,6 +1235,14 @@ def add_men(request):
     }
     return render(request, "mentor/add_men.html", context)
 
+import json
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+from .models import Team, Mentor, AllocationResult
+
+
 def allocate_view(request):
     # ---------------------
     # Fetch teams from DB
@@ -1121,6 +1254,9 @@ def allocate_view(request):
     if not teams:
         return render(request, "coordinator/men_team_result.html", {
             "allocations": [],
+            "teams_data": [],
+            "mentors_data": [],
+            "avg_similarity": 0,
             "error": "No teams available."
         })
 
@@ -1129,19 +1265,34 @@ def allocate_view(request):
     # ---------------------
     mentors_qs = Mentor.objects.all()
     mentors = []
+    mentors_data = []  # For JS autocomplete in template
+    
     for m in mentors_qs:
+        alt_list = [d.strip() for d in m.alternative_domains.split(",")] if m.alternative_domains else []
+        
         mentors.append({
             "id": m.id,
             "domain": m.primary_domain,
             "name": m.name,
             "experience": "Expert" if m.experience >= 4 else "Beginner",
-            "alt_domains": m.alternative_domains.split(",") if m.alternative_domains else []
+            "alt_domains": alt_list
         })
+        
+        mentors_data.append({
+            "id": m.id,
+            "name": m.name,
+            "domain": m.primary_domain,
+            "alt_domains": json.dumps(alt_list)
+        })
+    
     print("✅ Mentors fetched from DB:", mentors)
 
     if not mentors:
         return render(request, "coordinator/men_team_result.html", {
             "allocations": [],
+            "teams_data": [],
+            "mentors_data": [],
+            "avg_similarity": 0,
             "error": "No mentors available."
         })
 
@@ -1170,6 +1321,9 @@ def allocate_view(request):
         lambda x: x if isinstance(x, str) else ", ".join(x)
     )
 
+    # Calculate average similarity
+    avg_similarity = round(allocations_df["similarity_score"].mean(), 1) if not allocations_df.empty else 0
+
     # ---------------------
     # Save allocations to DB
     # ---------------------
@@ -1193,7 +1347,71 @@ def allocate_view(request):
     allocations = allocations_df.to_dict(orient="records")
     print("✅ Allocations list for template:", allocations)
 
-    return render(request, "coordinator/men_team_result.html", {"allocations": allocations})
+    # Teams data for JS autocomplete
+    teams_data = [{
+        "id": t.id,
+        "name": t.project_title,
+        "domain": t.domain
+    } for t in teams_qs]
+
+    return render(request, "coordinator/men_team_result.html", {
+        "allocations": allocations,
+        "teams_data": teams_data,
+        "mentors_data": mentors_data,
+        "avg_similarity": avg_similarity,
+    })
+
+
+@csrf_exempt
+def save_allocations(request):
+    """
+    Save manually edited allocations from Table 2
+    """
+    if request.method != "POST":
+        return JsonResponse({"status": "fail", "message": "POST required"}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        allocations = data.get("allocations", [])
+        
+        print(f"💾 Saving {len(allocations)} allocations...")
+
+        # Option 1: Replace all existing allocations
+        # AllocationResult.objects.all().delete()
+        
+        # Option 2: Update or create each
+        for idx, alloc in enumerate(allocations):
+            team_name = alloc.get("teamName", "").strip()
+            if not team_name:
+                continue
+                
+            AllocationResult.objects.update_or_create(
+                team_name=team_name,
+                defaults={
+                    "team_domain": alloc.get("teamDomain", ""),
+                    "mentor_name": alloc.get("mentorName", ""),
+                    "mentor_domain": alloc.get("mentorDomain", ""),
+                    "experience": "Unknown",  # Or derive from mentor lookup
+                    "similarity_score": 0,     # Manual entry has no ML score
+                    "reason": "Manually assigned",
+                    "alt_domains": ""
+                }
+            )
+
+        return JsonResponse({
+            "status": "success",
+            "saved": len(allocations),
+            "message": f"{len(allocations)} allocations saved successfully"
+        })
+
+    except Exception as e:
+        print("❌ Save error:", e)
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            "status": "fail",
+            "message": str(e)
+        }, status=500)
 
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -1665,72 +1883,101 @@ def looks_like_early_heading(text, top=0, page_no=1):
 # -----------------------------
 # Zero Review View
 # -----------------------------
+import json
+import os
+import re
+import subprocess
+import platform
+import time
+
+import requests
+from django.conf import settings
+from django.http import JsonResponse
+from django.shortcuts import render
+
+from .models import AllocationResult, ProjectFile, ProjectRemarks, ZerothReviewRemark
+
+
+def ensure_docker_running():
+    """Auto-start Docker Desktop on Windows if not running."""
+    try:
+        result = subprocess.run(
+            ["docker", "info"], capture_output=True, text=True, timeout=5
+        )
+        if result.returncode == 0:
+            return True
+    except Exception:
+        pass
+
+    docker_paths = [
+        r"C:\Program Files\Docker\Docker\Docker Desktop.exe",
+        r"C:\Program Files\Docker\Docker\frontend\Docker Desktop.exe",
+        os.path.expandvars(r"%LOCALAPPDATA%\Programs\Docker\Docker Desktop.exe"),
+    ]
+
+    docker_exe = next((p for p in docker_paths if os.path.exists(p)), None)
+    if not docker_exe:
+        return False
+
+    subprocess.Popen([docker_exe], shell=True)
+
+    for i in range(45):
+        time.sleep(2)
+        try:
+            if subprocess.run(
+                ["docker", "info"], capture_output=True, text=True, timeout=5
+            ).returncode == 0:
+                print("✅ Docker auto-started successfully")
+                return True
+        except Exception:
+            pass
+
+    return False
+
+
 def zero_review(request):
     print("\n🟢 zero_review CALLED")
 
     mentor_name = request.session.get("mentor_name")
     username = request.session.get("username")
-
     print("mentor_name:", mentor_name)
     print("username:", username)
     print("method:", request.method)
 
-    # =====================================================
-    # POST → SAVE REMARKS (with deletions)
-    # =====================================================
+    # ==================== POST: SAVE REMARKS ====================
     if request.method == "POST":
         try:
             data = json.loads(request.body)
             remarks = data.get("remarks", [])
             deleted = data.get("deleted", [])
-            
             print("Incoming remarks:", len(remarks))
             print("Deleted headings:", len(deleted))
 
-            allocation = AllocationResult.objects.filter(
-                mentor_name=mentor_name
-            ).first()
-
+            allocation = AllocationResult.objects.filter(mentor_name=mentor_name).first()
             if not allocation:
                 return JsonResponse({"status": "fail", "message": "Team not found"}, status=404)
 
             team_name = allocation.team_name
-            inserted = 0
-            updated = 0
-            deleted_count = 0
+            inserted = updated = deleted_count = 0
 
-            # Handle deletions first
-            if deleted and len(deleted) > 0:
+            if deleted:
                 for heading in deleted:
                     heading = heading.strip()
                     if not heading:
                         continue
-                    
                     count, _ = ZerothReviewRemark.objects.filter(
-                        team_name=team_name,
-                        mentor_name=mentor_name,
-                        heading=heading
+                        team_name=team_name, mentor_name=mentor_name, heading=heading
                     ).delete()
-                    
-                    if count > 0:
-                        deleted_count += count
-                        print(f"🗑️ Deleted: {heading} ({count} rows)")
-                    else:
-                        count2, _ = ZerothReviewRemark.objects.filter(
-                            team_name=team_name,
-                            mentor_name=mentor_name,
-                            heading__icontains=heading[:50]
+                    if count == 0:
+                        count, _ = ZerothReviewRemark.objects.filter(
+                            team_name=team_name, mentor_name=mentor_name, heading__icontains=heading[:50]
                         ).delete()
-                        if count2 > 0:
-                            deleted_count += count2
-                            print(f"🗑️ Deleted (icontains): {heading[:50]}... ({count2} rows)")
+                    deleted_count += count
 
-            # Handle upserts
             for r in remarks:
                 heading = (r.get("heading") or "").strip()
                 remark = (r.get("remark") or "").strip()
                 color = r.get("color") or "#ffe066"
-
                 if not heading or not remark:
                     continue
 
@@ -1738,12 +1985,8 @@ def zero_review(request):
                     team_name=team_name,
                     mentor_name=mentor_name,
                     heading=heading,
-                    defaults={
-                        "remark": remark,
-                        "color": color
-                    }
+                    defaults={"remark": remark, "color": color},
                 )
-
                 if created:
                     inserted += 1
                 else:
@@ -1753,7 +1996,7 @@ def zero_review(request):
                 "status": "success",
                 "inserted": inserted,
                 "updated": updated,
-                "deleted": deleted_count
+                "deleted": deleted_count,
             })
 
         except Exception as e:
@@ -1762,46 +2005,27 @@ def zero_review(request):
             traceback.print_exc()
             return JsonResponse({"status": "fail", "message": str(e)}, status=500)
 
-    # =====================================================
-    # GET → DISPLAY PAGE
-    # =====================================================
-    allocation = AllocationResult.objects.filter(
-        mentor_name=mentor_name
-    ).first()
-
+    # ==================== GET: DISPLAY PAGE ====================
+    allocation = AllocationResult.objects.filter(mentor_name=mentor_name).first()
     if not allocation:
         return render(request, "mentor/review_men/men_doc/zero_paper/zero_review.html")
 
     team_name = allocation.team_name
     folder_name = team_name.replace(" ", "_")
-
     print("Team:", team_name)
 
-    # =====================================================
-    # LOAD SAVED REMARKS
-    # =====================================================
     saved_remarks = ZerothReviewRemark.objects.filter(
-        team_name=team_name,
-        mentor_name=mentor_name
+        team_name=team_name, mentor_name=mentor_name
     ).order_by("id")
-
     print("🔥 Loaded remarks:", saved_remarks.count())
-    for r in saved_remarks:
-        print(" ->", r.heading)
 
-    # =====================================================
-    # CHECK FOR REMARKS VERSION FIRST (ProjectRemarks)
-    # =====================================================
     remarks_file = ProjectRemarks.objects.filter(
-        team_name=team_name,
-        review_type="zero",
-        file_type="abstract"
+        team_name=team_name, review_type="zero", file_type="abstract"
     ).order_by('-updated_at').first()
 
-    # SINGLE FILE NAME - no _Original or _Remarks suffix
     pdf_name = f"{folder_name}_Abstract.pdf"
     html_name = f"{folder_name}_Abstract.html"
-    
+
     temp_dir = os.path.join(settings.MEDIA_ROOT, "temp_html", folder_name)
     docker_temp_dir = os.path.abspath(temp_dir).replace("\\", "/")
     os.makedirs(temp_dir, exist_ok=True)
@@ -1813,62 +2037,50 @@ def zero_review(request):
         print(f"✅ Using remarks version: {remarks_file.cloudinary_url}")
         cloud_url = remarks_file.cloudinary_url
         has_highlights = True
-        
-        # Delete old original files if remarks exist (cleanup)
-        old_original_pdf = os.path.join(temp_dir, f"{folder_name}_Abstract_Original.pdf")
-        old_original_html = os.path.join(temp_dir, f"{folder_name}_Abstract_Original.html")
-        for old_file in [old_original_pdf, old_original_html]:
-            if os.path.exists(old_file):
-                os.remove(old_file)
-                print(f"🗑️ Cleaned old: {os.path.basename(old_file)}")
     else:
-        # Fall back to original
         print("⚠️ No remarks found, using original")
-        project_file = ProjectFile.objects.filter(
-            team_name=team_name,
-            file_type="abstract"
-        ).first()
-
+        project_file = ProjectFile.objects.filter(team_name=team_name, file_type="abstract").first()
         if not project_file:
-            return render(request, "mentor/review_men/men_doc/zero_paper/zero_review.html", {
-                "zero_review": False
-            })
-
+            return render(request, "mentor/review_men/men_doc/zero_paper/zero_review.html", {"zero_review": False})
         cloud_url = project_file.cloudinary_url
         has_highlights = False
 
-    print(f"Local files: {pdf_name}, {html_name}")
-
-    # =====================================================
-    # DOWNLOAD PDF (always overwrite if different source)
-    # =====================================================
-    needs_download = True
-    
-    # Check if existing file matches current source
+    # Download PDF
     if os.path.exists(pdf_path):
-        # Simple check: compare file sizes or delete and re-download
-        # For now, always re-download to ensure correct version
         os.remove(pdf_path)
-        print("🗑️ Removed old PDF to re-download")
-    
-    if needs_download:
-        try:
-            r = requests.get(cloud_url, timeout=20)
-            r.raise_for_status()
-            with open(pdf_path, "wb") as f:
-                f.write(r.content)
-            print(f"✅ PDF downloaded: {pdf_name} ({len(r.content)} bytes)")
-        except Exception as e:
-            print("❌ PDF DOWNLOAD ERROR:", e)
-            return render(request, "mentor/review_men/men_doc/zero_paper/zero_review.html")
 
-    # =====================================================
-    # PDF → HTML (overwrite if exists to ensure fresh conversion)
-    # =====================================================
+    try:
+        r = requests.get(cloud_url, timeout=20)
+        r.raise_for_status()
+        with open(pdf_path, "wb") as f:
+            f.write(r.content)
+        print(f"✅ PDF downloaded: {pdf_name} ({len(r.content)} bytes)")
+    except Exception as e:
+        print("❌ PDF DOWNLOAD ERROR:", e)
+        return render(request, "mentor/review_men/men_doc/zero_paper/zero_review.html")
+
+    # Remove old HTML
     if os.path.exists(html_path):
         os.remove(html_path)
-        print("🗑️ Removed old HTML for fresh conversion")
 
+    # ============================================================
+    # 🔥 AUTO-START DOCKER (Windows only)
+    # ============================================================
+    if platform.system() == "Windows":
+        if not ensure_docker_running():
+            return render(request, "mentor/review_men/men_doc/zero_paper/zero_review.html", {
+                "mentor_name": mentor_name,
+                "username": username,
+                "team_name": team_name,
+                "html_content": "",
+                "saved_remarks": saved_remarks,
+                "error_message": "Docker Desktop could not be auto-started. Please start it manually.",
+                "zero_review": True,
+            })
+
+    # ============================================================
+    # PDF → HTML (Your exact same code)
+    # ============================================================
     try:
         subprocess.run(
             [
@@ -1884,9 +2096,7 @@ def zero_review(request):
     except Exception as e:
         print("❌ PDF→HTML ERROR:", e)
 
-    # =====================================================
-    # READ HTML CONTENT
-    # =====================================================
+    # Read HTML
     html_content = ""
     try:
         with open(html_path, "r", encoding="utf-8") as f:
@@ -1894,19 +2104,15 @@ def zero_review(request):
     except Exception as e:
         print("❌ HTML READ ERROR:", e)
 
-    # =====================================================
-    # HEADING EXTRACTION
-    # =====================================================
+    # Extract headings
     main_heading_lines = []
     sub_headings = []
-
     lines = re.findall(r'>([^<]{2,120})<', html_content)
 
     for line in lines:
         text = line.strip()
         if not text:
             continue
-
         if is_valid_heading(text):
             if not main_heading_lines:
                 main_heading_lines.append(text)
@@ -1918,9 +2124,6 @@ def zero_review(request):
 
     main_heading = " ".join(main_heading_lines)
 
-    # =====================================================
-    # FINAL RENDER
-    # =====================================================
     return render(
         request,
         "mentor/review_men/men_doc/zero_paper/zero_review.html",
@@ -1933,10 +2136,9 @@ def zero_review(request):
             "html_content": html_content,
             "saved_remarks": saved_remarks,
             "has_highlights": has_highlights,
-            "zero_review": True
-        }
+            "zero_review": True,
+        },
     )
-
 
 from django.http import FileResponse, Http404
 
@@ -2555,28 +2757,6 @@ def zero_base(request):
         }
     )
 
-def zero_form(request):
-    mentor_name = request.session.get("mentor_name")
-    username = request.session.get("username")
-    pdf_path = None
-
-    allocation = AllocationResult.objects.filter(mentor_name=mentor_name).first()
-
-    if allocation:
-        team_name = allocation.team_name
-        print(f"[DEBUG] Allocated team found for mentor '{mentor_name}': {team_name}")
-        
-        # Explicitly pass pdf_type = 'Abstract'
-        pdf_path = f"/mentor/pdf/{team_name}/Report/"
-    else:
-        print(f"[DEBUG] No allocated team found for mentor '{mentor_name}'")
-
-    return render(request, "mentor/review_men/men_doc/zero_paper/zero_form.html", {
-        "mentor_name": mentor_name,
-        "username": username,
-        "pdf_path": pdf_path,
-        "team_name": allocation.team_name if allocation else None
-    })
 
 def zero_ppt(request):
     print("\n🟢 zero_ppt CALLED")
