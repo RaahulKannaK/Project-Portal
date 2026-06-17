@@ -1,431 +1,750 @@
 {% load static %}
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Evaluation Table - {{ team_name }}</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <title>Zero Review Evaluation - {{ team_name }}</title>
 
-  <style>
-    /* 🌈 Theme Colors */
-    :root {
-      --primary: #6A0DAD;        /* Deep Purple */
-      --secondary: #C7A4E0;      /* Soft Violet */
-      --accent: #F9DDEB;         /* Blush Pink */
-      --background: #F8F9FC;     /* Clean Light Background */
-      --text-dark: #2E2E2E;
-      --text-light: #ffffff;
-    }
+  <!-- Font Awesome -->
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        crossorigin="anonymous" />
 
-    body {
-      font-family: 'Poppins', sans-serif;
-      background: var(--background);
-      margin: 0;
-      display: flex;
-      color: var(--text-dark);
-    }
+<style>
+:root {
+  --primary: #6A0DAD;
+  --secondary: #F9DDEB;
+  --accent: #C7A4E0;
+  --background: #F8F9FC;
+  --text-dark: #2E2E2E;
+  --text-light: #ffffff;
+}
 
-    /* Sidebar */
-    .sidebar {
-      background: linear-gradient(180deg, var(--primary), var(--secondary));
-      color: var(--text-light);
-      width: 230px;
-      padding: 30px 15px;
-      display: flex;
-      flex-direction: column;
-      border-radius: 0 15px 15px 0;
-      height: 100vh;
-      box-shadow: 4px 0 15px rgba(0,0,0,0.1);
-    }
+body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(120deg, var(--background), #ffffff);
+  margin: 0;
+  padding: 40px;
+  color: var(--text-dark);
+}
 
-    .sidebar h2 {
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--accent);
-      margin-bottom: 40px;
-      text-align: center;
-    }
+/* ---------------- HEADER ---------------- */
+.header {
+  text-align: center;
+  margin-bottom: 40px;
+}
 
-    .member-btn {
-      background: none;
-      color: var(--text-light);
-      border: none;
-      text-align: left;
-      font-size: 16px;
-      padding: 10px 20px;
-      margin: 8px 0;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
+.header h2 {
+  font-size: 28px;
+  color: var(--primary);
+  margin-bottom: 5px;
+  font-weight: 700;
+}
 
-    .member-btn i {
-      margin-right: 10px;
-    }
+.header p {
+  color: #555;
+  font-size: 16px;
+}
 
-    .member-btn:hover, .member-btn.active {
-      background-color: rgba(255, 255, 255, 0.2);
-    }
+/* ---------------- TABLE BASE ---------------- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--text-light);
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  margin-bottom: 30px;
+}
 
-    /* Download Box */
-    .download-section {
-      margin-top: auto;
-      padding-top: 30px;
-      border-top: 1px solid rgba(255, 255, 255, 0.3);
-    }
+th {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: var(--text-light);
+  padding: 15px;
+  text-align: center;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
 
-    .download-btn {
-      background: none;
-      color: var(--text-light);
-      border: none;
-      text-align: left;
-      font-size: 16px;
-      padding: 10px 20px;
-      width: 100%;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
+td {
+  padding: 12px;
+  text-align: center;
+  border-bottom: 1px solid #e5d8f5;
+  vertical-align: top;
+  color: var(--text-dark);
+}
 
-    .download-btn:hover {
-      background-color: rgba(255, 255, 255, 0.2);
-    }
+tr:hover {
+  background-color: var(--secondary);
+}
 
-    .download-options {
-      display: none;
-      flex-direction: column;
-      margin-top: 10px;
-      margin-left: 25px;
-      animation: fadeIn 0.3s ease;
-    }
+/* ---------------- INPUTS ---------------- */
+input[type="number"] {
+  width: 60px;
+  text-align: center;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 5px;
+  transition: 0.3s ease;
+}
 
-    .download-options a {
-      color: var(--text-light);
-      text-decoration: none;
-      font-size: 15px;
-      padding: 5px 0;
-      transition: all 0.3s ease;
-    }
+input[type="number"]:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 5px var(--accent);
+}
 
-    .download-options a:hover {
-      color: var(--accent);
-      text-decoration: underline;
-    }
+/* ---------------- VIEW MODE DISPLAY ---------------- */
+.view-mode-display {
+  display: inline-block;
+  padding: 5px 10px;
+  background: var(--secondary);
+  border-radius: 8px;
+  font-weight: 600;
+  color: var(--primary);
+  min-width: 40px;
+}
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-5px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+/* ---------------- SECTION HEADERS ---------------- */
+.subheader {
+  background-color: var(--accent);
+  font-weight: bold;
+  font-style: italic;
+  text-align: left;
+  color: var(--text-light);
+}
 
-    /* Main content */
-    .main {
-      flex: 1;
-      padding: 30px;
-      background: var(--background);
-    }
+/* ---------------- TOTAL ROW ---------------- */
+.total-row {
+  background: linear-gradient(90deg, var(--primary), var(--accent)) !important;
+  color: var(--text-light);
+  font-weight: bold;
+}
 
-    .back-btn {
-      background: var(--accent);
-      color: var(--text-dark);
-      padding: 10px 20px;
-      border-radius: 10px;
-      text-decoration: none;
-      font-weight: 600;
-      display: inline-block;
-      margin-bottom: 20px;
-      transition: 0.3s;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-    }
+/* ---------------- TITLE BOX ---------------- */
+.title-box {
+  text-align: center;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-size: 1.6em;
+  font-weight: 700;
+  margin: 30px 0 20px;
+}
 
-    .back-btn:hover {
-      background: var(--secondary);
-      color: var(--text-light);
-    }
+/* ---------------- BUTTONS ---------------- */
+.submit-container {
+  text-align: center;
+  margin-top: 30px;
+}
 
-    h2 {
-      font-size: 24px;
-      margin-bottom: 20px;
-      color: var(--primary);
-    }
+.submit-button {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: var(--text-light);
+  border: none;
+  padding: 15px 35px;
+  font-size: 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.3s ease;
+  box-shadow: 0 4px 12px rgba(106, 13, 173, 0.3);
+  margin: 5px;
+}
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-      border-radius: 15px;
-      overflow: hidden;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    }
+.submit-button:hover {
+  background: var(--accent);
+  box-shadow: 0 6px 18px rgba(106, 13, 173, 0.4);
+}
 
-    th {
-      background: var(--primary);
-      color: var(--text-light);
-      padding: 15px;
-      text-align: center;
-    }
+.submit-button.secondary {
+  background: linear-gradient(135deg, #888, #aaa);
+}
 
-    td {
-      padding: 12px;
-      text-align: center;
-      border-bottom: 1px solid #ddd;
-    }
+.submit-button.secondary:hover {
+  background: #999;
+}
 
-    input[type="number"] {
-      width: 60px;
-      text-align: center;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 5px;
-    }
+/* ---------------- FINAL SUMMARY ---------------- */
+#final-summary {
+  display: none;
+  margin-top: 30px;
+  background: var(--text-light);
+  border-radius: 15px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  padding: 15px;
+}
 
-    tr:hover {
-      background-color: #f6f6f6;
-    }
+#final-summary table {
+  width: 100%;
+  border-collapse: collapse;
+}
 
-    .hidden {
-      display: none;
-    }
+#final-summary th,
+#final-summary td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
 
-    .save-btn {
-      background: var(--primary);
-      color: var(--text-light);
-      border: none;
-      padding: 10px 20px;
-      border-radius: 10px;
-      margin-top: 20px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: 0.3s;
-    }
+#final-summary th {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: var(--text-light);
+}
 
-    .save-btn:hover {
-      background: var(--secondary);
-      color: var(--text-dark);
-    }
+/* ---------------- STATUS MESSAGE ---------------- */
+.status-msg {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  color: white;
+  display: none;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
 
-    /* Final Summary Table */
-    #final-summary {
-      margin-top: 30px;
-      display: none;
-      background: white;
-      border-radius: 15px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      padding: 20px;
-    }
+.status-msg.success {
+  background: #28a745;
+}
 
-    #final-summary h3 {
-      margin-bottom: 15px;
-      color: var(--primary);
-    }
+.status-msg.error {
+  background: #dc3545;
+}
 
-    #final-summary table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    #final-summary th, #final-summary td {
-      border: 1px solid #ddd;
-      padding: 8px;
-      text-align: center;
-    }
-
-    #final-summary th {
-      background: var(--secondary);
-      color: var(--text-dark);
-    }
-  </style>
+/* ---------------- RESPONSIVE ---------------- */
+@media (max-width: 768px) {
+  table, th, td {
+    font-size: 14px;
+  }
+  input[type="number"] {
+    width: 50px;
+    padding: 4px;
+  }
+}
+</style>
 </head>
+
 <body>
 
-  <div class="sidebar">
-    <h2><i class="fas fa-graduation-cap"></i> Reviews</h2>
-    {% for member in team_members %}
-      <button class="member-btn {% if forloop.first %}active{% endif %}" onclick="showMember('{{ member|escapejs }}', this)">
-        <i class="fas fa-user"></i> {{ member }}
-      </button>
-    {% endfor %}
-
-    <div class="download-section">
-      <button class="download-btn" onclick="toggleDownloads()">
-        <i class="fas fa-download"></i> Download
-      </button>
-      <div class="download-options" id="download-options">
-        <a href="{% url 'download_docx' team_name %}" target="_blank"><i class="far fa-file-word"></i> DOCX</a>
-        <a href="{% url 'download_pdf' team_name %}" target="_blank"><i class="far fa-file-pdf"></i> PDF</a>
-      </div>
-    </div>
+  <!-- ================= HEADER ================= -->
+  <div class="header">
+    <h2><i class="fas fa-users"></i> Team Members Details</h2>
+    <p>Zero Review Evaluation - {{ team_name }}</p>
   </div>
 
-  <div class="main">
-    <a href="{% url 'zero_men' %}" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Review 0</a>
-    <h2>Evaluation Table - {{ team_name }}</h2>
+  <!-- ================= TEAM MEMBERS TABLE ================= -->
+  <table>
+    <thead>
+      <tr>
+        <th>S.No.</th>
+        <th>Team Member</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for member in team_members %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ member }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="2">No team members found</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 
-    <table>
+  <!-- ================= TITLE ================= -->
+  <div class="title-box">
+    Zero Review Evaluation
+  </div>
+
+  <!-- ================= FORM START ================= -->
+  <form method="POST" id="evaluation-form">
+    {% csrf_token %}
+
+    <table id="evaluation-table">
       <thead>
         <tr>
-          <th>Team Members</th>
-          <th>Project Concept & Topic Selection (20)</th>
-          <th>Literature Review & Background Research (10)</th>
-          <th>Relevance & Impact of Project Outcome (20)</th>
-          <th>Project Planning & Timeline (20)</th>
-          <th>Methodology & Approach (20)</th>
-          <th>Presentation & Clarity (10)</th>
-          <th>Total Marks (100)</th>
+          <th>Evaluation Component</th>
+          <th>Max Marks</th>
+          {% for member in team_members %}
+            <th>{{ forloop.counter }}</th>
+          {% endfor %}
         </tr>
       </thead>
 
-      <tbody id="evaluation-body">
-        {% for member in team_members %}
-        <tr id="row-{{ member|slugify }}" class="{% if not forloop.first %}hidden{% endif %}">
-          <td>{{ member }}</td>
-          <td><input type="number" min="0" max="20" value="0" oninput="updateTotal(this)"></td>
-          <td><input type="number" min="0" max="10" value="0" oninput="updateTotal(this)"></td>
-          <td><input type="number" min="0" max="20" value="0" oninput="updateTotal(this)"></td>
-          <td><input type="number" min="0" max="20" value="0" oninput="updateTotal(this)"></td>
-          <td><input type="number" min="0" max="20" value="0" oninput="updateTotal(this)"></td>
-          <td><input type="number" min="0" max="10" value="0" oninput="updateTotal(this)"></td>
-          <td class="total-cell">0</td>
+      <tbody id="table-body">
+
+        <!-- ================= PROJECT CONCEPT & TOPIC ================= -->
+        <tr class="subheader">
+          <td colspan="{{ team_members|length|add:'2' }}">Project Concept & Topic Selection</td>
         </tr>
-        {% endfor %}
+        <tr data-criteria="concept">
+          <td>Project Concept & Topic Selection</td>
+          <td>20</td>
+          {% for member in team_members %}
+            <td data-member="{{ forloop.counter0 }}" data-criteria="concept">
+              <input type="number" min="0" max="20" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="concept">
+            </td>
+          {% endfor %}
+        </tr>
+
+        <!-- ================= LITERATURE REVIEW ================= -->
+        <tr class="subheader">
+          <td colspan="{{ team_members|length|add:'2' }}">Literature Review & Background Research</td>
+        </tr>
+        <tr data-criteria="literature">
+          <td>Literature Review & Background Research</td>
+          <td>10</td>
+          {% for member in team_members %}
+            <td data-member="{{ forloop.counter0 }}" data-criteria="literature">
+              <input type="number" min="0" max="10" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="literature">
+            </td>
+          {% endfor %}
+        </tr>
+
+        <!-- ================= RELEVANCE & IMPACT ================= -->
+        <tr class="subheader">
+          <td colspan="{{ team_members|length|add:'2' }}">Relevance & Impact of Project Outcome</td>
+        </tr>
+        <tr data-criteria="impact">
+          <td>Relevance & Impact of Project Outcome</td>
+          <td>20</td>
+          {% for member in team_members %}
+            <td data-member="{{ forloop.counter0 }}" data-criteria="impact">
+              <input type="number" min="0" max="20" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="impact">
+            </td>
+          {% endfor %}
+        </tr>
+
+        <!-- ================= PROJECT PLANNING ================= -->
+        <tr class="subheader">
+          <td colspan="{{ team_members|length|add:'2' }}">Project Planning & Timeline</td>
+        </tr>
+        <tr data-criteria="planning">
+          <td>Project Planning & Timeline</td>
+          <td>20</td>
+          {% for member in team_members %}
+            <td data-member="{{ forloop.counter0 }}" data-criteria="planning">
+              <input type="number" min="0" max="20" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="planning">
+            </td>
+          {% endfor %}
+        </tr>
+
+        <!-- ================= METHODOLOGY ================= -->
+        <tr class="subheader">
+          <td colspan="{{ team_members|length|add:'2' }}">Methodology & Approach</td>
+        </tr>
+        <tr data-criteria="methodology">
+          <td>Methodology & Approach</td>
+          <td>20</td>
+          {% for member in team_members %}
+            <td data-member="{{ forloop.counter0 }}" data-criteria="methodology">
+              <input type="number" min="0" max="20" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="methodology">
+            </td>
+          {% endfor %}
+        </tr>
+
+        <!-- ================= PRESENTATION ================= -->
+        <tr class="subheader">
+          <td colspan="{{ team_members|length|add:'2' }}">Presentation & Clarity</td>
+        </tr>
+        <tr data-criteria="presentation">
+          <td>Presentation & Clarity</td>
+          <td>10</td>
+          {% for member in team_members %}
+            <td data-member="{{ forloop.counter0 }}" data-criteria="presentation">
+              <input type="number" min="0" max="10" value="0" class="mark-input" data-member="{{ forloop.counter0 }}" data-criteria="presentation">
+            </td>
+          {% endfor %}
+        </tr>
+
+        <!-- ================= TOTAL ================= -->
+        <tr class="total-row">
+          <td><b>Total</b></td>
+          <td><b>100</b></td>
+          {% for member in team_members %}
+            <td id="total-{{ forloop.counter0 }}">0</td>
+          {% endfor %}
+        </tr>
+
       </tbody>
     </table>
 
-    <button class="save-btn" onclick="saveData()"><i class="fas fa-save"></i> Save & Next</button>
-
-    <div id="final-summary">
-      <h3>Final Evaluation Summary - {{ team_name }}</h3>
-      <table id="summary-table">
-        <thead>
-          <tr>
-            <th>Team Member</th>
-            <th>Project Concept (20)</th>
-            <th>Literature Review (10)</th>
-            <th>Impact (20)</th>
-            <th>Planning (20)</th>
-            <th>Methodology (20)</th>
-            <th>Presentation (10)</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+    <!-- ================= ACTION BUTTONS ================= -->
+    <div class="submit-container">
+      <button type="button" id="confirm-btn" class="submit-button">
+        ✅ Confirm Marks
+      </button>
+      <button type="button" id="edit-btn" class="submit-button secondary" style="display:none;">
+        ✏️ Edit Marks
+      </button>
+      <button type="button" id="download-btn" class="submit-button" style="display:none;">
+        ⬇️ Download DOCX
+      </button>
     </div>
+
+  </form>
+  <!-- ================= FORM END ================= -->
+
+  <!-- ================= FINAL SUMMARY ================= -->
+  <div id="final-summary" style="display:none;">
+    <h3>Final Evaluation Summary - {{ team_name }}</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Team Member</th>
+          <th>Concept (20)</th>
+          <th>Literature (10)</th>
+          <th>Impact (20)</th>
+          <th>Planning (20)</th>
+          <th>Methodology (20)</th>
+          <th>Presentation (10)</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody id="summary-body"></tbody>
+    </table>
   </div>
 
-  <script>
-    const categoryNames = [
-      "Project Concept & Topic Selection (20)",
-      "Literature Review & Background Research (10)",
-      "Relevance & Impact of Project Outcome (20)",
-      "Project Planning & Timeline (20)",
-      "Methodology & Approach (20)",
-      "Presentation & Clarity (10)"
+  <!-- Status Message -->
+  <div id="status-msg" class="status-msg"></div>
+
+</body>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const criteriaConfig = {
+        "concept": { max: 20, label: "Project Concept & Topic Selection (20)" },
+        "literature": { max: 10, label: "Literature Review & Background Research (10)" },
+        "impact": { max: 20, label: "Relevance & Impact of Project Outcome (20)" },
+        "planning": { max: 20, label: "Project Planning & Timeline (20)" },
+        "methodology": { max: 20, label: "Methodology & Approach (20)" },
+        "presentation": { max: 10, label: "Presentation & Clarity (10)" }
+    };
+
+    const criteriaList = ["concept", "literature", "impact", "planning", "methodology", "presentation"];
+    const STORAGE_KEY = `zero_evaluation_{{ team_name|slugify }}_{{ request.user.id|default:'anonymous' }}`;
+
+    const inputs = document.querySelectorAll("input[type='number']");
+    const memberCount = {{ team_members|length }};
+    const confirmBtn = document.getElementById("confirm-btn");
+    const editBtn = document.getElementById("edit-btn");
+    const downloadBtn = document.getElementById("download-btn");
+    const finalSummary = document.getElementById("final-summary");
+    const summaryBody = document.getElementById("summary-body");
+    const statusMsg = document.getElementById("status-msg");
+
+    /* ---------- TEAM MEMBERS ---------- */
+    const teamMembers = [
+        {% for member in team_members %}
+            "{{ member|escapejs }}",
+        {% endfor %}
     ];
 
-    const savedEvaluations = {};
-
-    function showMember(memberName, btn) {
-      document.querySelectorAll("#evaluation-body tr").forEach(row => row.classList.add("hidden"));
-      document.querySelectorAll(".member-btn").forEach(b => b.classList.remove("active"));
-      const targetRow = document.getElementById("row-" + memberName.toLowerCase().replace(/\s+/g, "-"));
-      if (targetRow) targetRow.classList.remove("hidden");
-      btn.classList.add("active");
-    }
-
-    function updateTotal(input) {
-      const row = input.closest("tr");
-      let total = 0;
-      row.querySelectorAll('input[type="number"]').forEach(inp => {
-        const max = parseInt(inp.max);
-        let value = parseInt(inp.value);
-        if (isNaN(value) || value < 0) value = 0;
-        if (value > max) { inp.value = max; value = max; }
-        total += value;
-      });
-      row.querySelector(".total-cell").textContent = total;
-    }
-
-    function saveData() {
-      const activeBtn = document.querySelector(".member-btn.active");
-      const activeRow = document.querySelector("#evaluation-body tr:not(.hidden)");
-      if (!activeBtn || !activeRow) return;
-
-      const memberName = activeRow.querySelector("td:first-child").textContent.trim();
-      const inputs = activeRow.querySelectorAll('input[type="number"]');
-      const total = parseInt(activeRow.querySelector(".total-cell").textContent);
-      const scores = Array.from(inputs).map(i => i.value);
-      savedEvaluations[memberName] = scores.concat(total);
-
-      const memberData = [];
-      inputs.forEach((inp, idx) => memberData.push(`${categoryNames[idx]}-${inp.value}`));
-      memberData.push(`Total-${total}`);
-
-      const dataToSend = {
-        team_name: "{{ team_name }}",
-        evaluations: { [`team_member-${memberName}`]: memberData }
-      };
-
-      fetch("{% url 'save_evaluation' %}", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}" },
-        body: JSON.stringify(dataToSend)
-      })
-      .then(response => response.json())
-      .then(() => {
-        alert(`Evaluation saved for ${memberName}!`);
-        const allButtons = Array.from(document.querySelectorAll(".member-btn"));
-        const currentIndex = allButtons.indexOf(activeBtn);
-        if (currentIndex < allButtons.length - 1) {
-          const nextBtn = allButtons[currentIndex + 1];
-          const nextRow = document.querySelector("#row-" + nextBtn.textContent.trim().toLowerCase().replace(/\s+/g, "-"));
-          if (nextRow) {
-            const currentInputs = activeRow.querySelectorAll('input[type="number"]');
-            const nextInputs = nextRow.querySelectorAll('input[type="number"]');
-            for (let i = 0; i < 5; i++) nextInputs[i].value = currentInputs[i].value;
-            nextInputs.forEach(inp => updateTotal(inp));
-          }
-          nextBtn.click();
-        } else {
-          alert("✅ All members have been evaluated!");
-          showFinalSummary();
-        }
-      })
-      .catch(err => console.error(err));
-    }
-
-    function showFinalSummary() {
-      const summaryDiv = document.getElementById("final-summary");
-      const tbody = summaryDiv.querySelector("tbody");
-      tbody.innerHTML = "";
-      for (const [member, scores] of Object.entries(savedEvaluations)) {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${member}</td>
-          <td>${scores[0]}</td>
-          <td>${scores[1]}</td>
-          <td>${scores[2]}</td>
-          <td>${scores[3]}</td>
-          <td>${scores[4]}</td>
-          <td>${scores[5]}</td>
-          <td><b>${scores[6]}</b></td>
-        `;
-        tbody.appendChild(row);
-      }
-      summaryDiv.style.display = "block";
-      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-    }
-
-    function toggleDownloads() {
-      const box = document.getElementById("download-options");
-      box.style.display = box.style.display === "flex" ? "none" : "flex";
-    }
-
-    window.addEventListener("DOMContentLoaded", () => {
-      const firstRow = document.querySelector("#evaluation-body tr:not(.hidden)");
-      if (firstRow) firstRow.querySelectorAll('input[type="number"]').forEach(inp => updateTotal(inp));
+    /* ---------- INIT INPUT METADATA ---------- */
+    inputs.forEach((inp, idx) => {
+        inp.dataset.manual = "false";
+        inp.dataset.memberIndex = idx % memberCount;
+        inp.dataset.criteriaIndex = Math.floor(idx / memberCount);
     });
-  </script>
+
+    /* ---------- SHOW STATUS (No alerts) ---------- */
+    function showStatus(message, isSuccess) {
+        statusMsg.textContent = message;
+        statusMsg.className = `status-msg ${isSuccess ? 'success' : 'error'}`;
+        statusMsg.style.display = 'block';
+        setTimeout(() => {
+            statusMsg.style.display = 'none';
+        }, 3000);
+    }
+
+    /* ---------- SANITIZE INPUT ---------- */
+    function sanitizeInput(input) {
+        const criteria = criteriaList[parseInt(input.dataset.criteriaIndex)];
+        const max = criteriaConfig[criteria].max;
+        let value = parseInt(input.value);
+        if (isNaN(value)) value = 0;
+        if (value > max) { input.value = max; value = max; }
+        if (value < 0) { input.value = 0; value = 0; }
+    }
+
+    /* ---------- CALCULATE TOTAL ---------- */
+    function calculateTotal() {
+        for (let m = 0; m < memberCount; m++) {
+            let sum = 0;
+            inputs.forEach(inp => {
+                if (parseInt(inp.dataset.memberIndex) === m) {
+                    sum += parseInt(inp.value) || 0;
+                }
+            });
+            document.getElementById(`total-${m}`).textContent = sum;
+        }
+    }
+
+    /* ---------- SAVE TO LOCAL STORAGE ---------- */
+    function saveToStorage() {
+        const data = {
+            isConfirmed: false,
+            marks: {},
+            timestamp: new Date().toISOString()
+        };
+
+        for (let m = 0; m < memberCount; m++) {
+            data.marks[m] = {};
+            criteriaList.forEach((criteria, idx) => {
+                const inp = Array.from(inputs).find(i => 
+                    parseInt(i.dataset.memberIndex) === m && 
+                    parseInt(i.dataset.criteriaIndex) === idx
+                );
+                data.marks[m][criteria] = inp ? inp.value : "0";
+            });
+        }
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    /* ---------- LOAD FROM LOCAL STORAGE ---------- */
+    function loadFromStorage() {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (!stored) return null;
+        return JSON.parse(stored);
+    }
+
+    /* ---------- RESTORE DATA ---------- */
+    function restoreData(data) {
+        if (!data || !data.marks) return;
+
+        for (let m = 0; m < memberCount; m++) {
+            criteriaList.forEach((criteria, idx) => {
+                const inp = Array.from(inputs).find(i => 
+                    parseInt(i.dataset.memberIndex) === m && 
+                    parseInt(i.dataset.criteriaIndex) === idx
+                );
+                if (inp && data.marks[m] && data.marks[m][criteria]) {
+                    inp.value = data.marks[m][criteria];
+                    if (m > 0 && data.marks[m][criteria] !== data.marks[0][criteria]) {
+                        inp.dataset.manual = "true";
+                    }
+                }
+            });
+        }
+        calculateTotal();
+    }
+
+    /* ---------- SWITCH TO VIEW MODE ---------- */
+    function switchToViewMode() {
+        inputs.forEach(inp => {
+            inp.style.display = 'none';
+            const display = document.createElement('span');
+            display.className = 'view-mode-display';
+            display.textContent = inp.value;
+            display.id = `display-${inp.dataset.memberIndex}-${inp.dataset.criteriaIndex}`;
+            inp.parentNode.appendChild(display);
+        });
+
+        confirmBtn.style.display = 'none';
+        editBtn.style.display = 'inline-block';
+        downloadBtn.style.display = 'inline-block';
+        
+        const data = loadFromStorage() || {};
+        data.isConfirmed = true;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        
+        generateSummary();
+        finalSummary.style.display = "block";
+        showStatus("✅ Marks confirmed successfully!", true);
+    }
+
+    /* ---------- SWITCH TO EDIT MODE ---------- */
+    function switchToEditMode() {
+        document.querySelectorAll('.view-mode-display').forEach(display => display.remove());
+        inputs.forEach(inp => {
+            inp.style.display = 'inline-block';
+        });
+
+        confirmBtn.style.display = 'inline-block';
+        editBtn.style.display = 'none';
+        downloadBtn.style.display = 'none';
+        finalSummary.style.display = "none";
+        
+        const data = loadFromStorage() || {};
+        data.isConfirmed = false;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    /* ---------- GENERATE SUMMARY ---------- */
+    function generateSummary() {
+        summaryBody.innerHTML = "";
+        for (let m = 0; m < memberCount; m++) {
+            let rowHTML = `<td>${teamMembers[m]}</td>`;
+            let total = 0;
+
+            for (let c = 0; c < criteriaList.length; c++) {
+                const inp = Array.from(inputs).find(i =>
+                    parseInt(i.dataset.memberIndex) === m &&
+                    parseInt(i.dataset.criteriaIndex) === c
+                );
+                const val = inp ? inp.value : "0";
+                rowHTML += `<td>${val}</td>`;
+                total += parseInt(val) || 0;
+            }
+
+            rowHTML += `<td><b>${total}</b></td>`;
+            const row = document.createElement("tr");
+            row.innerHTML = rowHTML;
+            summaryBody.appendChild(row);
+        }
+    }
+
+    /* ---------- INPUT HANDLING ---------- */
+    inputs.forEach(inp => {
+
+        inp.addEventListener("input", function () {
+            sanitizeInput(this);
+            saveToStorage();
+
+            const memberIndex = parseInt(this.dataset.memberIndex);
+            const criteriaIndex = parseInt(this.dataset.criteriaIndex);
+
+            /* AUTO FILL FROM FIRST MEMBER */
+            if (memberIndex === 0 && criteriaIndex < 6) {
+                inputs.forEach(other => {
+                    if (
+                        parseInt(other.dataset.memberIndex) > 0 &&
+                        parseInt(other.dataset.criteriaIndex) === criteriaIndex &&
+                        other.dataset.manual === "false"
+                    ) {
+                        other.value = this.value;
+                    }
+                });
+            }
+
+            if (memberIndex > 0) {
+                this.dataset.manual = "true";
+            }
+
+            calculateTotal();
+        });
+
+        /* ---------- PASTE CONTROL ---------- */
+        inp.addEventListener("paste", function (e) {
+            e.preventDefault();
+            const criteria = criteriaList[parseInt(this.dataset.criteriaIndex)];
+            const max = criteriaConfig[criteria].max;
+            let pasted = parseInt(
+                (e.clipboardData || window.clipboardData).getData("text")
+            );
+            if (isNaN(pasted)) pasted = 0;
+            if (pasted > max) pasted = max;
+            if (pasted < 0) pasted = 0;
+
+            this.value = pasted;
+            this.dispatchEvent(new Event("input"));
+        });
+    });
+
+    /* ---------- INITIALIZE ---------- */
+    const savedData = loadFromStorage();
+    if (savedData) {
+        restoreData(savedData);
+        if (savedData.isConfirmed) {
+            switchToViewMode();
+        }
+    } else {
+        calculateTotal();
+    }
+
+    /* ---------- BUTTON EVENTS ---------- */
+    confirmBtn.addEventListener("click", function () {
+        switchToViewMode();
+        window.scrollTo({
+            top: finalSummary.offsetTop,
+            behavior: "smooth"
+        });
+    });
+
+    editBtn.addEventListener("click", function () {
+        switchToEditMode();
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
+    });
+
+    /* ---------- DOWNLOAD DOCX ---------- */
+    downloadBtn.addEventListener("click", function () {
+        const savedEvaluations = {};
+        const data = loadFromStorage();
+
+        // Build evaluations per member with THEIR actual individual marks
+        {% for member in team_members %}
+        (function() {
+            const mIdx = {{ forloop.counter0 }};
+            const memberKey = "team_member-{{ member|escapejs }}";
+            savedEvaluations[memberKey] = [];
+            
+            for (let i = 0; i < criteriaList.length; i++) {
+                const criteria = criteriaList[i];
+                let mark = "0";
+                if (data && data.marks && data.marks[mIdx] && data.marks[mIdx][criteria] !== undefined) {
+                    mark = data.marks[mIdx][criteria];
+                }
+                savedEvaluations[memberKey].push(mark);
+            }
+        })();
+        {% endfor %}
+
+        console.log("Sending evaluations:", savedEvaluations);
+
+        fetch("{% url 'save_zeroth_evaluation' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({
+                team_name: "{{ team_name|escapejs }}",
+                evaluations: savedEvaluations
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    return response.json().then(err => { throw new Error(err.message || "Download failed"); });
+                }
+                throw new Error("Download failed");
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            // Use team_name with underscores for filename
+            const safeName = "{{ team_name|escapejs }}".replace(/ /g, "_");
+            a.download = safeName + "_ZerothReview.docx";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            showStatus("📄 DOCX downloaded successfully!", true);
+        })
+        .catch(err => {
+            console.error(err);
+            showStatus("❌ " + err.message, false);
+        });
+    });
+
+});
+</script>
+
 </body>
 </html>

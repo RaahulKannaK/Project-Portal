@@ -14,8 +14,8 @@ from allocation.views import (
     zero_review, zero_base, zero_ppt, men_ppt, hod_dashboard, coordinator_dashboard,
     team_list, save_evaluation, clean_text, zero_stu, one_stu, two_stu, three_stu,
     approve_team, modify_team, zero_ma1, download_docx, download_pdf, one_ma, two_ma, three_ma, upload_student_csv,upload_mentor_csv,upload_hod_csv,
-    save_evaluation_review1, save_evaluation_review2, save_evaluation_review3, serve_pdf, save_zeroth_remark, 
-    acknowledge_announcement, serve_temp_html, student_result_view, mentor_result_view,
+    save_evaluation_review1, save_evaluation_review2, save_evaluation_review3, serve_pdf, 
+    acknowledge_announcement, serve_temp_html, student_result_view, mentor_result_view,save_zeroth_evaluation,
     # 🔥 NEW: Import highlight views
     save_highlighted_html, get_highlighted_document,download_csv_template,
     # ✅ NEW: First, Second, Third Review mentor PPT views (from chat)
@@ -95,12 +95,12 @@ urlpatterns = [
 
     # ---------------- Save Remarks API ----------------
     # ✅ NEW: All save remark endpoints (from chat)
-    path("student/zero-review/file-upload/zeroth-remark/", save_zeroth_remark, name="save_zeroth_remark"),
     path("student/one-review/save-first-remark/", save_first_remark, name="save_first_remark"),
     path("student/two-review/save-second-remark/", save_second_remark, name="save_second_remark"),
     path("student/three-review/save-third-remark/", save_third_remark, name="save_third_remark"),
 
     # ---------------- Save / Download ----------------
+    path('save-zeroth-evaluation/', save_zeroth_evaluation, name='save_zeroth_evaluation'),
     path('save-evaluation/', save_evaluation, name='save_evaluation'),
     path('save-evaluation-review1/', save_evaluation_review1, name='save_evaluation_review1'),
     path('save-evaluation-review2/', save_evaluation_review2, name='save_evaluation_review2'),
