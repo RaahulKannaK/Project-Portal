@@ -202,6 +202,66 @@ h5 { margin-top: 25px; font-weight: 600; color: var(--text-light); font-size: 1.
     transform: scale(1.05);
 }
 
+/* ========== DROPDOWN / LOGOUT FIXES ========== */
+
+/* Remove Bootstrap default caret */
+.more-options-btn.dropdown-toggle::after {
+    display: none !important;
+}
+
+/* Ensure dropdown menu is visible and escapes parent containers */
+.dropdown-menu {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    padding: 10px 0;
+    min-width: 220px;
+    background: white;
+}
+
+.dropdown-menu-end {
+    right: 0;
+    left: auto;
+}
+
+/* Style dropdown items */
+.dropdown-item {
+    padding: 12px 20px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+}
+
+.dropdown-item:hover {
+    background: var(--accent);
+    color: var(--primary);
+}
+
+/* Logout styling - RED and BOLD */
+.dropdown-item.text-danger {
+    color: var(--danger) !important;
+    font-weight: 700;
+}
+
+.dropdown-item.text-danger:hover {
+    background: #fdecea;
+    color: #c0392b !important;
+}
+
+.dropdown-divider {
+    margin: 8px 15px;
+    border-color: #e9ecef;
+}
+
+/* Ensure dropdown button stays on top */
+.dropdown {
+    position: relative;
+    z-index: 1000;
+}
+
 /* Info Alert */
 .info-alert {
     background: linear-gradient(135deg, #e3f2fd, #bbdefb);
@@ -303,14 +363,14 @@ h5 { margin-top: 25px; font-weight: 600; color: var(--text-light); font-size: 1.
         <small class="text-muted">Class: {{ student_class }}</small>
     </div>
     <div class="dropdown">
-      <button class="more-options-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
+      <button class="more-options-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
         <i class="fas fa-user-circle"></i>
       </button>
       <ul class="dropdown-menu dropdown-menu-end">
         <li><a class="dropdown-item" href="{% url 'student_dashboard' %}"><i class="fas fa-home me-2"></i>Dashboard</a></li>
         <li><hr class="dropdown-divider"></li>
         <li>
-          <a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}">
+          <a class="dropdown-item text-danger" href="{% url 'logout' %}">
             <i class="fas fa-sign-out-alt me-2"></i>Logout
           </a>
         </li>

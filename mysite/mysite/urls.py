@@ -10,14 +10,14 @@ from django.urls import path,include
 from django.views.generic import TemplateView
 from allocation.views import (
     login_view, student_dashboard, mentor_dashboard, create_team, add_men, logout_view,
-    mentor_list, zero_ma, allocate_view, zero_men, one_men, three_men, two_men,
-    zero_review, zero_base, zero_ppt, zero_form, men_ppt, hod_dashboard, coordinator_dashboard,
+    mentor_list, zero_ma, allocate_view,save_allocations, zero_men, one_men, three_men, two_men,
+    zero_review, zero_base, zero_ppt, men_ppt, hod_dashboard, coordinator_dashboard,
     team_list, save_evaluation, clean_text, zero_stu, one_stu, two_stu, three_stu,
     approve_team, modify_team, zero_ma1, download_docx, download_pdf, one_ma, two_ma, three_ma, upload_student_csv,upload_mentor_csv,upload_hod_csv,
     save_evaluation_review1, save_evaluation_review2, save_evaluation_review3, serve_pdf, save_zeroth_remark, 
     acknowledge_announcement, serve_temp_html, student_result_view, mentor_result_view,
     # 🔥 NEW: Import highlight views
-    save_highlighted_html, get_highlighted_document,
+    save_highlighted_html, get_highlighted_document,download_csv_template,
     # ✅ NEW: First, Second, Third Review mentor PPT views (from chat)
     one_ppt, two_ppt, three_ppt,
     one_ma1,two_ma1,three_ma1,
@@ -48,6 +48,7 @@ urlpatterns = [
     path("student/create-team/", create_team, name="create_team"),
     path("mentor/add-mentor/", add_men, name="add_men"),
     path("allocation/", allocate_view, name="run_allocation"),
+    path('save-allocations/', save_allocations, name='save_allocations'),
     path("coordinator/mentor_list/", mentor_list, name="men_list"),
     path("coordinator/team_list/", team_list, name="team_list"),
     path('approve_team/<str:project_title>/', approve_team, name='approve_team'),
@@ -63,7 +64,6 @@ urlpatterns = [
     
     # Zeroth Review sub-pages
     path("mentor/zero-review/zero_review/", zero_review, name="zero_review"),
-    path("mentor/zero-review/zero_form/", zero_form, name="zero_form"),
     path("mentor/zero-review/zero_ppt/", zero_ppt, name="zero_ppt"),
     path("mentor/zero-review/zero_base/", zero_base, name="zero_base"),
     path("mentor/zero-review/men_ppt/", men_ppt, name="men_ppt"),
@@ -114,7 +114,7 @@ urlpatterns = [
     path('upload/student/', upload_student_csv, name='upload_student_csv'),
     path('upload/mentor/', upload_mentor_csv, name='upload_mentor_csv'),
     path('upload/hod/', upload_hod_csv, name='upload_hod_csv'),
-    
+    path('download-template/<str:template_type>/', download_csv_template, name='download_csv_template'),
 
     # ---------------- Announcements ----------------
     path("student/my-mentor/", student_result_view, name="student_mentor"),
