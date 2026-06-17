@@ -4090,114 +4090,231 @@ import json
 
 from allocation.models import ZerothReviewRemark, AllocationResult
 
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
+from django.conf import settings
 import json
+import os
+from datetime import datetime
+from docx import Document
+from docx.shared import Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from io import BytesIO
 
 @csrf_exempt
-
-def save_zeroth_remark(request):
-    """
-    Save remarks for a specific file type (abstract/pdf/ppt).
-    Each remark is tied to a specific file type and will only show 
-    when that file type is viewed.
-    """
-    print("🔥 save_zeroth_remark CALLED")
-
+def save_zeroth_evaluation(request):
     if request.method != "POST":
         return JsonResponse({"status": "fail", "message": "Invalid request"})
 
-    mentor_name = request.session.get("mentor_name")
-    print("Mentor:", mentor_name)
-
-    allocation = AllocationResult.objects.filter(
-        mentor_name=mentor_name
-    ).first()
-
-    if not allocation:
-        print("❌ No allocation found")
-        return JsonResponse({"status": "fail", "message": "No team allocated"})
-
-    team_name = allocation.team_name
-    print("Team:", team_name)
-
     try:
         data = json.loads(request.body)
-        remarks = data.get("remarks", [])
-        deleted = data.get("deleted", [])
+        team_name = data.get("team_name")
+        evaluations = data.get("evaluations", {})
         
-        # CRITICAL: Get file_type from request, default to 'abstract'
-        file_type = data.get("file_type", "abstract")
+        print(f"Received team_name: {team_name}")
+        print(f"Received evaluations: {evaluations}")
         
-        # Validate - only allow these three values
-        if file_type not in ["abstract", "pdf", "ppt"]:
-            print(f"⚠️ Invalid file_type '{file_type}', using 'abstract'")
-            file_type = "abstract"
-            
-        print("File type:", file_type)
-        print("Remarks count:", len(remarks))
-        print("Deleted count:", len(deleted))
+        doc = generate_zero_review_docx_from_template(team_name, evaluations)
+        
+        buffer = BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+        
+        safe_name = team_name.replace(" ", "_")
+        filename = f"{safe_name}_ZerothReview.docx"
+        
+        response = HttpResponse(
+            buffer.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
         
     except Exception as e:
-        print("❌ JSON error:", e)
-        return JsonResponse({"status": "fail", "message": "Invalid JSON"})
+        print(f"❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"status": "fail", "message": str(e)})
 
-    inserted = 0
-    updated = 0
-    deleted_count = 0
 
-    # Handle deletions - STRICT matching by file_type
-    if deleted:
-        for heading in deleted:
-            heading = heading.strip()
-            if not heading:
-                continue
-                
-            print(f"🗑️ Deleting: '{heading}' for {file_type}")
-            
-            deleted_count += ZerothReviewRemark.objects.filter(
-                team_name=team_name,
-                mentor_name=mentor_name,
-                heading=heading,
-                file_type=file_type  # MUST match
-            ).delete()[0]
+def get_cell_text(cell):
+    return cell.text.strip()
 
-    # Handle upserts - ALWAYS include file_type in lookup
-    for r in remarks:
-        heading = (r.get("heading") or "").strip()
-        remark = (r.get("remark") or "").strip()
-        color = r.get("color") or "#ffe066"
 
-        if not heading or not remark:
-            continue
+def set_cell_text(cell, text, bold=False, size=None):
+    cell.text = ""
+    p = cell.paragraphs[0]
+    run = p.add_run(str(text))
+    if bold:
+        run.bold = True
+    if size:
+        run.font.size = Pt(size)
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    return p
 
-        print(f"💾 Saving: '{heading}' for {file_type}")
 
-        obj, created = ZerothReviewRemark.objects.update_or_create(
-            team_name=team_name,
-            mentor_name=mentor_name,
-            heading=heading,
-            file_type=file_type,  # Key field - separates remarks by file type
-            defaults={
-                "remark": remark,
-                "color": color,
-            }
-        )
-
-        if created:
-            inserted += 1
-        else:
-            updated += 1
-
-    print(f"✅ Done for {file_type}: {inserted} new, {updated} updated, {deleted_count} deleted")
+def generate_zero_review_docx_from_template(team_name, evaluations):
+    template_path = os.path.join(settings.BASE_DIR, 'static', 'zeroth_review_mark.docx')
+    if not os.path.exists(template_path):
+        template_path = os.path.join(settings.BASE_DIR, 'allocation', 'static', 'zeroth_review_mark.docx')
+    if not os.path.exists(template_path):
+        template_path = os.path.join(settings.BASE_DIR, 'mentor', 'static', 'zeroth_review_mark.docx')
+    if not os.path.exists(template_path):
+        raise FileNotFoundError(f"Template not found at: {template_path}")
     
-    return JsonResponse({
-        "status": "success",
-        "file_type": file_type,
-        "inserted": inserted,
-        "updated": updated,
-        "deleted": deleted_count
-    })
+    doc = Document(template_path)
+    
+    # Extract members from evaluations and sort to maintain order
+    members = []
+    for key in evaluations.keys():
+        members.append(key.replace('team_member-', ''))
+    members.sort()
+    
+    print(f"Members: {members}")
+    print(f"Evaluations: {evaluations}")
+    
+    criteria_order = ["concept", "literature", "impact", "planning", "methodology", "presentation"]
+    criteria_labels = [
+        "Project Concept & Topic Selection(20)",
+        "Literature Review & Background Research (10)",
+        "Relevance & Impact of Project Outcome (20)",
+        "Project Planning & Timeline (20)",
+        "Methodology & Approach (20)",
+        "Presentation & Clarity (10)"
+    ]
+    
+    safe_name = team_name.replace(" ", "_")
+    title_text = f"{safe_name}_ZerothReview"
+    today = datetime.now().strftime("%d/%m/%Y")
+    
+    # === STEP 1: Fill paragraphs ===
+    title_inserted = False
+    for i, para in enumerate(doc.paragraphs):
+        text = para.text.strip()
+        
+        # Insert title after "ZEROTH REVIEW" paragraph
+        if not title_inserted and "ZEROTH REVIEW" in text.upper():
+            new_p = doc.add_paragraph(title_text)
+            new_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            new_p.runs[0].bold = True
+            new_p.runs[0].font.size = Pt(14)
+            para._element.addnext(new_p._element)
+            title_inserted = True
+        
+        # Fill Date
+        if text.startswith("Date:"):
+            para.clear()
+            para.add_run("Date: ").bold = True
+            para.add_run(today)
+        
+        # Fill Project Title
+        if text.startswith("Project Title:"):
+            para.clear()
+            para.add_run("Project Title: ").bold = True
+            para.add_run(team_name)
+    
+    # === STEP 2: Fill Table 0 - TEAM MEMBERS ===
+    table0 = doc.tables[0]
+    for m_idx, member in enumerate(members):
+        row_idx = m_idx + 2  # Skip merged header row 0 and header row 1
+        if row_idx < len(table0.rows):
+            row = table0.rows[row_idx]
+            set_cell_text(row.cells[0], str(m_idx + 1))  # S.NO.
+            if len(row.cells) > 3:
+                set_cell_text(row.cells[3], member)  # STUDENT NAME
+    
+    # === STEP 3: Fill Table 1 - MARKS TABLE ===
+    table1 = doc.tables[1]
+    
+    # Find data start row
+    data_start_row = -1
+    for r_idx, row in enumerate(table1.rows):
+        first_text = get_cell_text(row.cells[0]).strip()
+        if "Project Concept" in first_text:
+            data_start_row = r_idx
+            break
+    
+    if data_start_row == -1:
+        data_start_row = 5
+    
+    print(f"Data starts at row {data_start_row}")
+    
+    criteria_idx = 0
+    for r_idx in range(data_start_row, len(table1.rows)):
+        row = table1.rows[r_idx]
+        first_cell_text = get_cell_text(row.cells[0]).strip()
+        
+        print(f"Row {r_idx}: '{first_cell_text}' | cells: {len(row.cells)}")
+        
+        if not first_cell_text:
+            continue
+        
+        # TOTAL row
+        if "TOTAL" in first_cell_text.upper():
+            print(f"Found TOTAL row")
+            for m_idx, member in enumerate(members):
+                member_key = f"team_member-{member}"
+                marks_list = evaluations.get(member_key, [])
+                total = sum(int(m) if str(m).isdigit() else 0 for m in marks_list)
+                print(f"  Member {member} total: {total}")
+                
+                # Try columns 4,5,6,7 first
+                col_idx = 4 + m_idx
+                if col_idx < len(row.cells):
+                    set_cell_text(row.cells[col_idx], total, bold=True)
+                else:
+                    # Fallback: find first empty cell after column 1
+                    for c in range(2, len(row.cells)):
+                        if get_cell_text(row.cells[c]) == "":
+                            set_cell_text(row.cells[c], total, bold=True)
+                            break
+            break
+        
+        # Match criteria
+        matched_idx = -1
+        for c_idx, label in enumerate(criteria_labels):
+            if label.lower() in first_cell_text.lower():
+                matched_idx = c_idx
+                break
+        
+        if matched_idx == -1:
+            partial_map = {
+                "concept": ["concept", "topic selection", "aim"],
+                "literature": ["literature", "background", "knowledge about existing"],
+                "impact": ["relevance", "impact", "problem identification"],
+                "planning": ["planning", "timeline", "technical design"],
+                "methodology": ["methodology", "approach", "organization of the presentation"],
+                "presentation": ["presentation", "clarity", "estimate of the proposed"]
+            }
+            for c_idx, criteria_key in enumerate(criteria_order):
+                for keyword in partial_map.get(criteria_key, []):
+                    if keyword in first_cell_text.lower():
+                        matched_idx = c_idx
+                        break
+                if matched_idx != -1:
+                    break
+        
+        if matched_idx != -1:
+            print(f"  Matched criteria idx {matched_idx}")
+            
+            for m_idx, member in enumerate(members):
+                member_key = f"team_member-{member}"
+                marks_list = evaluations.get(member_key, [])
+                mark = marks_list[matched_idx] if matched_idx < len(marks_list) else "0"
+                print(f"    Member {member} ({member_key}): mark={mark}")
+                
+                col_idx = 4 + m_idx
+                if col_idx < len(row.cells):
+                    set_cell_text(row.cells[col_idx], mark)
+            
+            # Fill max marks
+            max_marks = [20, 10, 20, 20, 20, 10][matched_idx]
+            if len(row.cells) > 2:
+                set_cell_text(row.cells[2], max_marks)
+            
+            criteria_idx += 1
+    
+    return doc
 
 def save_first_remark(request):
     """
