@@ -4,10 +4,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Guide Hub - Review Paper</title>
+<title>Guide Hub - Review Paper (Abstract)</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+<!-- PDF.js from CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+</script>
 
 <style>
 :root {
@@ -17,7 +23,7 @@
   --background: #f8f9fc;
 }
 
-body{
+body {
   font-family: 'Montserrat', sans-serif;
   background: var(--background);
   margin: 0;
@@ -27,7 +33,7 @@ body{
   align-items: center;
 }
 
-.dashboard-wrapper{
+.dashboard-wrapper {
   width: 95%;
   height: 90vh;
   display: flex;
@@ -37,7 +43,7 @@ body{
   box-shadow: 0 10px 40px rgba(0,0,0,0.2);
 }
 
-.sidebar{
+.sidebar {
   width: 260px;
   padding: 25px;
   background: linear-gradient(180deg, var(--primary), var(--secondary));
@@ -51,12 +57,9 @@ body{
   padding-bottom: 15px;
 }
 
-.sidebar-header h5 {
-  margin: 0;
-  font-weight: 600;
-}
+.sidebar-header h5 { margin: 0; font-weight: 600; }
 
-.sidebar a{
+.sidebar a {
   display: block;
   padding: 12px 18px;
   margin-bottom: 10px;
@@ -66,20 +69,20 @@ body{
   transition: 0.3s;
 }
 
-.sidebar a.active, .sidebar a:hover{
+.sidebar a.active, .sidebar a:hover {
   background: var(--accent);
   color: #2e2e2e;
   font-weight: 500;
 }
 
-.main-content{
+.main-content {
   flex: 1;
   padding: 25px;
   background: var(--background);
   overflow-y: auto;
 }
 
-.main-card{
+.main-card {
   background: linear-gradient(135deg, var(--primary), var(--secondary));
   color: #fff;
   padding: 20px;
@@ -88,12 +91,7 @@ body{
   box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
-.main-card h5 {
-  margin-bottom: 15px;
-  font-weight: 600;
-}
-
-.glass-btn{
+.glass-btn {
   background: var(--accent);
   border: none;
   padding: 10px 20px;
@@ -109,7 +107,13 @@ body{
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
-.split-view{
+.glass-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.split-view {
   display: none;
   grid-template-columns: 70% 30%;
   gap: 20px;
@@ -117,50 +121,14 @@ body{
   animation: fadeIn 0.3s ease;
 }
 
-.split-view.active {
-  display: grid;
-}
+.split-view.active { display: grid; }
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.color-btn{
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: 3px solid transparent;
-  margin-right: 8px;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.color-btn:hover {
-  transform: scale(1.1);
-}
-
-.color-btn.active {
-  border-color: #333;
-  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #333;
-}
-
-.pdf-toolbar{
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 1000;
-  display: flex;
-  gap: 5px;
-}
-
-.pdf-toolbar button {
-  border-radius: 8px;
-  padding: 6px 12px;
-  font-size: 14px;
-}
-
-.pdf-container {
+.pdf-viewer-container {
   background: #fff;
   border-radius: 12px;
   padding: 15px;
@@ -170,6 +138,107 @@ body{
   box-shadow: 0 4px 20px rgba(0,0,0,0.1);
 }
 
+#pdfViewer {
+  position: relative;
+  margin: 0 auto;
+}
+
+.pdf-page {
+  position: relative;
+  margin: 0 auto 20px auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.pdf-page canvas {
+  display: block;
+  margin: 0 auto;
+}
+
+/* Text Layer */
+.text-layer {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  overflow: hidden;
+  z-index: 10;
+  cursor: text;
+}
+
+.text-layer span {
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  color: transparent;
+  transform-origin: 0% 0%;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.text-layer span::selection {
+  background: rgba(106, 13, 173, 0.4) !important;
+}
+
+/* Annotation Layer */
+.annotation-layer {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  overflow: hidden;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.annotation-layer.eraser-active {
+  z-index: 15;
+  pointer-events: auto;
+}
+
+.annotation-layer .highlight-rect {
+  position: absolute;
+  pointer-events: auto;
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity 0.2s;
+  border-radius: 2px;
+}
+
+.annotation-layer .highlight-rect:hover {
+  opacity: 0.7;
+}
+
+.annotation-layer .highlight-rect.has-comment {
+  border-bottom: 2px dashed #333;
+}
+
+.eraser-active .highlight-rect {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.eraser-active .highlight-rect:hover {
+  opacity: 0.8;
+  background-color: #ff6b6b !important;
+}
+
+/* Toolbar */
+.pdf-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  gap: 5px;
+  background: rgba(255,255,255,0.95);
+  padding: 8px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.pdf-toolbar button {
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
+/* Remark Panel */
 .remark-panel {
   background: #fff;
   border-radius: 12px;
@@ -187,7 +256,24 @@ body{
   border-bottom: 2px solid var(--accent);
 }
 
-.tag-item{
+.color-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  margin-right: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.color-btn:hover { transform: scale(1.1); }
+
+.color-btn.active {
+  border-color: #333;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #333;
+}
+
+.tag-item {
   background: linear-gradient(135deg, var(--accent), #fff);
   padding: 12px;
   border-radius: 10px;
@@ -209,49 +295,16 @@ body{
   margin-bottom: 5px;
 }
 
+.tag-item span {
+  display: block;
+  color: #333;
+  margin-bottom: 5px;
+}
+
 .tag-item small {
   color: #666;
   display: block;
   margin-top: 5px;
-}
-
-.highlighted {
-  cursor: pointer;
-  border-radius: 3px;
-  padding: 2px 4px;
-  transition: 0.2s;
-}
-
-.highlighted:hover {
-  filter: brightness(0.9);
-}
-
-#reviewWrapper {
-  transform-origin: top left;
-  transition: transform 0.2s ease;
-}
-
-.heading-badge {
-  background: #e9ecef;
-  color: #495057;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  margin: 3px;
-  transition: 0.2s;
-}
-
-.heading-badge:hover {
-  background: var(--primary);
-  color: #fff;
-}
-
-.form-label {
-  font-weight: 500;
-  color: #555;
-  font-size: 13px;
-  margin-bottom: 6px;
 }
 
 .empty-state {
@@ -280,7 +333,6 @@ body{
   to { transform: rotate(360deg); }
 }
 
-/* Extra styles for zero_review specific */
 .status-badge {
   display: inline-block;
   padding: 4px 12px;
@@ -301,6 +353,97 @@ body{
 .highlight-stats span {
   font-weight: 600;
   color: var(--primary);
+}
+
+.form-label {
+  font-weight: 500;
+  color: #555;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.page-nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-top: 10px;
+}
+
+.page-nav button {
+  padding: 5px 15px;
+  border-radius: 6px;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+}
+
+.page-nav span {
+  font-weight: 600;
+  color: #333;
+}
+
+.toast-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 600;
+  z-index: 100000;
+  transform: translateX(400px);
+  transition: transform 0.3s ease;
+}
+
+.toast-notification.show { transform: translateX(0); }
+.toast-notification.success { background: #69db7c; }
+.toast-notification.error { background: #ff6b6b; }
+
+.pending-highlight {
+  opacity: 0.5;
+  border: 2px dashed var(--primary);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+}
+
+.send-btn {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+  width: 100%;
+  margin-top: 15px;
+}
+
+.send-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.send-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.shortcut-hint {
+  text-align: center;
+  color: #999;
+  font-size: 11px;
+  margin-top: 10px;
 }
 </style>
 </head>
@@ -333,11 +476,11 @@ body{
         Team: {{ team_name|default:"Not Assigned" }} | 
         Mentor: {{ mentor_name|default:"Unknown" }} | 
         <span class="status-badge">
-          <i class="fas fa-database me-1"></i>{{ saved_remarks|length }} Saved
+          <i class="fas fa-database me-1"></i><span id="savedCount">0</span> Saved
         </span>
       </small>
     </div>
-    {% if html_content %}
+    {% if pdf_url %}
     <button class="glass-btn" id="openReviewBtn">
       <i class="fa fa-eye me-2"></i>View Abstract
     </button>
@@ -346,7 +489,7 @@ body{
 </div>
 
 <!-- EMPTY STATE -->
-{% if not html_content %}
+{% if not pdf_url %}
 <div class="empty-state bg-white rounded-3 p-5 shadow-sm">
   <i class="fas fa-file-excel"></i>
   <h5>No Abstract Available</h5>
@@ -358,7 +501,7 @@ body{
 <div id="splitView" class="split-view">
 
 <!-- PDF PANEL -->
-<div class="pdf-container">
+<div class="pdf-viewer-container">
   <div class="pdf-toolbar">
     <button class="btn btn-light btn-sm" onclick="zoomIn()" title="Zoom In (Ctrl +)">
       <i class="fas fa-plus"></i>
@@ -366,10 +509,13 @@ body{
     <button class="btn btn-light btn-sm" onclick="zoomOut()" title="Zoom Out (Ctrl -)">
       <i class="fas fa-minus"></i>
     </button>
+    <button class="btn btn-light btn-sm" onclick="fitWidth()" title="Fit Width">
+      <i class="fas fa-arrows-alt-h"></i>
+    </button>
     <button class="btn btn-warning btn-sm" onclick="toggleEraser()" id="eraserBtn" title="Toggle Eraser">
       <i class="fas fa-eraser"></i>
     </button>
-    <button class="btn btn-info btn-sm" onclick="clearAllHighlights()" title="Clear All Highlights">
+    <button class="btn btn-danger btn-sm" onclick="clearAllHighlights()" title="Clear All">
       <i class="fas fa-trash-alt"></i>
     </button>
     <button class="btn btn-danger btn-sm" onclick="closeViewer()" title="Close (Esc)">
@@ -377,10 +523,12 @@ body{
     </button>
   </div>
 
-  <div id="reviewWrapper">
-    <div id="reviewContent">
-      {{ html_content|safe }}
-    </div>
+  <div id="pdfViewer"></div>
+  
+  <div class="page-nav">
+    <button onclick="prevPage()"><i class="fas fa-chevron-left"></i></button>
+    <span>Page <span id="currentPage">1</span> of <span id="totalPages">-</span></span>
+    <button onclick="nextPage()"><i class="fas fa-chevron-right"></i></button>
   </div>
 </div>
 
@@ -388,7 +536,6 @@ body{
 <div class="remark-panel">
   <h6><i class="fas fa-comment-dots me-2"></i>Annotation Panel</h6>
 
-  <!-- Stats -->
   <div class="highlight-stats">
     <i class="fas fa-chart-bar me-1"></i>
     <span id="highlightCount">0</span> highlights | 
@@ -413,67 +560,39 @@ body{
     </div>
   </div>
 
-  <button class="glass-btn w-100 mb-3" onclick="applyHighlight()">
+  <button class="glass-btn w-100 mb-3" onclick="applyHighlight()" id="applyHighlightBtn">
     <i class="fa fa-highlighter me-2"></i>Apply Highlight
   </button>
 
-  <!-- Detected Heading -->
-  <div class="mb-3">
-    <label class="form-label"><i class="fas fa-heading me-1"></i>Detected Heading</label>
-    <input id="detectedHeading" class="form-control form-control-sm" placeholder="Click a heading below or type..." readonly>
-  </div>
-
-  <!-- Quick Heading Tags -->
-  <div class="mb-3">
-    <label class="form-label">Quick Select Headings</label>
-    <div class="d-flex flex-wrap" id="headingContainer">
-      {% for h in sub_headings|slice:":15" %}
-      <button type="button" class="heading-badge" onclick="setHeading('{{ h|escapejs }}')" title="{{ h|escapejs }}">
-        {{ h|truncatechars:20 }}
-      </button>
-      {% empty %}
-      <small class="text-muted">No headings detected in document</small>
-      {% endfor %}
-    </div>
-  </div>
-
-  <!-- Main Heading Display -->
-  {% if main_heading %}
-  <div class="mb-3 p-2 bg-light rounded">
-    <small class="text-muted d-block mb-1">Main Title:</small>
-    <strong class="text-primary">{{ main_heading|truncatechars:50 }}</strong>
-  </div>
-  {% endif %}
-
-  <!-- Remark Text -->
-  <div class="mb-3">
+  <!-- Comment Section (shows after highlight) -->
+  <div class="mb-3" id="commentSection" style="display:none;">
     <label class="form-label"><i class="fas fa-edit me-1"></i>Remark</label>
-    <textarea id="remarkText" class="form-control form-control-sm" rows="3" placeholder="Enter your remark here..."></textarea>
+    <textarea id="remarkText" class="form-control form-control-sm" rows="3" placeholder="Enter your remark (e.g., improve sentence, good line)..."></textarea>
     <small class="text-muted float-end mt-1"><span id="charCount">0</span>/500</small>
+    
+    <button class="glass-btn w-100 mt-2" onclick="saveRemark()" id="saveRemarkBtn">
+      <i class="fas fa-save me-2"></i>Save Remark
+    </button>
   </div>
-
-  <button class="glass-btn w-100 mb-2" onclick="saveTag()">
-    <i class="fas fa-save me-2"></i>Save Remark
-  </button>
 
   <hr class="my-3">
 
   <!-- Saved Remarks -->
   <h6><i class="fas fa-list me-2"></i>Saved Remarks</h6>
-  <div id="savedTags" class="mt-2" style="max-height: 200px; overflow-y: auto;">
-    <small class="text-muted">No remarks added yet</small>
+  <div id="savedTags" class="mt-2" style="max-height: 250px; overflow-y: auto;">
+    <small class="text-muted">No remarks added yet.</small>
   </div>
 
   <hr class="my-3">
 
-  <!-- Send Button -->
-  <button class="glass-btn w-100" onclick="sendRemarksToStudent()" id="sendBtn">
+  <!-- Send to Student -->
+  <button class="send-btn" onclick="sendRemarksToStudent()" id="sendBtn">
     <i class="fa fa-paper-plane me-2"></i>Send to Student
   </button>
 
-  <small class="text-muted d-block mt-2 text-center">
+  <small class="shortcut-hint">
     <i class="fas fa-keyboard me-1"></i>
-    Ctrl +/- zoom • Ctrl+S save • Esc close
+    Ctrl+S save remark • Ctrl+E eraser • Esc close
   </small>
 
 </div>
@@ -482,1334 +601,798 @@ body{
 </div>
 </div>
 
+<div id="toast" class="toast-notification"></div>
+
 <script>
-  // 🔥 Inject DB remarks for JS access
-const DB_SAVED_REMARKS = [
-  {% for r in saved_remarks %}
-  {
-    heading: "{{ r.heading|escapejs }}",
-    remark: "{{ r.remark|escapejs }}",
-    color: "{{ r.color|default:'#ffe066'|escapejs }}",
-    created_at: "{{ r.created_at|date:'Y-m-d H:i'|default:''|escapejs }}",
-    file_type: "{{ r.file_type|default:'abstract'|escapejs }}",  // 🔥 ADDED: File type from DB
-    document_section: "{{ r.document_section|default:'abstract'|escapejs }}"  // 🔥 ADDED: Document section
-  }{% if not forloop.last %},{% endif %}
-  {% endfor %}
-];
+// ─────────────────────────────────────────────
+// PDF.js + ZerothReviewRemark System
+// ─────────────────────────────────────────────
 
+const PDF_URL = "{{ pdf_url|escapejs }}";
+const TEAM_NAME = "{{ team_name|escapejs }}";
+const MENTOR_NAME = "{{ mentor_name|escapejs }}";
+
+let pdfDoc = null;
+let currentPage = 1;
+let totalPages = 0;
+let scale = 1.5;
+let tags = [];
+let deletedHeadings = [];
+let selectedColor = "#ffe066";
+let eraserMode = false;
+let sending = false;
+let isProcessing = false;
+let renderedPages = new Map();
+let pendingHighlight = null;
+
+const els = {
+  viewer: document.getElementById("pdfViewer"),
+  currentPage: document.getElementById("currentPage"),
+  totalPages: document.getElementById("totalPages"),
+  selectedText: document.getElementById("selectedText"),
+  remarkText: document.getElementById("remarkText"),
+  savedTags: document.getElementById("savedTags"),
+  highlightCount: document.getElementById("highlightCount"),
+  remarkCount: document.getElementById("remarkCount"),
+  savedCount: document.getElementById("savedCount"),
+  splitView: document.getElementById("splitView"),
+  openBtn: document.getElementById("openReviewBtn"),
+  charCount: document.getElementById("charCount"),
+  commentSection: document.getElementById("commentSection"),
+  sendBtn: document.getElementById("sendBtn"),
+  toast: document.getElementById("toast")
+};
+
+// ─── Initialize ───
 document.addEventListener("DOMContentLoaded", () => {
+  if (els.openBtn) {
+    els.openBtn.addEventListener("click", openViewer);
+  }
   
-  let selectedRange = null;
-  let selectedColor = "#ffe066";
-  let tags = [];
-  let deletedHeadings = [];
-  let zoom = 1;
-  let eraser = false;
-  let sending = false;
-  let highlightCounter = 0;
-  let isHighlighting = false;
-
-  const STORAGE_KEY = "zero_review_highlights_v1";
-  const DELETED_HIGHLIGHTS_KEY = "zero_review_deleted_highlights_v1";
-  
-  // 🔥 Document info for Cloudinary save - ENHANCED for abstract
-  const DOC_INFO = {
-    type: "abstract",
-    file_type: "abstract",  // 🔥 ADDED: Explicit file type
-    filename: "{{ team_name|escapejs }}_Abstract",
-    teamName: "{{ team_name|escapejs }}",
-    documentSection: "abstract",  // 🔥 ADDED: Document section identifier
-    pageType: "review",  // 🔥 ADDED: Page context
-    metadata: {  // 🔥 ADDED: Additional metadata object
-      source: "zeroth_review",
-      documentFormat: "html",
-      reviewType: "abstract_assessment",
-      timestamp: new Date().toISOString()
-    }
-  };
-  
-  const elements = {
-    splitView: document.getElementById("splitView"),
-    openBtn: document.getElementById("openReviewBtn"),
-    reviewContent: document.getElementById("reviewContent"),
-    reviewWrapper: document.getElementById("reviewWrapper"),
-    selectedText: document.getElementById("selectedText"),
-    detectedHeading: document.getElementById("detectedHeading"),
-    remarkText: document.getElementById("remarkText"),
-    savedTags: document.getElementById("savedTags"),
-    remarkCount: document.getElementById("remarkCount"),
-    highlightCount: document.getElementById("highlightCount"),
-    eraserBtn: document.getElementById("eraserBtn"),
-    sendBtn: document.getElementById("sendBtn"),
-    charCount: document.getElementById("charCount"),
-    headingContainer: document.getElementById("headingContainer")
-  };
-
-  // 🔥 Initialize on page load
-  if (elements.reviewContent) {
-    console.log("Initializing zero review system for ABSTRACT document...");
-    setTimeout(() => {
-      initializeSystem();
-    }, 800);
-  }
-
-  function initializeSystem() {
-    // 🔥 FIXED: Load ONLY abstract remarks from DB with file_type validation
-    tags = DB_SAVED_REMARKS
-      .filter(r => r.file_type === "abstract" || r.file_type === "all" || !r.file_type)  // 🔥 Only abstract
-      .map(r => ({
-        heading: r.heading,
-        remark: r.remark,
-        color: r.color,
-        timestamp: r.created_at || new Date().toISOString(),
-        fromDB: true,
-        fileType: r.file_type || "abstract",  // 🔥 ADDED: Preserve file type
-        documentSection: r.document_section || "abstract"  // 🔥 ADDED: Preserve section
-      }));
-    
-    console.log(`Loaded ${tags.length} abstract remarks from DB (filtered from ${DB_SAVED_REMARKS.length} total)`);
-    renderTags();
-    
-    // Restore highlights from localStorage
-    restoreHighlightsFromStorage();
-    
-    // Filter out deleted highlights before applying DB highlights
-    const deletedHighlights = getDeletedHighlights();
-    const filteredDBRemarks = DB_SAVED_REMARKS.filter(r => 
-      !deletedHighlights.some(dh => dh.heading === r.heading && dh.remark === r.remark) &&
-      (r.file_type === "abstract" || r.file_type === "all" || !r.file_type)  // 🔥 Only abstract
-    );
-    
-    // Apply highlights from filtered DB remarks
-    applyDBHighlights(filteredDBRemarks);
-    
-    // Normalize any existing highlights after PDF conversion
-    normalizeHighlights();
-    
-    updateStats();
-  }
-
-  // Get deleted highlights from localStorage
-  function getDeletedHighlights() {
-    try {
-      const stored = localStorage.getItem(DELETED_HIGHLIGHTS_KEY);
-      const allDeleted = stored ? JSON.parse(stored) : [];
-      // 🔥 ADDED: Filter for abstract-specific deletions
-      return allDeleted.filter(d => 
-        !d.fileType || d.fileType === "abstract" || d.fileType === "all"
-      );
-    } catch (e) {
-      console.error("Failed to get deleted highlights:", e);
-      return [];
-    }
-  }
-
-  // Save deleted highlight to localStorage
-  function saveDeletedHighlight(heading, remark, text) {
-    try {
-      const deleted = getDeletedHighlights();
-      deleted.push({
-        heading: heading,
-        remark: remark,
-        text: text,
-        timestamp: new Date().toISOString(),
-        teamName: "{{ team_name|escapejs }}",
-        fileType: "abstract",  // 🔥 ADDED: Mark as abstract deletion
-        documentSection: "abstract"  // 🔥 ADDED: Document section
-      });
-      localStorage.setItem(DELETED_HIGHLIGHTS_KEY, JSON.stringify(deleted));
-      console.log("✅ Saved deleted abstract highlight:", text.substring(0, 50));
-    } catch (e) {
-      console.error("Failed to save deleted highlight:", e);
-    }
-  }
-
-  // Restore highlights from localStorage
-  function restoreHighlightsFromStorage() {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (!stored) return;
-      
-      const data = JSON.parse(stored);
-      const currentTeam = "{{ team_name|escapejs }}";
-      
-      // 🔥 ADDED: Validate file_type matches abstract
-      if (data.fileType && data.fileType !== "abstract") {
-        console.log("Skipping localStorage restore - different file type:", data.fileType);
-        return;
-      }
-      
-      if (data.teamName === currentTeam && data.htmlContent) {
-        const age = Date.now() - new Date(data.timestamp).getTime();
-        const hoursOld = age / (1000 * 60 * 60);
-        
-        if (hoursOld < 24) {
-          elements.reviewContent.innerHTML = data.htmlContent;
-          console.log("✅ Restored abstract highlights from localStorage");
-        }
-      }
-    } catch (e) {
-      console.error("Failed to restore highlights:", e);
-    }
-  }
-
-  // Save highlights to localStorage
-  function saveHighlightsToStorage() {
-    try {
-      const data = {
-        teamName: "{{ team_name|escapejs }}",
-        fileType: "abstract",  // 🔥 ADDED: Store file type
-        documentSection: "abstract",  // 🔥 ADDED: Store section
-        htmlContent: elements.reviewContent.innerHTML,
-        timestamp: new Date().toISOString(),
-        metadata: {  // 🔥 ADDED: Storage metadata
-          version: "1.0",
-          source: "zeroth_review_abstract"
-        }
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      console.log("✅ Saved abstract highlights to localStorage");
-    } catch (e) {
-      console.error("Failed to save to localStorage:", e);
-    }
-  }
-
-  if (elements.openBtn) {
-    elements.openBtn.addEventListener("click", openViewer);
-  }
-
-  if (elements.remarkText) {
-    elements.remarkText.addEventListener("input", () => {
-      const len = elements.remarkText.value.length;
-      elements.charCount.textContent = len;
-      if (len > 500) {
-        elements.charCount.classList.add("text-danger");
-        elements.remarkText.value = elements.remarkText.value.substring(0, 500);
-      } else {
-        elements.charCount.classList.remove("text-danger");
-      }
-    });
-  }
-
-  function openViewer() {
-    elements.splitView.classList.add("active");
-    updateStats();
-    setTimeout(() => {
-      // Re-filter DB remarks on open to catch any new deletions
-      const deletedHighlights = getDeletedHighlights();
-      const filteredDBRemarks = DB_SAVED_REMARKS.filter(r => 
-        !deletedHighlights.some(dh => dh.heading === r.heading && dh.remark === r.remark) &&
-        (r.file_type === "abstract" || r.file_type === "all" || !r.file_type)  // 🔥 Only abstract
-      );
-      applyDBHighlights(filteredDBRemarks);
-      normalizeHighlights();
-      updateStats();
-    }, 300);
-  }
-
-  window.closeViewer = () => {
-    if (tags.length > 0) {
-      if (!confirm("You have unsaved remarks. Close anyway?")) return;
-    }
-    elements.splitView.classList.remove("active");
-  };
-
+  // Color picker
   document.querySelectorAll(".color-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".color-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       selectedColor = btn.dataset.color;
+      console.log("Color selected:", selectedColor);
     });
   });
-
-  elements.reviewContent.addEventListener("mouseup", handleTextSelection);
-  elements.reviewContent.addEventListener("keyup", handleTextSelection);
   
-  function handleTextSelection(e) {
-    if (eraser || isHighlighting) return;
-    
-    setTimeout(() => {
-      const sel = window.getSelection();
-      
-      if (!sel || sel.isCollapsed) {
-        selectedRange = null;
-        return;
+  // Char counter
+  if (els.remarkText) {
+    els.remarkText.addEventListener("input", () => {
+      const len = els.remarkText.value.length;
+      els.charCount.textContent = len;
+      if (len > 500) {
+        els.remarkText.value = els.remarkText.value.substring(0, 500);
+        els.charCount.textContent = 500;
       }
-      
-      const selectedText = sel.toString().trim();
-      if (selectedText.length < 2) {
-        selectedRange = null;
-        return;
-      }
-      
-      try {
-        const range = sel.getRangeAt(0);
-        
-        if (!elements.reviewContent.contains(range.commonAncestorContainer)) {
-          selectedRange = null;
-          return;
-        }
-        
-        selectedRange = range.cloneRange();
-        elements.selectedText.value = selectedText;
-        
-        detectHeading(sel);
-        updateStats();
-        
-        showSelectionFeedback(e.clientX || window.innerWidth/2, e.clientY || window.innerHeight/2);
-        
-      } catch (err) {
-        console.error("Selection error:", err);
-        selectedRange = null;
-      }
-    }, 50);
+    });
   }
+  
+  // 🔥 Load DB remarks with parsed_coordinates from Django view
+  const dbRemarks = [
+    {% for r in saved_remarks %}
+    {
+      heading: "{{ r.heading|escapejs }}",
+      remark: "{{ r.remark|escapejs }}",
+      color: "{{ r.color|default:'#ffe066'|escapejs }}",
+      coordinates: {{ r.parsed_coordinates|default:"{}"|safe }},
+      created_at: "{{ r.created_at|date:'Y-m-d H:i'|default:''|escapejs }}",
+      fromDB: true
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ];
+  
+  tags = dbRemarks;
+  console.log("Loaded DB remarks:", tags.length);
+  console.log("First remark coords:", tags[0] ? tags[0].coordinates : "none");
+  updateStats();
+  renderTags();
+});
 
-  function showSelectionFeedback(x, y) {
-    const existing = document.querySelector('.selection-feedback');
-    if (existing) existing.remove();
+function showToast(msg, type = "success") {
+  els.toast.textContent = msg;
+  els.toast.className = `toast-notification ${type} show`;
+  setTimeout(() => els.toast.classList.remove("show"), 3000);
+}
+
+function openViewer() {
+  els.splitView.classList.add("active");
+  loadPDF();
+}
+
+function closeViewer() {
+  const unsaved = tags.some(t => !t.fromDB) || pendingHighlight;
+  if (unsaved && !sending) {
+    if (!confirm("You have unsaved remarks. Close anyway?")) return;
+  }
+  els.splitView.classList.remove("active");
+}
+
+// ─── PDF Loading ───
+async function loadPDF() {
+  try {
+    const loadingTask = pdfjsLib.getDocument(PDF_URL);
+    pdfDoc = await loadingTask.promise;
+    totalPages = pdfDoc.numPages;
+    els.totalPages.textContent = totalPages;
     
-    const feedback = document.createElement('div');
-    feedback.className = 'selection-feedback';
-    feedback.textContent = `✓ Selected ${elements.selectedText.value.length} chars`;
-    feedback.style.cssText = `
-      position: fixed;
-      background: #69db7c;
-      color: white;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 600;
-      pointer-events: none;
-      z-index: 10000;
-      left: ${Math.min(x, window.innerWidth - 150)}px;
-      top: ${Math.max(y - 50, 10)}px;
-      opacity: 0;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    `;
-    document.body.appendChild(feedback);
+    for (let i = 1; i <= totalPages; i++) {
+      await renderPage(i);
+    }
     
-    requestAnimationFrame(() => {
-      feedback.style.opacity = '1';
-      feedback.style.transform = 'translateY(-5px)';
+    // 🔥 Draw existing highlights from DB
+    console.log("Drawing", tags.length, "highlights from DB");
+    tags.forEach((tag, idx) => {
+      console.log(`Tag ${idx}: coords=`, tag.coordinates);
+      if (tag.coordinates && Object.keys(tag.coordinates).length > 0) {
+        drawHighlightFromTag(tag);
+      } else {
+        console.log(`Tag ${idx} has no coordinates, skipping draw`);
+      }
     });
     
-    setTimeout(() => {
-      feedback.style.opacity = '0';
-      setTimeout(() => feedback.remove(), 300);
-    }, 1500);
+    setupTextSelection();
+    
+  } catch (error) {
+    console.error("PDF load error:", error);
+    showToast("Failed to load PDF", "error");
   }
+}
 
-  function detectHeading(selection) {
-    const node = selection.anchorNode;
-    if (!node) return;
-    
-    let element = node.nodeType === 3 ? node.parentElement : node;
-    let detected = false;
-    
-    while (element && element !== elements.reviewContent) {
-      const text = element.textContent.trim();
-      const tagName = element.tagName.toLowerCase();
-      
-      if (tagName.match(/^h[1-6]$/) || 
-          (text.length > 0 && text.length < 100 && 
-           (element.style.fontWeight === 'bold' || 
-            tagName === 'b' || 
-            tagName === 'strong' ||
-            element.classList.contains('font-bold')))) {
-        elements.detectedHeading.value = text.substring(0, 100);
-        detected = true;
-        break;
-      }
-      
-      if (text.length > 3 && text.length < 80 && 
-          text === text.toUpperCase() && 
-          text.split(' ').length <= 6) {
-        elements.detectedHeading.value = text;
-        detected = true;
-        break;
-      }
-      
-      element = element.parentElement;
-    }
-    
-    if (!detected) {
-      const words = elements.selectedText.value.split(/\s+/).slice(0, 5).join(' ');
-      elements.detectedHeading.value = words.length > 50 ? words.substring(0, 50) + "..." : words;
-    }
-  }
-
-  window.setHeading = (heading) => {
-    elements.detectedHeading.value = heading;
-    const btn = event.target;
-    btn.style.background = "var(--primary)";
-    btn.style.color = "#fff";
-    setTimeout(() => {
-      btn.style.background = "";
-      btn.style.color = "";
-    }, 300);
-  };
-
-  window.applyHighlight = () => {
-    if (isHighlighting) return;
-    
-    const fallbackText = elements.selectedText.value.trim();
-    
-    if (!selectedRange && fallbackText.length < 2) {
-      alert("Please select text from the document first (click and drag to select)");
-      return;
-    }
-    
-    if (fallbackText.length < 2) {
-      alert("Please select at least 2 characters");
-      return;
-    }
-    
-    isHighlighting = true;
-    
-    try {
-      let rangeToUse = selectedRange;
-      
-      if (!rangeToUse || !isRangeValid(rangeToUse)) {
-        if (fallbackText.length >= 2) {
-          rangeToUse = findTextRange(fallbackText);
-        }
-        
-        if (!rangeToUse) {
-          alert("Selection lost. Please re-select the text.");
-          isHighlighting = false;
-          return;
-        }
-      }
-      
-      const textNodes = getTextNodesInRange(rangeToUse);
-      
-      if (textNodes.length === 0) {
-        alert("Cannot highlight this selection. Try selecting simpler text.");
-        isHighlighting = false;
-        return;
-      }
-      
-      let appliedCount = 0;
-      textNodes.forEach(nodeInfo => {
-        try {
-          const span = createHighlightSpan();
-          const range = document.createRange();
-          range.setStart(nodeInfo.node, nodeInfo.start);
-          range.setEnd(nodeInfo.node, nodeInfo.end);
-          
-          if (highlightTextNode(range, span)) {
-            appliedCount++;
-          }
-        } catch (e) {
-          console.warn("Failed to highlight text node:", e);
-        }
-      });
-      
-      if (appliedCount === 0) {
-        throw new Error("Could not apply any highlights");
-      }
-      
-      window.getSelection().removeAllRanges();
-      selectedRange = null;
-      elements.selectedText.value = "";
-      highlightCounter += appliedCount;
-      updateStats();
-      
-      saveHighlightsToStorage();
-      
-    } catch (e) {
-      console.error("Highlight error:", e);
-      alert("Unable to highlight this selection. Try selecting text within a single paragraph, or select smaller portions.");
-    } finally {
-      isHighlighting = false;
-    }
-  };
-
-  function getTextNodesInRange(range) {
-    const textNodes = [];
-    const commonAncestor = range.commonAncestorContainer;
-    
-    if (commonAncestor.nodeType === 3) {
-      const text = commonAncestor.textContent;
-      const start = range.startOffset;
-      const end = Math.min(range.endOffset, text.length);
-      
-      if (end > start) {
-        textNodes.push({
-          node: commonAncestor,
-          start: start,
-          end: end
-        });
-      }
-      return textNodes;
-    }
-    
-    const treeWalker = document.createTreeWalker(
-      commonAncestor,
-      NodeFilter.SHOW_TEXT,
-      null,
-      false
-    );
-    
-    let node;
-    let startFound = false;
-    
-    while (node = treeWalker.nextNode()) {
-      if (!range.intersectsNode(node)) continue;
-      
-      let start = 0;
-      let end = node.textContent.length;
-      
-      if (!startFound && node === range.startContainer) {
-        start = range.startOffset;
-        startFound = true;
-      }
-      
-      if (node === range.endContainer) {
-        end = range.endOffset;
-      }
-      
-      if (end > start && node.textContent.substring(start, end).trim().length > 0) {
-        textNodes.push({
-          node: node,
-          start: start,
-          end: end
-        });
-      }
-      
-      if (node === range.endContainer) break;
-    }
-    
-    return textNodes;
-  }
-
-  function createHighlightSpan() {
-    const span = document.createElement("span");
-    span.className = "highlighted";
-    span.style.backgroundColor = selectedColor;
-    span.style.transition = "all 0.3s ease";
-    span.style.padding = "2px 4px";
-    span.style.borderRadius = "3px";
-    span.style.cursor = "pointer";
-    span.style.display = "inline";
-    span.title = "Click to remove (eraser mode)";
-    span.dataset.highlightId = `hl_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    span.dataset.highlightText = elements.selectedText.value.trim();
-    span.dataset.fileType = "abstract";  // 🔥 ADDED: Mark as abstract highlight
-    span.dataset.documentSection = "abstract";  // 🔥 ADDED: Document section
-    return span;
-  }
-
-  function highlightTextNode(range, span) {
-    try {
-      if (range.canSurroundContents()) {
-        range.surroundContents(span);
-        return true;
-      }
-    } catch (e) {
-      // Fall back to manual split
-    }
-    
-    try {
-      const textNode = range.startContainer;
-      if (textNode.nodeType !== 3) return false;
-      
-      const text = textNode.textContent;
-      const start = range.startOffset;
-      const end = range.endOffset;
-      
-      const before = text.substring(0, start);
-      const selected = text.substring(start, end);
-      const after = text.substring(end);
-      
-      const parent = textNode.parentNode;
-      
-      if (before) {
-        parent.insertBefore(document.createTextNode(before), textNode);
-      }
-      
-      span.textContent = selected;
-      parent.insertBefore(span, textNode);
-      
-      if (after) {
-        parent.insertBefore(document.createTextNode(after), textNode);
-      }
-      
-      parent.removeChild(textNode);
-      
-      return true;
-    } catch (e) {
-      console.error("Text node highlight failed:", e);
-      return false;
-    }
-  }
-
-  function findTextRange(text) {
-    const walker = document.createTreeWalker(
-      elements.reviewContent,
-      NodeFilter.SHOW_TEXT,
-      null,
-      false
-    );
-    
-    let node;
-    while (node = walker.nextNode()) {
-      const index = node.textContent.indexOf(text);
-      if (index !== -1) {
-        const range = document.createRange();
-        range.setStart(node, index);
-        range.setEnd(node, index + text.length);
-        return range;
-      }
-    }
-    return null;
-  }
-
-  function isRangeValid(range) {
-    try {
-      if (!range) return false;
-      const container = range.commonAncestorContainer;
-      return elements.reviewContent.contains(container);
-    } catch (e) {
-      return false;
-    }
-  }
-
-  function showSuccessFeedback(message = "Saved!") {
-    const btn = elements.sendBtn;
-    if (!btn) return;
-    
-    const originalHTML = btn.innerHTML;
-    btn.innerHTML = `<i class="fas fa-check me-2"></i>${message}`;
-    btn.style.background = "#69db7c";
-    btn.style.color = "#fff";
-    
-    setTimeout(() => {
-      btn.innerHTML = originalHTML;
-      btn.style.background = "";
-      btn.style.color = "";
-    }, 1200);
-  }
-
-  window.toggleEraser = () => {
-    eraser = !eraser;
-    
-    if (elements.eraserBtn) {
-      elements.eraserBtn.classList.toggle("btn-warning", !eraser);
-      elements.eraserBtn.classList.toggle("btn-danger", eraser);
-      elements.eraserBtn.innerHTML = eraser ? 
-        '<i class="fas fa-eraser me-1"></i>ON' : 
-        '<i class="fas fa-eraser"></i>';
-    }
-    
-    elements.reviewContent.style.cursor = eraser ? "not-allowed" : "text";
-    elements.reviewContent.classList.toggle("eraser-active", eraser);
-  };
-
-  elements.reviewContent.addEventListener("click", (e) => {
-    if (!eraser) return;
-    
-    let target = e.target.closest('.highlighted');
-    
-    if (!target) {
-      let element = e.target;
-      while (element && element !== elements.reviewContent) {
-        const bgColor = element.style.backgroundColor;
-        const hasHighlightColor = bgColor && (
-          bgColor.includes('rgb(255, 224, 102)') ||
-          bgColor.includes('rgb(255, 183, 178)') ||
-          bgColor.includes('rgb(178, 224, 255)') ||
-          bgColor.includes('rgb(178, 255, 178)') ||
-          bgColor.includes('rgb(255, 224, 102)') ||
-          bgColor.includes('yellow') ||
-          bgColor.includes('rgba(255') ||
-          element.dataset.highlightId ||
-          element.className.includes('highlight')
-        );
-        
-        if (hasHighlightColor || element.dataset.highlightId) {
-          target = element;
-          break;
-        }
-        element = element.parentElement;
-      }
-    }
-    
-    if (!target) return;
-    
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const removedText = target.textContent;
-    const removedHeading = target.dataset.heading || "";
-    const removedRemark = target.title || "";
-    const highlightId = target.dataset.highlightId || "";
-    
-    console.log("Erasing highlight:", removedText.substring(0, 50));
-    
-    const isDBHighlight = DB_SAVED_REMARKS.some(r => 
-      removedText.includes(r.heading) || r.heading.includes(removedText.substring(0, 20))
-    );
-    
-    if (isDBHighlight) {
-      const matchingRemark = DB_SAVED_REMARKS.find(r => 
-        removedText.includes(r.heading) || r.heading.includes(removedText.substring(0, 20))
-      );
-      if (matchingRemark) {
-        saveDeletedHighlight(matchingRemark.heading, matchingRemark.remark, removedText);
-      }
-    }
-    
-    target.style.opacity = "0";
-    target.style.transform = "scale(0.9)";
-    
-    setTimeout(() => {
-      const parent = target.parentNode;
-      if (!parent) return;
-      
-      const fragment = document.createDocumentFragment();
-      
-      while (target.firstChild) {
-        fragment.appendChild(target.firstChild);
-      }
-      
-      parent.replaceChild(fragment, target);
-      parent.normalize();
-      
-      highlightCounter = Math.max(0, highlightCounter - 1);
-      updateStats();
-      
-      saveHighlightsToStorage();
-    }, 200);
+async function renderPage(pageNum) {
+  const page = await pdfDoc.getPage(pageNum);
+  const viewport = page.getViewport({ scale: scale });
+  
+  const pageDiv = document.createElement("div");
+  pageDiv.className = "pdf-page";
+  pageDiv.style.width = viewport.width + "px";
+  pageDiv.style.height = viewport.height + "px";
+  pageDiv.dataset.pageNumber = pageNum;
+  
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  
+  const annotationLayerDiv = document.createElement("div");
+  annotationLayerDiv.className = "annotation-layer";
+  annotationLayerDiv.id = `annotation-layer-${pageNum}`;
+  
+  const textLayerDiv = document.createElement("div");
+  textLayerDiv.className = "text-layer";
+  textLayerDiv.id = `text-layer-${pageNum}`;
+  
+  pageDiv.appendChild(canvas);
+  pageDiv.appendChild(annotationLayerDiv);
+  pageDiv.appendChild(textLayerDiv);
+  
+  els.viewer.appendChild(pageDiv);
+  
+  await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+  
+  const textContent = await page.getTextContent();
+  await pdfjsLib.renderTextLayer({
+    textContentSource: textContent,
+    container: textLayerDiv,
+    viewport: viewport,
+    textDivs: []
+  }).promise;
+  
+  textLayerDiv.querySelectorAll('span').forEach(span => {
+    span.style.color = 'transparent';
+    span.style.position = 'absolute';
+    span.style.whiteSpace = 'pre';
+    span.style.cursor = 'text';
+    span.style.userSelect = 'text';
+    span.style.webkitUserSelect = 'text';
   });
-
-  window.clearAllHighlights = () => {
-    if (!confirm("Remove all highlights? This cannot be undone.")) return;
-    
-    const highlights = elements.reviewContent.querySelectorAll(
-      '.highlighted, [data-highlight-id], span[style*="background-color"]'
-    );
-    
-    highlights.forEach(h => {
-      const text = h.textContent;
-      const matchingRemark = DB_SAVED_REMARKS.find(r => 
-        text.includes(r.heading) || r.heading.includes(text.substring(0, 20))
-      );
-      if (matchingRemark) {
-        saveDeletedHighlight(matchingRemark.heading, matchingRemark.remark, text);
-      }
-    });
-    
-    highlights.forEach(h => {
-      const parent = h.parentNode;
-      if (!parent) return;
-      
-      const fragment = document.createDocumentFragment();
-      while (h.firstChild) {
-        fragment.appendChild(h.firstChild);
-      }
-      parent.replaceChild(fragment, h);
-      parent.normalize();
-    });
-    
-    highlightCounter = 0;
-    updateStats();
-    
-    saveHighlightsToStorage();
-  };
-
-  window.zoomIn = () => {
-    zoom = Math.min(zoom + 0.1, 2.5);
-    applyZoom();
-  };
   
-  window.zoomOut = () => {
-    zoom = Math.max(zoom - 0.1, 0.4);
-    applyZoom();
-  };
+  renderedPages.set(pageNum, {
+    canvas, textLayer: textLayerDiv,
+    annotationLayer: annotationLayerDiv,
+    viewport, pageDiv
+  });
+}
 
-  function applyZoom() {
-    if (elements.reviewWrapper) {
-      elements.reviewWrapper.style.zoom = zoom;
-      elements.reviewWrapper.style.overflow = "auto";
-      console.log(`Zoom applied: ${zoom}x`);
-    }
-  }
+// ─── Text Selection ───
+function setupTextSelection() {
+  els.viewer.addEventListener("mouseup", handleMouseUp);
+}
 
-  // 🔥🔥🔥 FIXED: Now counts ONLY abstract tags, not all tags 🔥🔥🔥
-  function updateStats() {
-    // 🔥 FIXED: Filter tags to count only abstract ones
-    const abstractTags = tags.filter(t => t.fileType === "abstract" || !t.fileType);
-    const abstractCount = abstractTags.length;
+function handleMouseUp(e) {
+  if (eraserMode || isProcessing || pendingHighlight) return;
+  
+  setTimeout(() => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || selection.rangeCount === 0) return;
     
-    // 🔥 FIXED: Filter highlights to count only abstract ones
-    const allHighlights = elements.reviewContent.querySelectorAll(".highlighted");
-    let abstractHighlightCount = 0;
-    allHighlights.forEach(h => {
-      if (h.dataset.fileType === "abstract" || !h.dataset.fileType) {
-        abstractHighlightCount++;
-      }
-    });
+    const text = selection.toString().trim();
+    if (text.length < 2) return;
     
-    if (elements.highlightCount) {
-      elements.highlightCount.textContent = abstractHighlightCount;
-    }
-    if (elements.remarkCount) {
-      elements.remarkCount.textContent = abstractCount;  // 🔥 Now shows only abstract count!
-    }
+    const range = selection.getRangeAt(0);
+    let container = range.commonAncestorContainer;
+    if (container.nodeType === Node.TEXT_NODE) container = container.parentElement;
     
-    console.log(`Stats updated - Abstract Remarks: ${abstractCount}, Abstract Highlights: ${abstractHighlightCount}`);
-  }
-
-  window.saveTag = () => {
-    const heading = elements.detectedHeading.value.trim();
-    const remark = elements.remarkText.value.trim();
+    const pageDiv = container.closest(".pdf-page");
+    if (!pageDiv) return;
     
-    if (!heading) {
-      alert("Please select or enter a heading");
-      return;
-    }
-    if (!remark) {
-      alert("Please enter a remark");
-      return;
-    }
-    if (remark.length < 5) {
-      alert("Remark must be at least 5 characters");
-      return;
-    }
-
-    // 🔥 FIXED: Only check duplicates within abstract tags
-    const abstractTags = tags.filter(t => t.fileType === "abstract" || !t.fileType);
-    const exactDup = abstractTags.findIndex(t => t.heading === heading && t.remark === remark);
-    if (exactDup !== -1) {
-      alert("This exact remark already exists");
-      return;
-    }
-
-    const existingIndex = abstractTags.findIndex(t => t.heading === heading);
-    if (existingIndex !== -1) {
-      if (!confirm(`A remark for "${heading.substring(0, 30)}..." already exists. Replace it?`)) {
-        return;
-      }
-      // Find the actual index in the full tags array
-      const actualIndex = tags.findIndex(t => t.heading === heading && (t.fileType === "abstract" || !t.fileType));
-      if (actualIndex !== -1 && tags[actualIndex].fromDB) {
-        deletedHeadings.push(tags[actualIndex].heading);
-      }
-      if (actualIndex !== -1) {
-        tags.splice(actualIndex, 1);
-      }
-    }
-
-    tags.push({
-      heading: heading,
-      remark: remark,
-      color: selectedColor,
-      timestamp: new Date().toISOString(),
-      fromDB: false,
-      fileType: "abstract",  // 🔥 ADDED: Mark as abstract tag
-      documentSection: "abstract"  // 🔥 ADDED: Document section
-    });
-
-    elements.detectedHeading.value = "";
-    elements.remarkText.value = "";
-    elements.selectedText.value = "";
-    elements.charCount.textContent = "0";
-    
-    renderTags();
-    updateStats();
-    
-    const btn = event.target;
-    const originalHTML = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-check me-2"></i>Saved!';
-    btn.style.background = "#69db7c";
-    setTimeout(() => {
-      btn.innerHTML = originalHTML;
-      btn.style.background = "";
-    }, 1000);
-  };
-
-  function renderTags() {
-    if (!elements.savedTags) return;
-    
-    // 🔥 FIXED: Only render abstract tags
-    const abstractTags = tags.filter(t => t.fileType === "abstract" || !t.fileType);
-    
-    if (abstractTags.length === 0) {
-      elements.savedTags.innerHTML = '<small class="text-muted">No abstract remarks added yet. Select text and add remarks.</small>';
-      return;
-    }
-
-    elements.savedTags.innerHTML = abstractTags.map((t, i) => `
-      <div class="tag-item" style="border-left-color: ${t.color}; animation: fadeIn 0.3s ease ${i * 0.05}s both;">
-        <button class="btn btn-sm btn-outline-danger float-end py-0 px-2" 
-                onclick="deleteTag(${tags.indexOf(t)})" title="Remove remark">
-          <i class="fas fa-times"></i>
-        </button>
-        <b>${escapeHtml(t.heading)}</b>
-        <span>${escapeHtml(t.remark)}</span>
-        <small class="text-muted">
-          <i class="fas fa-clock me-1"></i>${formatTime(t.timestamp)}
-          ${t.fromDB ? '<span class="badge bg-success ms-1">saved</span>' : '<span class="badge bg-warning ms-1">unsaved</span>'}
-          <span class="badge bg-info ms-1">${t.fileType || 'abstract'}</span>
-        </small>
-      </div>
-    `).join('');
-  }
-
-  function formatTime(timestamp) {
-    if (!timestamp) return "Just now";
-    const date = new Date(timestamp);
-    return date.toLocaleString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  }
-
-  function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
-  window.deleteTag = (index) => {
-    if (!confirm("Remove this remark?")) return;
-    
-    const tagToDelete = tags[index];
-    if (!tagToDelete) return;
-    
-    // 🔥 Only allow deleting abstract tags
-    if (tagToDelete.fileType !== "abstract" && tagToDelete.fileType) {
-      alert("Cannot delete non-abstract remark from this view");
-      return;
-    }
-    
-    if (tagToDelete.fromDB) {
-      deletedHeadings.push(tagToDelete.heading);
-    }
-    
-    tags.splice(index, 1);
-    renderTags();
-    updateStats();
-  };
-
-  function applyDBHighlights(remarksToApply = DB_SAVED_REMARKS) {
-    // 🔥 FIXED: Only apply abstract highlights
-    const abstractRemarks = remarksToApply.filter(r => 
-      r.file_type === "abstract" || r.file_type === "all" || !r.file_type
-    );
-    
-    if (!abstractRemarks || abstractRemarks.length === 0) return;
-    
-    console.log(`Applying ${abstractRemarks.length} ABSTRACT highlights from DB...`);
-    let applied = 0;
-    
-    abstractRemarks.forEach(r => {
-      if (!r.heading || r.heading.length < 2) return;
-      if (highlightTextInDocument(r.heading, r.color, r.remark)) {
-        applied++;
-      }
-    });
-    
-    console.log(`Applied ${applied} abstract highlights`);
-    highlightCounter = elements.reviewContent.querySelectorAll(".highlighted").length;
-  }
-
-  function highlightTextInDocument(searchText, color, remark) {
-    const walker = document.createTreeWalker(
-      elements.reviewContent,
-      NodeFilter.SHOW_TEXT,
-      {
-        acceptNode: function(node) {
-          const parent = node.parentElement;
-          if (parent && (
-            parent.classList.contains('highlighted') ||
-            parent.tagName === 'SCRIPT' ||
-            parent.tagName === 'STYLE'
-          )) {
-            return NodeFilter.FILTER_REJECT;
-          }
-          return NodeFilter.FILTER_ACCEPT;
-        }
-      },
-      false
-    );
-    
-    let node;
-    while (node = walker.nextNode()) {
-      const text = node.textContent;
-      const index = text.indexOf(searchText);
-      
-      if (index !== -1) {
-        try {
-          const range = document.createRange();
-          range.setStart(node, index);
-          range.setEnd(node, index + searchText.length);
-          
-          const span = document.createElement("span");
-          span.className = "highlighted db-highlight";
-          span.style.backgroundColor = color || "#ffe066";
-          span.style.padding = "1px 3px";
-          span.style.borderRadius = "2px";
-          span.dataset.heading = searchText;
-          span.title = remark || "Saved remark";
-          span.dataset.fileType = "abstract";  // 🔥 ADDED: Mark as abstract
-          span.dataset.documentSection = "abstract";  // 🔥 ADDED: Document section
-          span.dataset.source = "database";  // 🔥 ADDED: Source identifier
-          
-          range.surroundContents(span);
-          return true;
-        } catch (e) {
-          return manualHighlight(node, index, searchText.length, color, remark);
-        }
-      }
-    }
-    return false;
-  }
-
-  function manualHighlight(textNode, start, length, color, remark) {
-    try {
-      const text = textNode.textContent;
-      const before = text.substring(0, start);
-      const highlight = text.substring(start, start + length);
-      const after = text.substring(start + length);
-      
-      const parent = textNode.parentNode;
-      if (!parent) return false;
-      
-      const fragment = document.createDocumentFragment();
-      
-      if (before) fragment.appendChild(document.createTextNode(before));
-      
-      const span = document.createElement("span");
-      span.className = "highlighted db-highlight";
-      span.style.backgroundColor = color || "#ffe066";
-      span.style.padding = "1px 3px";
-      span.style.borderRadius = "2px";
-      span.dataset.heading = highlight;
-      span.title = remark || "Saved remark";
-      span.textContent = highlight;
-      span.dataset.fileType = "abstract";  // 🔥 ADDED: Mark as abstract
-      span.dataset.documentSection = "abstract";  // 🔥 ADDED: Document section
-      span.dataset.source = "database";  // 🔥 ADDED: Source identifier
-      
-      fragment.appendChild(span);
-      if (after) fragment.appendChild(document.createTextNode(after));
-      
-      parent.replaceChild(fragment, textNode);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  function normalizeHighlights() {
-    console.log("Normalizing highlights after potential PDF conversion...");
-    
-    const allSpans = elements.reviewContent.querySelectorAll('span');
-    let normalizedCount = 0;
-    
-    const deletedHighlights = getDeletedHighlights();
-    
-    allSpans.forEach(span => {
-      if (span.classList.contains('highlighted') || span.dataset.highlightId) {
-        const spanText = span.textContent;
-        const wasDeleted = deletedHighlights.some(dh => 
-          spanText.includes(dh.text) || dh.text.includes(spanText.substring(0, 20))
-        );
-        
-        if (wasDeleted) {
-          const parent = span.parentNode;
-          if (parent) {
-            const fragment = document.createDocumentFragment();
-            while (span.firstChild) {
-              fragment.appendChild(span.firstChild);
-            }
-            parent.replaceChild(fragment, span);
-            parent.normalize();
-            console.log("Removed previously deleted highlight:", spanText.substring(0, 50));
-          }
-        }
-        return;
-      }
-      
-      const bgColor = span.style.backgroundColor;
-      const computedStyle = window.getComputedStyle(span);
-      const computedBg = computedStyle.backgroundColor;
-      
-      const isHighlightColor = (color) => {
-        if (!color || color === 'transparent' || color === 'rgba(0, 0, 0, 0)') return false;
-        return color.includes('rgb(255, 224, 102)') ||
-               color.includes('rgb(255, 183, 178)') ||
-               color.includes('rgb(178, 224, 255)') ||
-               color.includes('rgb(178, 255, 178)') ||
-               color.includes('rgb(255, 255, 0)') ||
-               color.includes('rgba(255, 255, 0') ||
-               color.includes('rgba(255, 224, 102') ||
-               color.includes('rgba(255, 183, 178') ||
-               color.includes('rgba(178, 224, 255') ||
-               color.includes('rgba(178, 255, 178');
-      };
-      
-      if (isHighlightColor(bgColor) || isHighlightColor(computedBg)) {
-        const spanText = span.textContent;
-        
-        const wasDeleted = deletedHighlights.some(dh => 
-          spanText.includes(dh.text) || dh.text.includes(spanText.substring(0, 20))
-        );
-        
-        if (wasDeleted) {
-          const parent = span.parentNode;
-          if (parent) {
-            const fragment = document.createDocumentFragment();
-            while (span.firstChild) {
-              fragment.appendChild(span.firstChild);
-            }
-            parent.replaceChild(fragment, span);
-            parent.normalize();
-            console.log("Removed previously deleted highlight from PDF:", spanText.substring(0, 50));
-          }
-        } else {
-          span.classList.add('highlighted');
-          if (!span.dataset.highlightId) {
-            span.dataset.highlightId = `hl_pdf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          }
-          if (!span.dataset.highlightText) {
-            span.dataset.highlightText = spanText;
-          }
-          span.dataset.fileType = "abstract";  // 🔥 ADDED: Mark as abstract
-          span.dataset.documentSection = "abstract";  // 🔥 ADDED: Document section
-          span.dataset.source = "pdf_conversion";  // 🔥 ADDED: Source identifier
-          span.style.cursor = "pointer";
-          span.title = "Click to remove (eraser mode)";
-          normalizedCount++;
-        }
-      }
-    });
-    
-    if (normalizedCount > 0) {
-      console.log(`Normalized ${normalizedCount} highlights from PDF conversion`);
-      highlightCounter = elements.reviewContent.querySelectorAll(".highlighted, [data-highlight-id]").length;
-      updateStats();
-    }
-  }
-
-  // 🔥 ENHANCED: Cloudinary save function with complete abstract metadata
-  function saveHighlightsToCloudinary() {
-    const highlights = [];
-    elements.reviewContent.querySelectorAll(".highlighted").forEach(span => {
-      // 🔥 Only save abstract highlights
-      if (span.dataset.fileType === "abstract" || !span.dataset.fileType) {
-        highlights.push({
-          text: span.dataset.highlightText || span.textContent,
-          color: span.style.backgroundColor,
-          fileType: span.dataset.fileType || "abstract",  // 🔥 ADDED: Include file type
-          documentSection: span.dataset.documentSection || "abstract",  // 🔥 ADDED: Include section
-          source: span.dataset.source || "manual"  // 🔥 ADDED: Include source
-        });
-      }
-    });
-
-    console.log("🔥 Saving ABSTRACT highlights to Cloudinary...", highlights.length, "highlights");
-
-    // 🔥 ENHANCED: Complete payload with all abstract document info
-    const payload = {
-      html: elements.reviewContent.innerHTML,
-      highlights: highlights,
-      doc_type: DOC_INFO.type,
-      file_type: DOC_INFO.file_type,  // 🔥 ADDED: Explicit file type
-      filename: DOC_INFO.filename,
-      team_name: DOC_INFO.teamName,
-      document_section: DOC_INFO.documentSection,  // 🔥 ADDED: Document section
-      page_type: DOC_INFO.pageType,  // 🔥 ADDED: Page context
-      metadata: {
-        ...DOC_INFO.metadata,  // 🔥 ADDED: Spread metadata
-        highlightCount: highlights.length,
-        remarkCount: tags.filter(t => t.fileType === "abstract" || !t.fileType).length,  // 🔥 Count only abstract
-        savedAt: new Date().toISOString(),
-        version: "2.0"  // 🔥 ADDED: Version tracking
-      }
+    window.__currentSelection = {
+      text: text,
+      range: range.cloneRange(),
+      pageDiv: pageDiv,
+      pageNum: parseInt(pageDiv.dataset.pageNumber),
+      rects: range.getClientRects()
     };
+    
+    els.selectedText.value = text;
+    
+  }, 50);
+}
 
-    return fetch("/api/save-highlighted-html/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": "{{ csrf_token }}"
-      },
-      body: JSON.stringify(payload)  // 🔥 Using enhanced payload
+// ─── Apply Highlight ───
+function applyHighlight() {
+  if (isProcessing || pendingHighlight) {
+    showToast("Please save the current remark first", "error");
+    return;
+  }
+  
+  const sel = window.__currentSelection;
+  if (!sel || !sel.text || sel.text.length < 2) {
+    showToast("Please select text first", "error");
+    return;
+  }
+  
+  isProcessing = true;
+  
+  try {
+    const pageData = renderedPages.get(sel.pageNum);
+    if (!pageData) {
+      showToast("Page not found", "error");
+      isProcessing = false;
+      return;
+    }
+    
+    const pageRect = sel.pageDiv.getBoundingClientRect();
+    const pageWidth = pageRect.width;
+    const pageHeight = pageRect.height;
+    
+    const highlightRects = [];
+    
+    for (let i = 0; i < sel.rects.length; i++) {
+      const r = sel.rects[i];
+      // 🔥 STORE AS RATIOS (0.0 to 1.0) instead of absolute pixels
+      highlightRects.push({
+        x: (r.left - pageRect.left) / pageWidth,
+        y: (r.top - pageRect.top) / pageHeight,
+        width: r.width / pageWidth,
+        height: r.height / pageHeight
+      });
+    }
+    
+    // Draw highlight with CURRENT pixel positions (for display)
+    const highlightDivs = [];
+    highlightRects.forEach(rect => {
+      const div = document.createElement("div");
+      div.className = "highlight-rect pending-highlight";
+      // Convert ratios back to pixels for display
+      div.style.left = (rect.x * pageWidth) + "px";
+      div.style.top = (rect.y * pageHeight) + "px";
+      div.style.width = (rect.width * pageWidth) + "px";
+      div.style.height = (rect.height * pageHeight) + "px";
+      div.style.backgroundColor = selectedColor;
+      pageData.annotationLayer.appendChild(div);
+      highlightDivs.push(div);
+    });
+    
+    pendingHighlight = {
+      text: sel.text,
+      color: selectedColor,
+      page: sel.pageNum,
+      pageWidth: pageWidth,   // Store original page dimensions
+      pageHeight: pageHeight,
+      rects: highlightRects,  // These are RATIOS now
+      divs: highlightDivs
+    };
+    
+    // Show comment section
+    els.commentSection.style.display = "block";
+    els.remarkText.value = "";
+    els.charCount.textContent = "0";
+    els.remarkText.focus();
+    
+    window.getSelection().removeAllRanges();
+    window.__currentSelection = null;
+    els.selectedText.value = "";
+    
+    showToast("Highlight applied! Now add a remark.", "success");
+    
+  } catch (error) {
+    console.error("Highlight error:", error);
+    showToast("Error applying highlight", "error");
+  } finally {
+    isProcessing = false;
+  }
+}
+
+// ─── Save Remark ───
+function saveRemark() {
+  if (!pendingHighlight) {
+    showToast("No highlight to save remark for", "error");
+    return;
+  }
+  
+  const remark = els.remarkText.value.trim();
+  if (!remark) {
+    showToast("Please enter a remark", "error");
+    return;
+  }
+  if (remark.length < 3) {
+    showToast("Remark too short", "error");
+    return;
+  }
+  
+  // Create tag with RATIO coordinates
+  const tag = {
+    heading: pendingHighlight.text,
+    remark: remark,
+    color: pendingHighlight.color,
+    coordinates: {
+      page: pendingHighlight.page,
+      rects: pendingHighlight.rects,  // Ratios stored here
+      // Also store original page dimensions for reference
+      originalPageWidth: pendingHighlight.pageWidth,
+      originalPageHeight: pendingHighlight.pageHeight
+    },
+    timestamp: new Date().toISOString(),
+    fromDB: false
+  };
+  
+  tags.push(tag);
+  
+  // Fix highlight divs - remove pending style
+  pendingHighlight.divs.forEach(div => {
+    div.classList.remove("pending-highlight");
+    div.classList.add("has-comment");
+    div.title = remark;
+    div.dataset.heading = tag.heading;
+    div.dataset.remark = remark;
+    
+    div.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (eraserMode) {
+        deleteTagByHeading(tag.heading, tag.remark);
+      } else {
+        showToast(`💬 ${remark}`, "success");
+      }
+    });
+  });
+  
+  pendingHighlight = null;
+  els.commentSection.style.display = "none";
+  els.remarkText.value = "";
+  els.charCount.textContent = "0";
+  
+  updateStats();
+  renderTags();
+  showToast("Remark saved!", "success");
+}
+// ─── Save Remark ───
+function saveRemark() {
+  if (!pendingHighlight) {
+    showToast("No highlight to save remark for", "error");
+    return;
+  }
+  
+  const remark = els.remarkText.value.trim();
+  if (!remark) {
+    showToast("Please enter a remark", "error");
+    return;
+  }
+  if (remark.length < 3) {
+    showToast("Remark too short", "error");
+    return;
+  }
+  
+  // Create tag with coordinates
+  const tag = {
+    heading: pendingHighlight.text,
+    remark: remark,
+    color: pendingHighlight.color,
+    coordinates: {
+      page: pendingHighlight.page,
+      rects: pendingHighlight.rects,
+      x: pendingHighlight.rects[0].x,
+      y: pendingHighlight.rects[0].y,
+      width: pendingHighlight.rects[0].width,
+      height: pendingHighlight.rects[0].height
+    },
+    timestamp: new Date().toISOString(),
+    fromDB: false
+  };
+  
+  tags.push(tag);
+  
+  // Fix highlight divs - remove pending style
+  pendingHighlight.divs.forEach(div => {
+    div.classList.remove("pending-highlight");
+    div.classList.add("has-comment");
+    div.title = remark;
+    div.dataset.heading = tag.heading;
+    div.dataset.remark = remark;
+    
+    div.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (eraserMode) {
+        deleteTagByHeading(tag.heading, tag.remark);
+      } else {
+        showToast(`💬 ${remark}`, "success");
+      }
+    });
+  });
+  
+  // Clear pending
+  pendingHighlight = null;
+  els.commentSection.style.display = "none";
+  els.remarkText.value = "";
+  els.charCount.textContent = "0";
+  
+  updateStats();
+  renderTags();
+  showToast("Remark saved!", "success");
+}
+
+// ─── 🔥 FIXED: Draw existing highlight from DB ───
+// ─── Draw existing highlight from DB ───
+function drawHighlightFromTag(tag) {
+  const coords = tag.coordinates || {};
+  const pageNum = coords.page || 1;
+  
+  console.log("Drawing highlight on page", pageNum, "coords:", coords);
+  
+  const pageData = renderedPages.get(pageNum);
+  if (!pageData) {
+    console.warn("Page not rendered yet:", pageNum);
+    return;
+  }
+  
+  // 🔥 Get CURRENT page dimensions (after zoom)
+  const currentPageWidth = parseFloat(pageData.pageDiv.style.width);
+  const currentPageHeight = parseFloat(pageData.pageDiv.style.height);
+  
+  let rects = [];
+  if (coords.rects && Array.isArray(coords.rects) && coords.rects.length > 0) {
+    rects = coords.rects;
+  }
+  
+  if (rects.length === 0) {
+    console.warn("No rects to draw for tag:", tag.heading);
+    return;
+  }
+  
+  rects.forEach((rect, idx) => {
+    const div = document.createElement("div");
+    div.className = "highlight-rect";
+    if (tag.remark) div.classList.add("has-comment");
+    
+    // 🔥 CONVERT RATIOS to current pixel positions
+    // rect.x, rect.y, rect.width, rect.height are ratios (0.0 to 1.0)
+    div.style.left = (rect.x * currentPageWidth) + "px";
+    div.style.top = (rect.y * currentPageHeight) + "px";
+    div.style.width = (rect.width * currentPageWidth) + "px";
+    div.style.height = (rect.height * currentPageHeight) + "px";
+    div.style.backgroundColor = tag.color || "#ffe066";
+    div.title = tag.remark || tag.heading;
+    div.dataset.heading = tag.heading;
+    div.dataset.remark = tag.remark || "";
+    
+    div.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (eraserMode) {
+        deleteTagByHeading(tag.heading, tag.remark);
+      } else if (tag.remark) {
+        showToast(`💬 ${tag.remark}`, "success");
+      }
+    });
+    
+    pageData.annotationLayer.appendChild(div);
+    console.log(`Drew rect ${idx} at scaled position`);
+  });
+}
+// ─── Delete Tag ───
+function deleteTagByHeading(heading, remark) {
+  if (!confirm("Remove this remark?")) return;
+  
+  const idx = tags.findIndex(t => t.heading === heading && t.remark === remark);
+  if (idx === -1) return;
+  
+  const tag = tags[idx];
+  if (tag.fromDB) {
+    deletedHeadings.push(tag.heading);
+  }
+  
+  tags.splice(idx, 1);
+  
+  // Redraw page
+  const coords = tag.coordinates || {};
+  const pageNum = coords.page || 1;
+  redrawPage(pageNum);
+  
+  updateStats();
+  renderTags();
+  showToast("Remark deleted", "success");
+}
+
+function redrawPage(pageNum) {
+  const pageData = renderedPages.get(pageNum);
+  if (!pageData) return;
+  
+  pageData.annotationLayer.innerHTML = '';
+  tags.forEach(tag => {
+    const coords = tag.coordinates || {};
+    if ((coords.page || 1) === pageNum) {
+      drawHighlightFromTag(tag);
+    }
+  });
+}
+
+// ─── Render Tags in Sidebar ───
+function renderTags() {
+  if (tags.length === 0) {
+    els.savedTags.innerHTML = '<small class="text-muted">No remarks added yet.</small>';
+    return;
+  }
+  
+  els.savedTags.innerHTML = tags.map((t, i) => `
+    <div class="tag-item" style="border-left-color: ${t.color};">
+      <button class="btn btn-sm btn-outline-danger float-end py-0 px-2" 
+              onclick="deleteTagByIndex(${i})" title="Remove">
+        <i class="fas fa-times"></i>
+      </button>
+      <b>${escapeHtml(t.heading.substring(0, 50))}${t.heading.length > 50 ? '...' : ''}</b>
+      <span>${escapeHtml(t.remark)}</span>
+      <small class="text-muted">
+        <i class="fas fa-clock me-1"></i>${formatTime(t.timestamp || t.created_at)}
+        ${t.fromDB ? '<span class="badge bg-success ms-1">saved</span>' : '<span class="badge bg-warning ms-1">unsaved</span>'}
+      </small>
+    </div>
+  `).join('');
+}
+
+function deleteTagByIndex(index) {
+  const tag = tags[index];
+  if (tag) deleteTagByHeading(tag.heading, tag.remark);
+}
+
+function formatTime(ts) {
+  if (!ts) return "Just now";
+  const date = new Date(ts);
+  return date.toLocaleString('en-US', { 
+    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+  });
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// ─── UI Updates ───
+function updateStats() {
+  const highlights = tags.length;
+  const remarks = tags.filter(t => t.remark).length;
+  const saved = tags.filter(t => t.fromDB).length;
+  
+  els.highlightCount.textContent = highlights;
+  els.remarkCount.textContent = remarks;
+  els.savedCount.textContent = saved;
+}
+
+// ─── Eraser ───
+function toggleEraser() {
+  eraserMode = !eraserMode;
+  const btn = document.getElementById("eraserBtn");
+  
+  btn.classList.toggle("btn-warning", !eraserMode);
+  btn.classList.toggle("btn-danger", eraserMode);
+  btn.innerHTML = eraserMode ? '<i class="fas fa-eraser me-1"></i>ON' : '<i class="fas fa-eraser"></i>';
+  
+  renderedPages.forEach(pd => {
+    pd.annotationLayer.classList.toggle("eraser-active", eraserMode);
+  });
+  
+  els.viewer.style.cursor = eraserMode ? "not-allowed" : "text";
+}
+
+// ─── Clear All ───
+function clearAllHighlights() {
+  if (!confirm("Remove ALL remarks? This cannot be undone!")) return;
+  
+  tags.forEach(tag => {
+    if (tag.fromDB) {
+      deletedHeadings.push(tag.heading);
+    }
+  });
+  
+  tags = [];
+  
+  renderedPages.forEach(pd => {
+    pd.annotationLayer.innerHTML = '';
+  });
+  
+  updateStats();
+  renderTags();
+  showToast("All remarks cleared", "success");
+}
+
+// ─── Send to Student ───
+function sendRemarksToStudent() {
+    if (sending) return;
+    
+    const unsaved = tags.filter(t => !t.fromDB);
+    const hasDeletions = deletedHeadings.length > 0;
+    
+    console.log("🔥 ALL TAGS:", tags);
+    console.log("🔥 UNSAVED TAGS:", unsaved);
+    
+    // 🔥 DEBUG: Check if unsaved tags have coordinates
+    unsaved.forEach((t, i) => {
+        console.log(`Unsaved tag ${i}: heading='${t.heading.substring(0, 30)}...'`);
+        console.log(`Unsaved tag ${i}: coordinates=`, t.coordinates);
+        console.log(`Unsaved tag ${i}: has coordinates?`, t.coordinates && Object.keys(t.coordinates).length > 0);
+    });
+    
+    if (unsaved.length === 0 && !hasDeletions) {
+        showToast("No changes to save", "error");
+        return;
+    }
+    
+    if (!confirm(`Send ${unsaved.length} new remarks to student?`)) return;
+    
+    sending = true;
+    els.sendBtn.disabled = true;
+    els.sendBtn.innerHTML = '<span class="loading-spinner me-2"></span>Sending...';
+    
+    const payload = {
+        remarks: unsaved.map(t => ({
+            heading: t.heading,
+            remark: t.remark,
+            color: t.color,
+            coordinates: t.coordinates  // 🔥 This MUST contain {page, rects}
+        })),
+        deleted: deletedHeadings,
+        doc_type: "abstract"
+    };
+    
+    // 🔥 DEBUG: Log the actual payload
+    console.log("🔥 PAYLOAD BEING SENT:");
+    console.log(JSON.stringify(payload, null, 2));
+    
+    fetch("{% url 'save_zeroth_remark' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify(payload)
     })
     .then(r => r.json())
     .then(d => {
-      if (d.status === "success") {
-        console.log("✅ Saved abstract to Cloudinary:", d.url);
-        return { success: true, url: d.url, fileType: "abstract" };  // 🔥 ADDED: Return file type
-      } else {
-        console.error("❌ Cloudinary save failed:", d.message);
-        return { success: false, error: d.message, fileType: "abstract" };  // 🔥 ADDED: Return file type
-      }
-    })
-    .catch(e => {
-      console.error("❌ Fetch error:", e);
-      return { success: false, error: e.message, fileType: "abstract" };  // 🔥 ADDED: Return file type
-    });
-  }
-
-  // 🔥 ENHANCED: Send to Student with complete abstract info
-  window.sendRemarksToStudent = () => {
-    if (sending) return;
-    
-    // 🔥 FIXED: Only get abstract unsaved tags
-    const abstractTags = tags.filter(t => t.fileType === "abstract" || !t.fileType);
-    const unsaved = abstractTags.filter(t => !t.fromDB);
-    const hasDeletions = deletedHeadings.length > 0;
-    
-    if (unsaved.length === 0 && !hasDeletions) {
-      alert("No changes to save.");
-      return;
-    }
-    
-    if (!confirm(`Save ${unsaved.length} new and delete ${deletedHeadings.length} remarks for ABSTRACT?`)) return;  // 🔥 ADDED: Confirm abstract context
-    
-    sending = true;
-    if (elements.sendBtn) {
-      elements.sendBtn.disabled = true;
-      elements.sendBtn.innerHTML = '<span class="loading-spinner me-2"></span>Saving Abstract...';  // 🔥 ADDED: Context in loading text
-    }
-
-    // 🔥 ENHANCED: Payload with complete abstract metadata
-    const payload = {
-      remarks: unsaved.map(r => ({
-        ...r,
-        file_type: "abstract",  // 🔥 ADDED: Ensure file_type is set
-        document_section: "abstract",  // 🔥 ADDED: Document section
-        team_name: "{{ team_name|escapejs }}"  // 🔥 ADDED: Team name in each remark
-      })),
-      deleted: deletedHeadings,
-      file_type: "abstract",  // 🔥 ADDED: Explicit file_type at root level
-      document_section: "abstract",  // 🔥 ADDED: Document section
-      team_name: "{{ team_name|escapejs }}",  // 🔥 ADDED: Team name
-      metadata: {  // 🔥 ADDED: Metadata object
-        source: "zeroth_review",
-        version: "2.0",
-        savedAt: new Date().toISOString()
-      }
-    };
-
-    fetch("{% url 'save_zeroth_remark' %}", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": "{{ csrf_token }}"
-      },
-      body: JSON.stringify(payload)
-    })
-    .then(async r => {
-      if (!r.ok) {
-        const text = await r.text();
-        throw new Error(`HTTP ${r.status}: ${text}`);
-      }
-      return r.json();
-    })
-    .then(d => {
-      if (d.status === "success") {
-        return saveHighlightsToCloudinary().then(cloudResult => {
-          return { ...d, cloudinary: cloudResult };
-        });
-      } else {
-        throw new Error(d.message || "Database save failed");
-      }
-    })
-    .then(d => {
-      sending = false;
-      
-      const inserted = d.inserted || 0;
-      const updated = d.updated || 0;
-      const deleted = d.deleted || 0;
-      const totalSaved = inserted + updated;
-      
-      showSuccessFeedback(`Saved: ${totalSaved} abstract remarks`);  // 🔥 ADDED: Context in success message
-      
-      // Mark all abstract tags as saved
-      tags.forEach(t => {
-        if (t.fileType === "abstract" || !t.fileType) {
-          t.fromDB = true;
-          t.fileType = "abstract";  // 🔥 ADDED: Ensure fileType is set on save
+        sending = false;
+        els.sendBtn.disabled = false;
+        els.sendBtn.innerHTML = '<i class="fa fa-paper-plane me-2"></i>Send to Student';
+        
+        if (d.status === "success") {
+            tags.forEach(t => t.fromDB = true);
+            deletedHeadings = [];
+            updateStats();
+            renderTags();
+            showToast(`Sent! ${d.inserted || 0} new, ${d.updated || 0} updated`, "success");
+        } else {
+            showToast("Error: " + d.message, "error");
         }
-      });
-      deletedHeadings = [];
-      renderTags();
-      
-      localStorage.removeItem(DELETED_HIGHLIGHTS_KEY);
-      localStorage.removeItem(STORAGE_KEY);
-      
-      console.log("✅ Abstract database save:", d);
-      if (d.cloudinary && d.cloudinary.success) {
-        console.log("✅ Abstract Cloudinary save:", d.cloudinary.url);
-      }
-      
-      setTimeout(() => {
-        if (elements.sendBtn) {
-          elements.sendBtn.disabled = false;
-          elements.sendBtn.innerHTML = '<i class="fa fa-paper-plane me-2"></i>Send to Student';
-        }
-      }, 1200);
     })
     .catch(err => {
-      sending = false;
-      console.error("Abstract save error:", err);  // 🔥 ADDED: Context in error log
-      alert("❌ Error saving abstract: " + err.message);  // 🔥 ADDED: Context in alert
-      
-      if (elements.sendBtn) {
-        elements.sendBtn.disabled = false;
-        elements.sendBtn.innerHTML = '<i class="fa fa-paper-plane me-2"></i>Send to Student';
-      }
+        sending = false;
+        els.sendBtn.disabled = false;
+        els.sendBtn.innerHTML = '<i class="fa fa-paper-plane me-2"></i>Send to Student';
+        showToast("Error: " + err.message, "error");
     });
-  };
+}
+// ─── Zoom / Navigation ───
+function zoomIn() {
+  scale = Math.min(scale + 0.2, 3.0);
+  rerenderAll();
+}
 
-  document.addEventListener("keydown", (e) => {
-    if (!elements.splitView.classList.contains("active")) return;
-    
-    if (e.ctrlKey || e.metaKey) {
-      switch(e.key) {
-        case '=':
-        case '+':
-          e.preventDefault();
-          zoomIn();
-          break;
-        case '-':
-          e.preventDefault();
-          zoomOut();
-          break;
-        case 's':
-          e.preventDefault();
-          saveTag();
-          break;
-        case 'e':
-          e.preventDefault();
-          toggleEraser();
-          break;
-      }
+function zoomOut() {
+  scale = Math.max(scale - 0.2, 0.5);
+  rerenderAll();
+}
+
+function fitWidth() {
+  scale = (els.viewer.parentElement.clientWidth - 40) / 612;
+  rerenderAll();
+}
+
+async function rerenderAll() {
+  const savedTags = [...tags];
+  els.viewer.innerHTML = '';
+  renderedPages.clear();
+  
+  for (let i = 1; i <= totalPages; i++) {
+    await renderPage(i);
+  }
+  
+  // Redraw ALL highlights with new scale
+  savedTags.forEach(tag => {
+    if (tag.coordinates && Object.keys(tag.coordinates).length > 0) {
+      drawHighlightFromTag(tag);
     }
-    if (e.key === "Escape") {
+  });
+}
+
+function prevPage() {
+  if (currentPage > 1) {
+    currentPage--;
+    els.currentPage.textContent = currentPage;
+    scrollToPage(currentPage);
+  }
+}
+
+function nextPage() {
+  if (currentPage < totalPages) {
+    currentPage++;
+    els.currentPage.textContent = currentPage;
+    scrollToPage(currentPage);
+  }
+}
+
+function scrollToPage(pageNum) {
+  const div = document.querySelector(`.pdf-page[data-page-number="${pageNum}"]`);
+  if (div) div.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ─── Keyboard ───
+document.addEventListener("keydown", (e) => {
+  if (!els.splitView.classList.contains("active")) return;
+  
+  if (e.ctrlKey || e.metaKey) {
+    switch(e.key) {
+      case '=':
+      case '+':
+        e.preventDefault(); zoomIn(); break;
+      case '-':
+        e.preventDefault(); zoomOut(); break;
+      case 's':
+        e.preventDefault();
+        if (pendingHighlight) saveRemark();
+        break;
+      case 'e':
+        e.preventDefault(); toggleEraser(); break;
+    }
+  }
+  if (e.key === "Escape") {
+    if (pendingHighlight) {
+      pendingHighlight.divs.forEach(d => d.remove());
+      pendingHighlight = null;
+      els.commentSection.style.display = "none";
+      showToast("Cancelled", "success");
+    } else {
       closeViewer();
     }
-  });
+  }
+});
 
-  window.addEventListener("beforeunload", (e) => {
-    // 🔥 FIXED: Only check abstract tags for unsaved changes
-    const abstractTags = tags.filter(t => t.fileType === "abstract" || !t.fileType);
-    const hasUnsaved = abstractTags.some(t => !t.fromDB) || deletedHeadings.length > 0;
-    if (hasUnsaved && !sending) {
-      e.preventDefault();
-      e.returnValue = "You have unsaved abstract changes. Are you sure you want to leave?";  // 🔥 ADDED: Context in warning
-    }
-  });
-
+window.addEventListener("beforeunload", (e) => {
+  const unsaved = tags.some(t => !t.fromDB) || pendingHighlight;
+  if (unsaved && !sending) {
+    e.preventDefault();
+    e.returnValue = "You have unsaved remarks. Are you sure?";
+  }
 });
 </script>
 

@@ -1042,6 +1042,10 @@ def calculate_team_possibilities(student_class):
     }
 
 
+import json
+from django.http import JsonResponse
+from django.shortcuts import render
+
 def create_team(request):
     student_class = request.session.get("student_class")
     student_id = request.session.get("student_id")
@@ -1055,111 +1059,156 @@ def create_team(request):
         if t.members:
             used_rolls.extend(t.members.split(","))
 
-    # Classmates list (only free students)
-    classmates = Student.objects.filter(clas=student_class).exclude(student_id__in=used_rolls)
-
-    # Check if this student already has a team
+    # Find existing team for this student
     existing_team = None
     for t in Team.objects.filter(student_class=student_class):
         if t.members and student_id in t.members.split(","):
             existing_team = t
             break
+    
     already_created = existing_team is not None
+    
+    # If updating, exclude current team members from used_rolls so they can be reselected
+    if existing_team and existing_team.members:
+        current_members = existing_team.members.split(",")
+        used_rolls = [r for r in used_rolls if r not in current_members]
+    
+    classmates = Student.objects.filter(clas=student_class).exclude(student_id__in=used_rolls)
 
-    # -----------------------------
+    # -------------------------
     # Handle form submission (POST)
-    # -----------------------------
+    # -------------------------
     if request.method == "POST":
         try:
-            # Read JSON safely regardless of content type
             body = request.body.decode("utf-8")
             data = json.loads(body) if body else {}
 
-            print("📦 Received data:", data)
+            print("Received data:", data)
 
             project_title = str(data.get("project_title", "")).strip()
             domain_raw = data.get("domain", "")
-            print(domain_raw)
             domain = domain_raw.upper() if domain_raw else ""
-            members = data.get("members", [])
+            members = data.get("members")  # Can be None, list, or null
+            is_update = data.get("is_update", False)
 
             # Validation checks
             if not project_title:
-                return JsonResponse({"status": "error", "message": "⚠ Project title is required."})
+                return JsonResponse({"status": "error", "message": "Project title is required."})
 
             if not domain:
-                return JsonResponse({"status": "error", "message": "⚠ Domain is required."})
+                return JsonResponse({"status": "error", "message": "Domain is required."})
 
-            if not members:
-                return JsonResponse({"status": "error", "message": "⚠ No members selected."})
+            # Determine if this is a member update or just title/domain update
+            is_member_update = members is not None and len(members) > 0
 
-            # Include leader (logged-in student)
-            all_members = set(members)
-            all_members.add(student_id)
+            # For updates where members aren't being changed, preserve existing members
+            if is_update and existing_team and not is_member_update:
+                # Use existing members from database
+                all_members = set(existing_team.members.split(",")) if existing_team.members else set()
+                
+                # Ensure leader is included (should already be there)
+                if student_id not in all_members:
+                    return JsonResponse({
+                        "status": "error",
+                        "message": "You must be part of the team!"
+                    })
+            else:
+                # New team or explicit member update
+                all_members = set(members) if members else set()
+                all_members.add(student_id)
 
-            # Check if logged-in student is part of the submitted members
-            if student_id not in all_members:
+                # Check if logged-in student is part of the submitted members
+                if student_id not in all_members:
+                    return JsonResponse({
+                        "status": "error",
+                        "message": "You must be part of the team!"
+                    })
+
+                # For new teams: Check if any members are already used
+                if not is_update:
+                    already_used = [m for m in all_members if m in used_rolls]
+                    if already_used:
+                        return JsonResponse({
+                            "status": "error",
+                            "message": f"Student(s) {', '.join(already_used)} already in a team."
+                        })
+
+                # Validate team size (3 or 4 members) only when members are provided
+                if len(all_members) not in [3, 4]:
+                    return JsonResponse({
+                        "status": "error",
+                        "message": f"Team must have 3 or 4 members. You selected {len(all_members)}."
+                    })
+
+            # Check for duplicate project titles (exclude self if updating)
+            title_qs = Team.objects.filter(project_title__iexact=project_title)
+            if is_update and existing_team:
+                title_qs = title_qs.exclude(id=existing_team.id)
+            
+            if title_qs.exists():
                 return JsonResponse({
                     "status": "error",
-                    "message": "⚠ The user didn't involve in the team!"
-                })
-
-            # Check if any members are already used
-            already_used = [m for m in all_members if m in used_rolls]
-            if already_used:
-                return JsonResponse({
-                    "status": "error",
-                    "message": f"⚠ Student(s) {', '.join(already_used)} already in a team."
-                })
-
-            # Check if this student already created a team
-            if already_created:
-                return JsonResponse({
-                    "status": "error",
-                    "message": "⚠ You have already created a team."
-                })
-
-            # Check for duplicate project titles
-            if Team.objects.filter(project_title__iexact=project_title).exists():
-                return JsonResponse({
-                    "status": "error",
-                    "message": "⚠ Project title already exists. Please choose another."
-                })
-
-            # Validate team size (3 or 4 members)
-            if len(all_members) not in [3, 4]:
-                return JsonResponse({
-                    "status": "error",
-                    "message": f"⚠ Team must have 3 or 4 members. You selected {len(all_members)}."
+                    "message": "Project title already exists. Please choose another."
                 })
 
             # Get names of selected members
             member_objs = Student.objects.filter(student_id__in=all_members)
             member_names = [s.name for s in member_objs]
 
-            # Create team with project title
-            Team.objects.create(
-                project_title=project_title,
-                student_class=student_class,
-                domain=domain,
-                members=",".join(all_members),
-                member_names=",".join(member_names)
-            )
+            if is_update and existing_team:
+                # UPDATE existing team
+                existing_team.project_title = project_title
+                existing_team.domain = domain
+                
+                # Only update members if explicitly provided
+                if is_member_update:
+                    existing_team.members = ",".join(sorted(all_members))
+                    existing_team.member_names = ",".join(member_names)
+                    # Keep original leader - don't change leader on member updates
+                
+                # CLEAR all update flags — back to normal pending state
+                existing_team.needs_update_problem = False
+                existing_team.needs_update_domain = False
+                existing_team.needs_update_members = False
+                existing_team.modification_reason = ''
+                existing_team.status = 'pending'  # Back to pending for coordinator review
+                existing_team.save()
+                
+                return JsonResponse({
+                    "status": "success", 
+                    "project_title": project_title, 
+                    "message": "Team updated successfully"
+                })
+            else:
+                # CREATE new team - leader is the creator (logged-in student)
+                Team.objects.create(
+                    project_title=project_title,
+                    student_class=student_class,
+                    domain=domain,
+                    members=",".join(sorted(all_members)),
+                    member_names=",".join(member_names),
+                    leader_id=student_id,  # Store who created the team
+                    status='pending'
+                )
 
-            return JsonResponse({"status": "success", "project_title": project_title})
+                return JsonResponse({"status": "success", "project_title": project_title})
 
         except json.JSONDecodeError:
             return JsonResponse({"status": "error", "message": "Invalid JSON data received."})
         except Exception as e:
-            print("❌ Exception in create_team:", e)
+            print("Exception in create_team:", e)
             return JsonResponse({"status": "error", "message": str(e)})
 
-    # -----------------------------
+    # -------------------------
     # Prepare page data for render
-    # -----------------------------
+    # -------------------------
     members_list = []
+    leader_id = None
+    
     if existing_team and existing_team.members:
         ids = existing_team.members.split(",")
+        # Get leader_id from model, or default to first member for legacy teams
+        leader_id = getattr(existing_team, 'leader_id', None) or ids[0]
         members_list = list(
             Student.objects.filter(student_id__in=ids).values_list("student_id", "name")
         )
@@ -1170,7 +1219,7 @@ def create_team(request):
         "already_created": already_created,
         "existing_team": existing_team,
         "members_list": members_list,
-        # New team possibility data
+        "leader_id": leader_id,  # Pass leader to template
         "team_data": team_data,
         "possibilities": team_data["possibilities"],
         "best_possibilities": team_data["best_possibilities"],
@@ -1777,167 +1826,23 @@ def serve_pdf(request, team_name, pdf_type):
 
     return redirect(doc.file_url)
 
-
-import os
-import re
-import subprocess
-import pdfplumber
-
-from django.conf import settings
-from django.shortcuts import render
-from .models import AllocationResult
-
-
-import os
-import re
-import json
-import tempfile
-import subprocess
-import requests
-import pdfplumber
-
-from django.shortcuts import render, redirect
-from django.http import JsonResponse
-from django.db import transaction, IntegrityError
-
-from .models import AllocationResult, ZerothReviewRemark, ProjectFile
-
-# --------------------------------------------------
-# 🔍 HEADING VALIDATION (STRICT)
-# --------------------------------------------------
-def is_valid_heading(text):
-    text = text.strip()
-    if text.startswith(("-", "•")): return False
-    if re.match(r"^\d+[\.\)]", text): return False
-    if len(text) > 70: return False
-    if text.endswith(".") or text.endswith(":"): return False
-    if any(word.islower() for word in text.split()[1:]): return False
-    return any(word[0].isupper() for word in text.split() if word)
-
-# --------------------------------------------------
-# 🧠 EARLY PAGE HEADING DETECTOR
-# --------------------------------------------------
-def looks_like_early_heading(text, top, page_no):
-    text = text.strip()
-    early_keywords = {"abstract", "introduction", "problem statement", "background", "motivation"}
-    if text.lower() in early_keywords: return True
-    if text.endswith(":"): return False
-    if page_no <= 2 and len(text.split()) <= 4 and text[0].isupper() and not text.endswith("."):
-        return True
-    return False
-
-import os
-import re
-import subprocess
-import json
-import requests
-from bs4 import BeautifulSoup
-
-from django.conf import settings
-from django.db import transaction, IntegrityError
-from django.shortcuts import render
-from django.http import JsonResponse
-
-from .models import AllocationResult, ProjectFile, ZerothReviewRemark  # your existing functions
-
-
-import os
-import re
-import json
-import shutil
-import subprocess
-import requests
-
-from django.conf import settings
-from django.shortcuts import render
-from django.http import JsonResponse
-from django.db import transaction, IntegrityError
-
-from .models import AllocationResult, ZerothReviewRemark, ProjectFile
-
-from playwright.sync_api import sync_playwright
-import cloudinary
-import cloudinary.uploader
-
-
-# -----------------------------
-# Heading validators
-# -----------------------------
-def is_valid_heading(text):
-    text = text.strip()
-    if text.startswith(("-", "•")): return False
-    if re.match(r"^\d+[\.\)]", text): return False
-    if len(text) > 70: return False
-    if text.endswith(".") or text.endswith(":"): return False
-    if any(word.islower() for word in text.split()[1:]): return False
-    return any(word[0].isupper() for word in text.split() if word)
-
-def looks_like_early_heading(text, top=0, page_no=1):
-    text = text.strip()
-    early_keywords = {"abstract", "introduction", "problem statement", "background", "motivation"}
-    if text.lower() in early_keywords: return True
-    if page_no <= 2 and len(text.split()) <= 4 and text[0].isupper() and not text.endswith("."):
-        return True
-    return False
-
-# -----------------------------
-# Zero Review View
-# -----------------------------
 import json
 import os
-import re
-import subprocess
-import platform
-import time
-
-import requests
-from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from django.conf import settings
 
-from .models import AllocationResult, ProjectFile, ProjectRemarks, ZerothReviewRemark
+from .models import AllocationResult, ProjectFile, ProjectRemarks, ZerothReviewRemark, Annotation
 
-
-def ensure_docker_running():
-    """Auto-start Docker Desktop on Windows if not running."""
-    try:
-        result = subprocess.run(
-            ["docker", "info"], capture_output=True, text=True, timeout=5
-        )
-        if result.returncode == 0:
-            return True
-    except Exception:
-        pass
-
-    docker_paths = [
-        r"C:\Program Files\Docker\Docker\Docker Desktop.exe",
-        r"C:\Program Files\Docker\Docker\frontend\Docker Desktop.exe",
-        os.path.expandvars(r"%LOCALAPPDATA%\Programs\Docker\Docker Desktop.exe"),
-    ]
-
-    docker_exe = next((p for p in docker_paths if os.path.exists(p)), None)
-    if not docker_exe:
-        return False
-
-    subprocess.Popen([docker_exe], shell=True)
-
-    for i in range(45):
-        time.sleep(2)
-        try:
-            if subprocess.run(
-                ["docker", "info"], capture_output=True, text=True, timeout=5
-            ).returncode == 0:
-                print("✅ Docker auto-started successfully")
-                return True
-        except Exception:
-            pass
-
-    return False
-
+import json
+from django.http import JsonResponse
+from django.shortcuts import render
+from .models import ZerothReviewRemark, AllocationResult, ProjectFile
 
 def zero_review(request):
     print("\n🟢 zero_review CALLED")
-
     mentor_name = request.session.get("mentor_name")
     username = request.session.get("username")
     print("mentor_name:", mentor_name)
@@ -1947,11 +1852,13 @@ def zero_review(request):
     # ==================== POST: SAVE REMARKS ====================
     if request.method == "POST":
         try:
-            data = json.loads(request.body)
+            raw_body = request.body.decode('utf-8')
+            print("🔥 RAW REQUEST BODY (first 500 chars):", raw_body[:500])
+            
+            data = json.loads(raw_body)
             remarks = data.get("remarks", [])
             deleted = data.get("deleted", [])
-            print("Incoming remarks:", len(remarks))
-            print("Deleted headings:", len(deleted))
+            print("Incoming remarks count:", len(remarks))
 
             allocation = AllocationResult.objects.filter(mentor_name=mentor_name).first()
             if not allocation:
@@ -1960,6 +1867,7 @@ def zero_review(request):
             team_name = allocation.team_name
             inserted = updated = deleted_count = 0
 
+            # Handle deletions
             if deleted:
                 for heading in deleted:
                     heading = heading.strip()
@@ -1974,19 +1882,71 @@ def zero_review(request):
                         ).delete()
                     deleted_count += count
 
+            # Handle saves/updates
             for r in remarks:
                 heading = (r.get("heading") or "").strip()
                 remark = (r.get("remark") or "").strip()
                 color = r.get("color") or "#ffe066"
+                
+                # 🔥 CRITICAL: Extract coordinates
+                coordinates = r.get("coordinates")
+                print(f"\n🔥 PROCESSING REMARK: '{heading[:40]}...'")
+                print(f"🔥 Raw coordinates from frontend: {type(coordinates)} = {coordinates is not None}")
+                
                 if not heading or not remark:
+                    print("Skipping - missing heading or remark")
                     continue
 
-                obj, created = ZerothReviewRemark.objects.update_or_create(
-                    team_name=team_name,
-                    mentor_name=mentor_name,
-                    heading=heading,
-                    defaults={"remark": remark, "color": color},
-                )
+                # Convert coordinates to JSON string
+                if coordinates is None:
+                    coords_json = "{}"
+                elif isinstance(coordinates, dict):
+                    coords_json = json.dumps(coordinates)
+                    print(f"🔥 Dict converted to JSON string, length: {len(coords_json)}")
+                elif isinstance(coordinates, str):
+                    coords_json = coordinates
+                else:
+                    coords_json = "{}"
+
+                print(f"🔥 coords_json to save (first 100 chars): {coords_json[:100]}")
+
+                # 🔥 METHOD 1: Try update_or_create first
+                try:
+                    obj, created = ZerothReviewRemark.objects.update_or_create(
+                        team_name=team_name,
+                        mentor_name=mentor_name,
+                        heading=heading,
+                        defaults={
+                            "remark": remark,
+                            "color": color,
+                            "coordinates": coords_json,
+                            "file_type": "abstract"
+                        },
+                    )
+                    print(f"🔥 update_or_create result: created={created}, id={obj.id}")
+                    print(f"🔥 Saved coordinates in DB: {obj.coordinates[:100] if obj.coordinates else 'EMPTY'}")
+                    
+                except Exception as e:
+                    print(f"🔥 update_or_create failed: {e}")
+                    # 🔥 METHOD 2: Fallback - delete and recreate
+                    ZerothReviewRemark.objects.filter(
+                        team_name=team_name,
+                        mentor_name=mentor_name,
+                        heading=heading
+                    ).delete()
+                    
+                    obj = ZerothReviewRemark.objects.create(
+                        team_name=team_name,
+                        mentor_name=mentor_name,
+                        heading=heading,
+                        remark=remark,
+                        color=color,
+                        coordinates=coords_json,
+                        file_type="abstract"
+                    )
+                    print(f"🔥 Created new record after delete, id={obj.id}")
+                    created = True
+
                 if created:
                     inserted += 1
                 else:
@@ -2011,118 +1971,40 @@ def zero_review(request):
         return render(request, "mentor/review_men/men_doc/zero_paper/zero_review.html")
 
     team_name = allocation.team_name
-    folder_name = team_name.replace(" ", "_")
     print("Team:", team_name)
 
+    # Load remarks
     saved_remarks = ZerothReviewRemark.objects.filter(
         team_name=team_name, mentor_name=mentor_name
     ).order_by("id")
-    print("🔥 Loaded remarks:", saved_remarks.count())
+    print("🔥 Loaded remarks from DB:", saved_remarks.count())
 
-    remarks_file = ProjectRemarks.objects.filter(
-        team_name=team_name, review_type="zero", file_type="abstract"
-    ).order_by('-updated_at').first()
+    # Parse coordinates
+    for r in saved_remarks:
+        raw_coords = r.coordinates
+        print(f"\n🔥 DB Record: heading='{r.heading[:40]}...'")
+        print(f"🔥 Raw coordinates from DB: {repr(raw_coords) if raw_coords else 'None/Empty'}")
+        
+        try:
+            if raw_coords and raw_coords.strip() and raw_coords != "{}":
+                r.parsed_coordinates = json.loads(raw_coords)
+                print(f"🔥 Successfully parsed coordinates: {str(r.parsed_coordinates)[:100]}")
+            else:
+                r.parsed_coordinates = {}
+                print(f"🔥 Empty or default coordinates, set to {{}}")
+        except Exception as e:
+            print(f"❌ Failed to parse coordinates: {e}")
+            r.parsed_coordinates = {}
 
-    pdf_name = f"{folder_name}_Abstract.pdf"
-    html_name = f"{folder_name}_Abstract.html"
+    # Get PDF URL
+    project_file = ProjectFile.objects.filter(team_name=team_name, file_type="abstract").first()
+    
+    if not project_file:
+        return render(request, "mentor/review_men/men_doc/zero_paper/zero_review.html", {
+            "zero_review": False
+        })
 
-    temp_dir = os.path.join(settings.MEDIA_ROOT, "temp_html", folder_name)
-    docker_temp_dir = os.path.abspath(temp_dir).replace("\\", "/")
-    os.makedirs(temp_dir, exist_ok=True)
-
-    pdf_path = os.path.join(temp_dir, pdf_name)
-    html_path = os.path.join(temp_dir, html_name)
-
-    if remarks_file:
-        print(f"✅ Using remarks version: {remarks_file.cloudinary_url}")
-        cloud_url = remarks_file.cloudinary_url
-        has_highlights = True
-    else:
-        print("⚠️ No remarks found, using original")
-        project_file = ProjectFile.objects.filter(team_name=team_name, file_type="abstract").first()
-        if not project_file:
-            return render(request, "mentor/review_men/men_doc/zero_paper/zero_review.html", {"zero_review": False})
-        cloud_url = project_file.cloudinary_url
-        has_highlights = False
-
-    # Download PDF
-    if os.path.exists(pdf_path):
-        os.remove(pdf_path)
-
-    try:
-        r = requests.get(cloud_url, timeout=20)
-        r.raise_for_status()
-        with open(pdf_path, "wb") as f:
-            f.write(r.content)
-        print(f"✅ PDF downloaded: {pdf_name} ({len(r.content)} bytes)")
-    except Exception as e:
-        print("❌ PDF DOWNLOAD ERROR:", e)
-        return render(request, "mentor/review_men/men_doc/zero_paper/zero_review.html")
-
-    # Remove old HTML
-    if os.path.exists(html_path):
-        os.remove(html_path)
-
-    # ============================================================
-    # 🔥 AUTO-START DOCKER (Windows only)
-    # ============================================================
-    if platform.system() == "Windows":
-        if not ensure_docker_running():
-            return render(request, "mentor/review_men/men_doc/zero_paper/zero_review.html", {
-                "mentor_name": mentor_name,
-                "username": username,
-                "team_name": team_name,
-                "html_content": "",
-                "saved_remarks": saved_remarks,
-                "error_message": "Docker Desktop could not be auto-started. Please start it manually.",
-                "zero_review": True,
-            })
-
-    # ============================================================
-    # PDF → HTML (Your exact same code)
-    # ============================================================
-    try:
-        subprocess.run(
-            [
-                "docker", "run", "--rm",
-                "-v", f"{docker_temp_dir}:/pdf",
-                "pdf2html_local",
-                pdf_name,
-                "--dest-dir", "/pdf"
-            ],
-            check=True
-        )
-        print(f"✅ PDF converted to HTML: {html_name}")
-    except Exception as e:
-        print("❌ PDF→HTML ERROR:", e)
-
-    # Read HTML
-    html_content = ""
-    try:
-        with open(html_path, "r", encoding="utf-8") as f:
-            html_content = f.read()
-    except Exception as e:
-        print("❌ HTML READ ERROR:", e)
-
-    # Extract headings
-    main_heading_lines = []
-    sub_headings = []
-    lines = re.findall(r'>([^<]{2,120})<', html_content)
-
-    for line in lines:
-        text = line.strip()
-        if not text:
-            continue
-        if is_valid_heading(text):
-            if not main_heading_lines:
-                main_heading_lines.append(text)
-            elif text not in sub_headings:
-                sub_headings.append(text)
-        elif looks_like_early_heading(text):
-            if text not in sub_headings:
-                sub_headings.append(text)
-
-    main_heading = " ".join(main_heading_lines)
+    pdf_url = project_file.cloudinary_url
 
     return render(
         request,
@@ -2131,437 +2013,351 @@ def zero_review(request):
             "mentor_name": mentor_name,
             "username": username,
             "team_name": team_name,
-            "main_heading": main_heading,
-            "sub_headings": sub_headings,
-            "html_content": html_content,
+            "pdf_url": pdf_url,
             "saved_remarks": saved_remarks,
-            "has_highlights": has_highlights,
             "zero_review": True,
         },
     )
 
+# ─────────────────────────────────────────────
+# NEW: API - Save Annotation
+# ─────────────────────────────────────────────
+@csrf_exempt
+@require_http_methods(["POST"])
+def save_annotation(request):
+    """
+    Save a single annotation (highlight or comment) to the database.
+    Expects JSON body with annotation data.
+    """
+    try:
+        data = json.loads(request.body)
+        mentor_name = request.session.get("mentor_name")
+        
+        allocation = AllocationResult.objects.filter(mentor_name=mentor_name).first()
+        if not allocation:
+            return JsonResponse({"status": "fail", "message": "No allocation found"}, status=404)
+
+        team_name = allocation.team_name
+        project_file = ProjectFile.objects.filter(
+            team_name=team_name,
+            file_type=data.get("doc_type", "abstract")
+        ).first()
+
+        if not project_file:
+            return JsonResponse({"status": "fail", "message": "Project file not found"}, status=404)
+
+        # Create the annotation
+        annotation = Annotation.objects.create(
+            team=project_file,
+            page_number=data.get("page", 1),
+            annotation_type=data.get("annotation_type", "highlight"),
+            x=float(data.get("x", 0)),
+            y=float(data.get("y", 0)),
+            width=float(data.get("width", 0)),
+            height=float(data.get("height", 0)),
+            color=data.get("color", "#FFFF00"),
+            selected_text=data.get("selected_text", ""),
+            comment=data.get("comment", ""),
+            mentor=mentor_name
+        )
+
+        return JsonResponse({
+            "status": "success",
+            "annotation_id": annotation.id,
+            "message": "Annotation saved"
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"status": "fail", "message": str(e)}, status=500)
+
+
+# ─────────────────────────────────────────────
+# NEW: API - Get Annotations
+# ─────────────────────────────────────────────
+def get_annotations(request):
+    """
+    Get all annotations for a specific document and mentor.
+    Query params: doc_type (abstract/pdf), team_name
+    """
+    mentor_name = request.session.get("mentor_name")
+    doc_type = request.GET.get("doc_type", "abstract")
+    team_name = request.GET.get("team_name")
+
+    if not team_name:
+        allocation = AllocationResult.objects.filter(mentor_name=mentor_name).first()
+        if not allocation:
+            return JsonResponse({"status": "fail", "message": "No allocation"}, status=404)
+        team_name = allocation.team_name
+
+    project_file = ProjectFile.objects.filter(
+        team_name=team_name,
+        file_type=doc_type
+    ).first()
+
+    if not project_file:
+        return JsonResponse({"annotations": []})
+
+    annotations = Annotation.objects.filter(
+        team=project_file,
+        mentor=mentor_name
+    ).order_by('page_number', 'created_at')
+
+    data = []
+    for ann in annotations:
+        data.append({
+            "id": ann.id,
+            "page": ann.page_number,
+            "annotation_type": ann.annotation_type,
+            "x": ann.x,
+            "y": ann.y,
+            "width": ann.width,
+            "height": ann.height,
+            "color": ann.color,
+            "selected_text": ann.selected_text,
+            "comment": ann.comment,
+            "mentor": ann.mentor,
+            "created_at": ann.created_at.isoformat()
+        })
+
+    return JsonResponse({
+        "status": "success",
+        "annotations": data,
+        "count": len(data)
+    })
+
+
+# ─────────────────────────────────────────────
+# NEW: API - Delete Annotation
+# ─────────────────────────────────────────────
+@csrf_exempt
+@require_http_methods(["POST"])
+def delete_annotation(request):
+    """
+    Delete a single annotation by ID.
+    """
+    try:
+        data = json.loads(request.body)
+        annotation_id = data.get("annotation_id")
+        mentor_name = request.session.get("mentor_name")
+
+        if not annotation_id:
+            return JsonResponse({"status": "fail", "message": "annotation_id required"}, status=400)
+
+        deleted, _ = Annotation.objects.filter(
+            id=annotation_id,
+            mentor=mentor_name
+        ).delete()
+
+        if deleted:
+            return JsonResponse({"status": "success", "message": "Annotation deleted"})
+        else:
+            return JsonResponse({"status": "fail", "message": "Annotation not found"}, status=404)
+
+    except Exception as e:
+        return JsonResponse({"status": "fail", "message": str(e)}, status=500)
+
+
+# ─────────────────────────────────────────────
+# NEW: API - Update Annotation (Comment)
+# ─────────────────────────────────────────────
+@csrf_exempt
+@require_http_methods(["POST"])
+def update_annotation(request):
+    """
+    Update an annotation's comment or color.
+    """
+    try:
+        data = json.loads(request.body)
+        annotation_id = data.get("annotation_id")
+        mentor_name = request.session.get("mentor_name")
+
+        annotation = Annotation.objects.filter(
+            id=annotation_id,
+            mentor=mentor_name
+        ).first()
+
+        if not annotation:
+            return JsonResponse({"status": "fail", "message": "Annotation not found"}, status=404)
+
+        if "comment" in data:
+            annotation.comment = data["comment"]
+        if "color" in data:
+            annotation.color = data["color"]
+
+        annotation.save()
+
+        return JsonResponse({
+            "status": "success",
+            "message": "Annotation updated"
+        })
+
+    except Exception as e:
+        return JsonResponse({"status": "fail", "message": str(e)}, status=500)
+
+
+# ─────────────────────────────────────────────
+# OPTIONAL: Export Annotated PDF (Phase 6)
+# ─────────────────────────────────────────────
+def export_annotated_pdf(request):
+    """
+    Generate a PDF with annotations burned in.
+    Called ONLY when user explicitly clicks 'Download Reviewed PDF'.
+    """
+    import requests
+    from io import BytesIO
+    
+    mentor_name = request.session.get("mentor_name")
+    doc_type = request.GET.get("doc_type", "abstract")
+    
+    allocation = AllocationResult.objects.filter(mentor_name=mentor_name).first()
+    if not allocation:
+        return JsonResponse({"status": "fail", "message": "No allocation"}, status=404)
+
+    team_name = allocation.team_name
+    
+    project_file = ProjectFile.objects.filter(
+        team_name=team_name,
+        file_type=doc_type
+    ).first()
+
+    if not project_file:
+        return JsonResponse({"status": "fail", "message": "File not found"}, status=404)
+
+    # Get original PDF
+    pdf_response = requests.get(project_file.cloudinary_url, timeout=30)
+    if pdf_response.status_code != 200:
+        return JsonResponse({"status": "fail", "message": "Could not fetch PDF"}, status=500)
+
+    # Get annotations
+    annotations = Annotation.objects.filter(
+        team=project_file,
+        mentor=mentor_name
+    ).order_by('page_number')
+
+    # TODO: Use reportlab or pypdf to overlay annotations on the PDF
+    # Placeholder - implement actual PDF generation using reportlab, pypdf, or pdfrw
+    
+    return JsonResponse({
+        "status": "success",
+        "message": "Export functionality ready - implement PDF overlay logic",
+        "annotations_count": annotations.count()
+    })
+
+
+# ─────────────────────────────────────────────
+# KEEP: Rename your OLD zero_review to this for backup
+# ─────────────────────────────────────────────
+def zero_review_legacy(request):
+    """
+    BACKUP: Old HTML-conversion zero_review.
+    Keep this during transition, remove once PDF.js version is stable.
+    """
+    # === PASTE YOUR ENTIRE OLD zero_review() CODE HERE ===
+    pass
+
 from django.http import FileResponse, Http404
 
 def serve_temp_html(request, team, filename):
-    print(f"[DEBUG] serve_temp_html → team={team}, file={filename}")
-
     html_path = os.path.join(
         settings.MEDIA_ROOT,
         "temp_html",
         team,
         filename
     )
-
-    print(f"[DEBUG] Absolute HTML path: {html_path}")
-
     if not os.path.exists(html_path):
-        print("[ERROR] HTML file not found")
         raise Http404("HTML file not found")
-
     return FileResponse(
         open(html_path, "rb"),
         content_type="text/html"
     )
 
-
-
-import requests as http_requests
+import json
 import os
+import requests
+import subprocess
+import re
 from django.http import JsonResponse
-from pypdf import PdfReader  # pip install pypdf
-
-def get_pdf_dimensions_from_original(team_name, doc_type):
-    """
-    Extract exact page dimensions from the original PDF file.
-    Returns: (width_in_inches, height_in_inches)
-    """
-    try:
-        folder_name = team_name.replace(" ", "_")
-        temp_dir = os.path.join(settings.MEDIA_ROOT, "temp_html", folder_name)
-        
-        # 🔥 UPDATED: Map doc_type to correct file suffix
-        # doc_type "abstract" -> "Abstract", doc_type "pdf" -> "Report"
-        if doc_type == "abstract":
-            file_suffix = "Abstract"
-        elif doc_type == "pdf":
-            file_suffix = "Report"
-        else:
-            file_suffix = doc_type.capitalize()  # fallback
-        
-        original_pdf_path = os.path.join(temp_dir, f"{folder_name}_{file_suffix}.pdf")
-
-        # Check if original exists locally
-        if not os.path.exists(original_pdf_path):
-            # Try to find the original from ProjectFile
-            project_file = ProjectFile.objects.filter(
-                team_name=team_name,
-                file_type=doc_type  # "abstract" or "pdf"
-            ).first()
-
-            if project_file and project_file.cloudinary_url:
-                # Download original to get dimensions
-                import requests
-                r = requests.get(project_file.cloudinary_url, timeout=20)
-                if r.status_code == 200:
-                    # Save temporarily to read dimensions
-                    temp_pdf = os.path.join(temp_dir, f"temp_original_{doc_type}.pdf")
-                    os.makedirs(temp_dir, exist_ok=True)
-                    with open(temp_pdf, "wb") as f:
-                        f.write(r.content)
-                    original_pdf_path = temp_pdf
-                else:
-                    print(f"❌ Failed to download original {doc_type} PDF: HTTP {r.status_code}")
-                    return None, None
-            else:
-                print(f"❌ No ProjectFile found for {team_name} with type {doc_type}")
-                return None, None
-
-        # Read PDF dimensions using pypdf
-        from pypdf import PdfReader  # or: from PyPDF2 import PdfReader
-        reader = PdfReader(original_pdf_path)
-        if len(reader.pages) == 0:
-            print(f"❌ PDF has no pages: {original_pdf_path}")
-            return None, None
-
-        page = reader.pages[0]
-
-        # Get mediabox (physical page size) in points (1/72 inch)
-        mediabox = page.mediabox
-        width_points = float(mediabox.width)
-        height_points = float(mediabox.height)
-
-        # Convert points to inches (1 point = 1/72 inch)
-        width_inches = width_points / 72.0
-        height_inches = height_points / 72.0
-
-        # Check for rotation - if rotated 90 or 270, swap dimensions
-        rotation = page.get('/Rotate', 0)
-        if rotation in [90, 270, -90, -270]:
-            width_inches, height_inches = height_inches, width_inches
-
-        print(f"📐 Original {doc_type.upper()} PDF dimensions: {width_inches:.2f}in x {height_inches:.2f}in ({width_points:.0f}pt x {height_points:.0f}pt)")
-
-        # Cleanup temp file if created
-        temp_pdf = os.path.join(temp_dir, f"temp_original_{doc_type}.pdf")
-        if os.path.exists(temp_pdf):
-            os.remove(temp_pdf)
-
-        return width_inches, height_inches
-
-    except Exception as e:
-        print(f"⚠️ Could not extract {doc_type} PDF dimensions: {e}")
-        import traceback
-        traceback.print_exc()
-        return None, None
-
-def save_highlighted_html(request):
-    """
-    Save highlighted HTML, convert to PDF using Gotenberg Docker
-    with exact dimensions from original PDF
-    """
-    print("\n🎨 save_highlighted_html CALLED")
-
-    if request.method != "POST":
-        return JsonResponse({"status": "fail", "message": "Invalid request"}, status=400)
-
-    mentor_name = request.session.get("mentor_name")
-    allocation = AllocationResult.objects.filter(mentor_name=mentor_name).first()
-
-    if not allocation:
-        return JsonResponse({"status": "fail", "message": "No allocation"}, status=404)
-
-    team_name = allocation.team_name
-    folder_name = team_name.replace(" ", "_")
-
-    try:
-        data = json.loads(request.body)
-        html_content = data.get("html", "")
-        doc_type = data.get("doc_type", "abstract")  # "abstract" or "pdf"
-        
-        print(f"Saving highlights for: {doc_type}, length: {len(html_content)} chars")
-
-        # Setup paths
-        temp_dir = os.path.join(settings.MEDIA_ROOT, "temp_html", folder_name)
-        os.makedirs(temp_dir, exist_ok=True)
-
-        # 🔥 UPDATED: Dynamic file naming based on doc_type
-        file_suffix = "Abstract" if doc_type == "abstract" else "Report"
-        html_path = os.path.join(temp_dir, f"{folder_name}_{file_suffix}.html")
-        pdf_path = os.path.join(temp_dir, f"{folder_name}_{file_suffix}.pdf")
-
-        # Clean old files
-        for old_file in [html_path, pdf_path]:
-            if os.path.exists(old_file):
-                os.remove(old_file)
-
-        # Save HTML to file
-        with open(html_path, "w", encoding="utf-8") as f:
-            f.write(html_content)
-        
-        print(f"✅ Saved HTML: {html_path}")
-
-        # =====================================================
-        # 🔥 UPDATED: Get exact dimensions from original PDF based on doc_type
-        # =====================================================
-        pdf_width, pdf_height = get_pdf_dimensions_from_original(team_name, doc_type)
-        
-        # Fallback to A4 if extraction failed
-        if pdf_width is None or pdf_height is None:
-            pdf_width, pdf_height = 8.27, 11.69  # A4
-            print(f"⚠️ Using default A4 dimensions: {pdf_width}in x {pdf_height}in")
-
-        # =====================================================
-        # HTML → PDF using Gotenberg with exact dimensions
-        # =====================================================
-        gotenberg_url = "http://localhost:3000/forms/chromium/convert/html"
-        
-        # Check if Gotenberg is running
-        try:
-            health_check = http_requests.get("http://localhost:3000/health", timeout=2)
-            if health_check.status_code != 200:
-                raise Exception("Gotenberg health check failed")
-            print("✅ Gotenberg is running")
-        except Exception as e:
-            print(f"❌ Gotenberg not accessible: {e}")
-            return JsonResponse({
-                "status": "fail",
-                "message": "PDF conversion service not available"
-            }, status=503)
-
-        # Perform conversion with exact PDF dimensions
-        try:
-            # CRITICAL: Gotenberg requires the file to be named 'index.html' in the form
-            files = {
-                'files': ('index.html', html_content.encode('utf-8'), 'text/html')
-            }
-            
-            # Form data with exact dimensions from original PDF
-            form_data = {
-                'paperWidth': str(pdf_width),      # Use extracted width
-                'paperHeight': str(pdf_height),    # Use extracted height
-                'marginTop': '0',
-                'marginBottom': '0',
-                'marginLeft': '0',
-                'marginRight': '0',
-                'printBackground': 'true',
-                'preferCssPageSize': 'false',    # Use our exact dimensions, not CSS
-                'scale': '1.0'
-            }
-            
-            print(f"🔥 Converting with exact dimensions: {pdf_width}in x {pdf_height}in")
-            
-            response = http_requests.post(
-                gotenberg_url,
-                files=files,
-                data=form_data,
-                timeout=60
-            )
-            response.raise_for_status()
-            
-            with open(pdf_path, 'wb') as f:
-                f.write(response.content)
-                
-            print(f"✅ PDF created: {pdf_path} ({len(response.content)} bytes)")
-            
-        except Exception as conv_error:
-            print(f"❌ Conversion failed: {conv_error}")
-            import traceback
-            traceback.print_exc()
-            return JsonResponse({
-                "status": "fail",
-                "message": f"PDF conversion failed: {str(conv_error)}"
-            }, status=500)
-
-        # =====================================================
-        # Upload to Cloudinary
-        # =====================================================
-        if os.path.exists(pdf_path):
-            print("🔥 Uploading to Cloudinary...")
-            
-            upload_result = cloudinary.uploader.upload(
-                pdf_path,
-                public_id=f"{folder_name}_{file_suffix}",
-                resource_type="raw",
-                folder=f"teams/{folder_name}/remarks",
-                overwrite=True
-            )
-            
-            cloudinary_url = upload_result.get("secure_url")
-            print(f"✅ Uploaded: {cloudinary_url}")
-
-            # Save to database
-            # 🔥 UPDATED: Get original file based on doc_type
-            original_file = ProjectFile.objects.filter(
-                team_name=team_name,
-                file_type=doc_type  # "abstract" or "pdf"
-            ).first()
-
-            ProjectRemarks.objects.update_or_create(
-                team_name=team_name,
-                review_type="zero",
-                file_type=doc_type,  # 🔥 Save with correct type
-                mentor_name=mentor_name,
-                defaults={
-                    'cloudinary_url': cloudinary_url,
-                    'original_file': original_file
-                }
-            )
-            print("✅ Saved to ProjectRemarks")
-
-            return JsonResponse({
-                "status": "success",
-                "url": cloudinary_url,
-                "doc_type": doc_type,
-                "dimensions": {
-                    "width": pdf_width,
-                    "height": pdf_height
-                },
-                "message": "Highlights saved with exact PDF dimensions"
-            })
-
-        return JsonResponse({
-            "status": "fail",
-            "message": "PDF file not created"
-        }, status=500)
-
-    except Exception as e:
-        print(f"❌ ERROR: {e}")
-        import traceback
-        traceback.print_exc()
-        return JsonResponse({"status": "fail", "message": str(e)}, status=500)
-
-def get_highlighted_document(request):
-    """
-    Generic: Get remarks or original document for any type
-    """
-    print("\n📄 get_highlighted_document CALLED")
-
-    mentor_name = request.session.get("mentor_name")
-    allocation = AllocationResult.objects.filter(mentor_name=mentor_name).first()
-
-    if not allocation:
-        return JsonResponse({"status": "fail", "message": "No allocation"}, status=404)
-
-    team_name = allocation.team_name
-    doc_type = request.GET.get("type", "abstract")
-
-    print(f"Fetching: {doc_type}")
-
-    # Check for remarks version first
-    remarks = ProjectRemarks.objects.filter(
-        team_name=team_name,
-        file_type=doc_type
-    ).select_related('original_file').first()
-
-    if remarks:
-        return JsonResponse({
-            "status": "success",
-            "url": remarks.cloudinary_url,
-            "has_remarks": True,
-            "doc_type": doc_type,
-            "mentor": remarks.mentor_name,
-            "review_type": remarks.review_type,
-            "updated_at": remarks.updated_at.isoformat()
-        })
-
-    # Return original
-    original = ProjectFile.objects.filter(
-        team_name=team_name,
-        file_type=doc_type
-    ).first()
-
-    if original:
-        return JsonResponse({
-            "status": "success",
-            "url": original.cloudinary_url,
-            "has_remarks": False,
-            "doc_type": doc_type
-        })
-
-    return JsonResponse({"status": "fail", "message": "Not found"}, status=404)
-
+from django.shortcuts import render
+from django.conf import settings
+from .models import ZerothReviewRemark, AllocationResult, ProjectFile
 
 def zero_base(request):
     print("\n🟢 zero_base CALLED")
-
     mentor_name = request.session.get("mentor_name")
     username = request.session.get("username")
-
     print("mentor_name:", mentor_name)
     print("username:", username)
     print("method:", request.method)
 
-    # =====================================================
-    # POST → SAVE ZERO BASE REMARKS (for Report/PDF)
-    # =====================================================
+    # ==================== POST: SAVE REMARKS ====================
     if request.method == "POST":
         try:
-            data = json.loads(request.body)
+            raw_body = request.body.decode('utf-8')
+            data = json.loads(raw_body)
             remarks = data.get("remarks", [])
-            deleted = data.get("deleted", [])  # 🔥 Added deletion support like zero_review
+            deleted = data.get("deleted", [])
             print("Incoming remarks:", len(remarks))
             print("Deleted headings:", len(deleted))
 
-            allocation = AllocationResult.objects.filter(
-                mentor_name=mentor_name
-            ).first()
-
+            allocation = AllocationResult.objects.filter(mentor_name=mentor_name).first()
             if not allocation:
                 return JsonResponse({"status": "fail", "message": "Team not found"}, status=404)
 
             team_name = allocation.team_name
-            inserted = 0
-            updated = 0
-            deleted_count = 0  # 🔥 Track deletions
+            inserted = updated = deleted_count = 0
 
-            # 🔥 Handle deletions first (like zero_review)
-            if deleted and len(deleted) > 0:
+            # Handle deletions
+            if deleted:
                 for heading in deleted:
                     heading = heading.strip()
                     if not heading:
                         continue
-                    
                     count, _ = ZerothReviewRemark.objects.filter(
-                        team_name=team_name,
-                        mentor_name=mentor_name,
-                        heading=heading,
-                        file_type="pdf"  # 🔥 Only delete PDF type remarks
+                        team_name=team_name, mentor_name=mentor_name, 
+                        heading=heading, file_type="pdf"
                     ).delete()
-                    
-                    if count > 0:
-                        deleted_count += count
-                        print(f"🗑️ Deleted: {heading} ({count} rows)")
-                    else:
-                        count2, _ = ZerothReviewRemark.objects.filter(
-                            team_name=team_name,
-                            mentor_name=mentor_name,
-                            heading__icontains=heading[:50],
-                            file_type="pdf"
+                    if count == 0:
+                        count, _ = ZerothReviewRemark.objects.filter(
+                            team_name=team_name, mentor_name=mentor_name,
+                            heading__icontains=heading[:50], file_type="pdf"
                         ).delete()
-                        if count2 > 0:
-                            deleted_count += count2
-                            print(f"🗑️ Deleted (icontains): {heading[:50]}... ({count2} rows)")
+                    deleted_count += count
 
-            # Handle upserts
+            # Handle saves/updates
             for r in remarks:
                 heading = (r.get("heading") or "").strip()
                 remark = (r.get("remark") or "").strip()
                 color = r.get("color") or "#ffe066"
-
+                coordinates = r.get("coordinates") or {}
+                
+                print(f"🔥 Processing remark '{heading[:40]}...' with coordinates:", coordinates)
+                
                 if not heading or not remark:
                     continue
+
+                # Convert coordinates to JSON string
+                if isinstance(coordinates, dict):
+                    coords_json = json.dumps(coordinates)
+                elif isinstance(coordinates, str):
+                    coords_json = coordinates
+                else:
+                    coords_json = "{}"
 
                 obj, created = ZerothReviewRemark.objects.update_or_create(
                     team_name=team_name,
                     mentor_name=mentor_name,
                     heading=heading,
-                    file_type="pdf",  # 🔥 Differentiator for Report remarks
+                    file_type="pdf",  # 🔥 BASE PAPER = pdf type
                     defaults={
                         "remark": remark,
-                        "color": color
-                    }
+                        "color": color,
+                        "coordinates": coords_json,
+                    },
                 )
-
+                print(f"✅ Saved record ID={obj.id}, coords={obj.coordinates[:100] if obj.coordinates else 'EMPTY'}")
+                
                 if created:
                     inserted += 1
                 else:
@@ -2571,7 +2367,7 @@ def zero_base(request):
                 "status": "success",
                 "inserted": inserted,
                 "updated": updated,
-                "deleted": deleted_count  # 🔥 Return deletion count
+                "deleted": deleted_count,
             })
 
         except Exception as e:
@@ -2580,167 +2376,43 @@ def zero_base(request):
             traceback.print_exc()
             return JsonResponse({"status": "fail", "message": str(e)}, status=500)
 
-    # =====================================================
-    # GET → DISPLAY PAGE
-    # =====================================================
-    allocation = AllocationResult.objects.filter(
-        mentor_name=mentor_name
-    ).first()
-
+    # ==================== GET: DISPLAY PAGE ====================
+    allocation = AllocationResult.objects.filter(mentor_name=mentor_name).first()
     if not allocation:
         return render(request, "mentor/review_men/men_doc/zero_paper/zero_base.html")
 
     team_name = allocation.team_name
-    folder_name = team_name.replace(" ", "_")
-
     print("Team:", team_name)
 
-    # =====================================================
-    # 🔥 LOAD SAVED REMARKS (only for PDF/Report file_type)
-    # =====================================================
+    # Load remarks for BASE PAPER (file_type="pdf")
     saved_remarks = ZerothReviewRemark.objects.filter(
-        team_name=team_name,
-        mentor_name=mentor_name,
-        file_type="pdf"  # 🔥 Only fetch Report remarks
+        team_name=team_name, mentor_name=mentor_name, file_type="pdf"
     ).order_by("id")
+    print("🔥 Loaded base paper remarks:", saved_remarks.count())
 
-    print("🔥 Loaded remarks:", saved_remarks.count())
+    # Parse coordinates
     for r in saved_remarks:
-        print(" ->", r.heading)
-
-    # =====================================================
-    # 🔥 CHECK FOR REMARKS VERSION FIRST (ProjectRemarks) - LIKE ZERO_REVIEW
-    # =====================================================
-    remarks_file = ProjectRemarks.objects.filter(
-        team_name=team_name,
-        review_type="zero",
-        file_type="pdf"  # 🔥 PDF type for report
-    ).order_by('-updated_at').first()
-
-    # SINGLE FILE NAME - no _Original or _Remarks suffix
-    pdf_name = f"{folder_name}_Report.pdf"  # 🔥 Report naming
-    html_name = f"{folder_name}_Report.html"
-    
-    temp_dir = os.path.join(settings.MEDIA_ROOT, "temp_html", folder_name)
-    docker_temp_dir = os.path.abspath(temp_dir).replace("\\", "/")
-    os.makedirs(temp_dir, exist_ok=True)
-
-    pdf_path = os.path.join(temp_dir, pdf_name)
-    html_path = os.path.join(temp_dir, html_name)
-
-    if remarks_file:
-        print(f"✅ Using remarks version: {remarks_file.cloudinary_url}")
-        cloud_url = remarks_file.cloudinary_url
-        has_highlights = True
-        
-        # Delete old original files if remarks exist (cleanup)
-        old_original_pdf = os.path.join(temp_dir, f"{folder_name}_Report_Original.pdf")
-        old_original_html = os.path.join(temp_dir, f"{folder_name}_Report_Original.html")
-        for old_file in [old_original_pdf, old_original_html]:
-            if os.path.exists(old_file):
-                os.remove(old_file)
-                print(f"🗑️ Cleaned old: {os.path.basename(old_file)}")
-    else:
-        # Fall back to original
-        print("⚠️ No remarks found, using original")
-        project_file = ProjectFile.objects.filter(
-            team_name=team_name,
-            file_type="pdf"  # 🔥 Report file
-        ).first()
-
-        if not project_file:
-            return render(request, "mentor/review_men/men_doc/zero_paper/zero_base.html", {
-                "report_available": False
-            })
-
-        cloud_url = project_file.cloudinary_url
-        has_highlights = False
-
-    print(f"Local files: {pdf_name}, {html_name}")
-
-    # =====================================================
-    # 🔥 DOWNLOAD PDF (always overwrite if different source) - LIKE ZERO_REVIEW
-    # =====================================================
-    needs_download = True
-    
-    # Check if existing file matches current source
-    if os.path.exists(pdf_path):
-        # Always re-download to ensure correct version
-        os.remove(pdf_path)
-        print("🗑️ Removed old PDF to re-download")
-    
-    if needs_download:
         try:
-            r = requests.get(cloud_url, timeout=20)
-            r.raise_for_status()
-            with open(pdf_path, "wb") as f:
-                f.write(r.content)
-            print(f"✅ PDF downloaded: {pdf_name} ({len(r.content)} bytes)")
+            if r.coordinates and r.coordinates.strip() and r.coordinates != "{}":
+                r.parsed_coordinates = json.loads(r.coordinates)
+            else:
+                r.parsed_coordinates = {}
         except Exception as e:
-            print("❌ PDF DOWNLOAD ERROR:", e)
-            return render(request, "mentor/review_men/men_doc/zero_paper/zero_base.html", {
-                "report_available": False
-            })
+            print(f"❌ Failed to parse coordinates: {e}")
+            r.parsed_coordinates = {}
 
-    # =====================================================
-    # 🔥 PDF → HTML (overwrite if exists to ensure fresh conversion) - LIKE ZERO_REVIEW
-    # =====================================================
-    if os.path.exists(html_path):
-        os.remove(html_path)
-        print("🗑️ Removed old HTML for fresh conversion")
+    # Get PDF URL for base paper (report)
+    project_file = ProjectFile.objects.filter(
+        team_name=team_name, file_type="pdf"
+    ).first()
+    
+    if not project_file:
+        return render(request, "mentor/review_men/men_doc/zero_paper/zero_base.html", {
+            "report_available": False
+        })
 
-    try:
-        subprocess.run(
-            [
-                "docker", "run", "--rm",
-                "-v", f"{docker_temp_dir}:/pdf",
-                "pdf2html_local",
-                pdf_name,
-                "--dest-dir", "/pdf"
-            ],
-            check=True
-        )
-        print(f"✅ PDF converted to HTML: {html_name}")
-    except Exception as e:
-        print("❌ PDF→HTML ERROR:", e)
+    pdf_url = project_file.cloudinary_url
 
-    # =====================================================
-    # READ HTML CONTENT
-    # =====================================================
-    html_content = ""
-    try:
-        with open(html_path, "r", encoding="utf-8") as f:
-            html_content = f.read()
-    except Exception as e:
-        print("❌ HTML READ ERROR:", e)
-
-    # =====================================================
-    # HEADING EXTRACTION (Same logic as zero_review)
-    # =====================================================
-    main_heading_lines = []
-    sub_headings = []
-
-    lines = re.findall(r'>([^<]{2,120})<', html_content)
-
-    for line in lines:
-        text = line.strip()
-        if not text:
-            continue
-
-        if is_valid_heading(text):
-            if not main_heading_lines:
-                main_heading_lines.append(text)
-            elif text not in sub_headings:
-                sub_headings.append(text)
-        elif looks_like_early_heading(text):
-            if text not in sub_headings:
-                sub_headings.append(text)
-
-    main_heading = " ".join(main_heading_lines)
-
-    # =====================================================
-    # FINAL RENDER
-    # =====================================================
     return render(
         request,
         "mentor/review_men/men_doc/zero_paper/zero_base.html",
@@ -2748,15 +2420,11 @@ def zero_base(request):
             "mentor_name": mentor_name,
             "username": username,
             "team_name": team_name,
-            "main_heading": main_heading,
-            "sub_headings": sub_headings,
-            "html_content": html_content,
-            "saved_remarks": saved_remarks,   # 🔥 Report-specific remarks
-            "has_highlights": has_highlights,  # 🔥 Added like zero_review
-            "report_available": True
-        }
+            "pdf_url": pdf_url,
+            "saved_remarks": saved_remarks,
+            "report_available": True,
+        },
     )
-
 
 def zero_ppt(request):
     print("\n🟢 zero_ppt CALLED")
@@ -2830,6 +2498,7 @@ def zero_ppt(request):
             "team_name": team_name,
         }
     )
+
 
 def one_ppt(request):
     print("\n🟢 one_ppt CALLED")
@@ -3312,81 +2981,137 @@ def mentor_list(request):
     mentors = Mentor.objects.all()
     return render(request, "coordinator/men_list.html", {"mentors": mentors})
 
-def team_list(request):
-    # GET request → show page
-    if request.method == "GET":
-        teams = Team.objects.all()
-        approved_teams = ApprovedTeam.objects.all()
-        modified_teams = ModifyRequest.objects.all()
-        return render(request, "coordinator/team_list.html", {
-            "teams": teams,
-            "approved_teams": approved_teams,
-            "modified_teams": modified_teams
-        })
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.shortcuts import render, get_object_or_404
+from django.contrib import messages
+import json
 
-    # POST request → from Confirm button
+@require_http_methods(["GET", "POST"])
+def team_list(request):
+    if request.method == "POST":
+        approved_ids = request.POST.getlist('approved_ids')
+        modified_ids = request.POST.getlist('modified_ids')
+        
+        approved_count = 0
+        modified_count = 0
+        
+        # Approve teams
+        for team_id in approved_ids:
+            team = Team.objects.get(id=team_id)
+            team.status = 'approved'
+            team.needs_update_problem = False
+            team.needs_update_domain = False
+            team.needs_update_members = False
+            team.modification_reason = ''
+            team.save()
+            approved_count += 1
+        
+        # Handle modifications - clear only selected fields, save ticks and reason
+        for team_id in modified_ids:
+            team = Team.objects.get(id=team_id)
+            fields_json = request.POST.get(f'modify_fields_{team_id}', '[]')
+            fields = json.loads(fields_json)
+            reason = request.POST.get(f'modify_reason_{team_id}', '')
+            
+            # Reset all flags first
+            team.needs_update_problem = False
+            team.needs_update_domain = False
+            team.needs_update_members = False
+            
+            # Set only selected fields
+            if 'problem_statement' in fields:
+                team.project_title = ''
+                team.needs_update_problem = True
+            
+            if 'domain' in fields:
+                team.domain = ''
+                team.needs_update_domain = True
+            
+            if 'team_members' in fields:
+                leader = team.members.split(',')[0] if team.members else ''
+                team.members = leader
+                team.member_names = ''
+                team.needs_update_members = True
+            
+            team.modification_reason = reason
+            team.status = 'pending_update'
+            team.save()
+            modified_count += 1
+        
+        return JsonResponse({
+            'success': True,
+            'approved_count': approved_count,
+            'modified_count': modified_count
+        })
+    
+    teams = Team.objects.all().order_by('-created_at')
+    
+    # Count stats
+    approved_count = teams.filter(status='approved').count()
+    pending_count = teams.filter(status='pending').count()
+    modify_count = teams.filter(status='pending_update').count()
+    
+    return render(request, 'coordinator/team_list.html', {
+        'teams': teams,
+        'approved_count': approved_count,
+        'pending_count': pending_count,
+        'modify_count': modify_count,
+    })
+
+
+def student_update_team(request):
+    """
+    Call this from student side after they update their team.
+    Changes status from 'pending_update' to 'updated' to notify coordinator.
+    """
     if request.method == "POST":
         try:
-            data = json.loads(request.body)
-            approved = data.get("approved", [])
-            modified = data.get("modified", [])
-
-            # ✅ Handle Approved Teams (no duplicates)
-            for project_title in approved:
-                team = Team.objects.filter(project_title=project_title).first()
-                if team and not ApprovedTeam.objects.filter(project_title=project_title).exists():
-                    ApprovedTeam.objects.create(
-                        project_title=team.project_title,
-                        student_class=team.student_class,
-                        domain=team.domain,
-                        members=team.members,
-                        member_names=team.member_names,
-                    )
-
-            # ✅ Handle Modified Teams (no duplicates)
-            for item in modified:
-                project_title = item.get("project")
-                change_type = item.get("changeType", "")
-                team = Team.objects.filter(project_title=project_title).first()
-
-                # if modification not already requested for this project
-                if team and not ModifyRequest.objects.filter(project_title=project_title).exists():
-                    ModifyRequest.objects.create(
-                        project_title=team.project_title,
-                        student_class=team.student_class,
-                        domain=team.domain,
-                        members=team.members,
-                        member_names=team.member_names,
-                        change_type=change_type,
-                    )
-
-            return JsonResponse({"status": "success"})
-
+            body = request.body.decode("utf-8")
+            data = json.loads(body) if body else {}
+            team_id = data.get('team_id')
+            
+            team = get_object_or_404(Team, id=team_id)
+            
+            # Check if all requested updates are done
+            all_updated = True
+            if team.needs_update_problem and not team.project_title:
+                all_updated = False
+            if team.needs_update_domain and not team.domain:
+                all_updated = False
+            if team.needs_update_members and len(team.members.split(',')) < 2:
+                all_updated = False
+            
+            if all_updated:
+                team.status = 'updated'  # Notify coordinator that student has updated
+                team.save()
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Team updated. Coordinator will be notified.'
+                })
+            
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Please complete all requested updates.'
+            })
+            
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=400)
-        
-def approve_team(request, project_title):
-    team = get_object_or_404(Team, project_title=project_title)
+            return JsonResponse({'status': 'error', 'message': str(e)})
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'})
 
-    # 🧹 Step 1: Remove any pending modify request for same team
-    ModifyRequest.objects.filter(project_title=project_title).delete()
 
-    # 🧩 Step 2: Add/update in approved table
-    approved, created = ApprovedTeam.objects.update_or_create(
-        project_title=team.project_title,
-        defaults={
-            "student_class": team.student_class,
-            "domain": team.domain,
-            "members": team.members,
-            "member_names": team.member_names,
-        }
-    )
-
-    if created:
-        messages.success(request, f"'{team.project_title}' approved successfully!")
-    else:
-        messages.info(request, f"'{team.project_title}' was already approved — details updated!")
-
+def approve_team(request, team_id):
+    """Direct approve from popup or other views"""
+    team = get_object_or_404(Team, id=team_id)
+    team.status = 'approved'
+    team.needs_update_problem = False
+    team.needs_update_domain = False
+    team.needs_update_members = False
+    team.modification_reason = ''
+    team.save()
+    
+    messages.success(request, f"'{team.project_title}' approved successfully!")
     return redirect("team_list")
 
 def modify_team(request, project_title):
@@ -3530,6 +3255,10 @@ def upload_to_cloudinary3(file_obj, file_type, folder_name):
 # -----------------------------
 # View: Student Upload (Zero Review)
 # -----------------------------
+import json
+from django.shortcuts import render, redirect
+from .models import Team, ProjectFile, ZerothReviewRemark, ProjectRemarks
+
 def zero_ma1(request):
     # ---------------------------
     # 1️⃣ Get Student Session
@@ -3609,45 +3338,42 @@ def zero_ma1(request):
     # ---------------------------
     # 6️⃣ Get Zeroth Review Remarks (GROUPED BY FILE TYPE)
     # ---------------------------
-    # Initialize remarks dict for each file type
     remarks_by_type = {
         "abstract": [],
         "pdf": [],
         "ppt": []
     }
     
-    # Fetch all remarks for this team
     remarks_qs = ZerothReviewRemark.objects.filter(team_name=team_title).order_by("created_at")
     
     for r in remarks_qs:
+        # 🔥 PARSE COORDINATES for frontend rendering
+        parsed_coords = {}
+        try:
+            if r.coordinates and r.coordinates.strip() and r.coordinates != "{}":
+                if isinstance(r.coordinates, str):
+                    parsed_coords = json.loads(r.coordinates)
+                elif isinstance(r.coordinates, dict):
+                    parsed_coords = r.coordinates
+        except Exception as e:
+            print(f"❌ Failed to parse coordinates: {e}")
+            parsed_coords = {}
+        
         remark_data = {
             "heading": r.heading,
             "remark": r.remark,
             "color": r.color,
             "created_at": r.created_at,
-            "mentor_name": r.mentor_name if hasattr(r, 'mentor_name') else None
+            "mentor_name": r.mentor_name,
+            "coordinates": parsed_coords,  # 🔥 Pass parsed coordinates to template
         }
         
-        # Determine which file type this remark belongs to
-        # Option 1: If your model has a file_type field
-        if hasattr(r, 'file_type') and r.file_type:
-            if r.file_type in remarks_by_type:
-                remarks_by_type[r.file_type].append(remark_data)
-            else:
-                # Default to abstract if unknown
-                remarks_by_type["abstract"].append(remark_data)
+        # Determine file type
+        file_type = getattr(r, 'file_type', 'abstract')
+        if file_type in remarks_by_type:
+            remarks_by_type[file_type].append(remark_data)
         else:
-            # Option 2: Parse from heading (e.g., "Abstract: Title" or "Report: Title")
-            heading_lower = r.heading.lower() if r.heading else ""
-            if "abstract" in heading_lower:
-                remarks_by_type["abstract"].append(remark_data)
-            elif "report" in heading_lower or "pdf" in heading_lower:
-                remarks_by_type["pdf"].append(remark_data)
-            elif "ppt" in heading_lower or "presentation" in heading_lower:
-                remarks_by_type["ppt"].append(remark_data)
-            else:
-                # Default to abstract if can't determine
-                remarks_by_type["abstract"].append(remark_data)
+            remarks_by_type["abstract"].append(remark_data)
     
     print("DEBUG: Remarks fetched →", {k: len(v) for k, v in remarks_by_type.items()})
 
@@ -3680,7 +3406,7 @@ def zero_ma1(request):
         "username": username,
         "team_name": team_title,
         "uploaded_files": uploaded_files,
-        "remarks_by_type": remarks_by_type,  # 🆕 Grouped by file type
+        "remarks_by_type": remarks_by_type,
         "highlighted_pdfs": highlighted_pdfs,
     })
 # ============================================
@@ -4082,6 +3808,126 @@ def three_ma1(request):
         "highlighted_pdfs": highlighted_pdfs,
     })
 
+import json
+from django.http import JsonResponse
+from .models import ZerothReviewRemark, AllocationResult
+
+def save_zeroth_remark(request):
+    """
+    Save remarks for a specific file type (abstract/pdf/ppt).
+    Each remark is tied to a specific file type and will only show 
+    when that file type is viewed.
+    """
+    print("🔥 save_zeroth_remark CALLED")
+
+    if request.method != "POST":
+        return JsonResponse({"status": "fail", "message": "Invalid request"})
+
+    mentor_name = request.session.get("mentor_name")
+    print("Mentor:", mentor_name)
+
+    allocation = AllocationResult.objects.filter(
+        mentor_name=mentor_name
+    ).first()
+
+    if not allocation:
+        print("❌ No allocation found")
+        return JsonResponse({"status": "fail", "message": "No team allocated"})
+
+    team_name = allocation.team_name
+    print("Team:", team_name)
+
+    try:
+        data = json.loads(request.body)
+        remarks = data.get("remarks", [])
+        deleted = data.get("deleted", [])
+        
+        file_type = data.get("file_type", "abstract")
+        
+        if file_type not in ["abstract", "pdf", "ppt"]:
+            print(f"⚠️ Invalid file_type '{file_type}', using 'abstract'")
+            file_type = "abstract"
+            
+        print("File type:", file_type)
+        print("Remarks count:", len(remarks))
+        print("Deleted count:", len(deleted))
+        
+    except Exception as e:
+        print("❌ JSON error:", e)
+        return JsonResponse({"status": "fail", "message": "Invalid JSON"})
+
+    inserted = 0
+    updated = 0
+    deleted_count = 0
+
+    # Handle deletions
+    if deleted:
+        for heading in deleted:
+            heading = heading.strip()
+            if not heading:
+                continue
+                
+            print(f"🗑️ Deleting: '{heading}' for {file_type}")
+            
+            deleted_count += ZerothReviewRemark.objects.filter(
+                team_name=team_name,
+                mentor_name=mentor_name,
+                heading=heading,
+                file_type=file_type
+            ).delete()[0]
+
+    # Handle upserts
+    for r in remarks:
+        heading = (r.get("heading") or "").strip()
+        remark = (r.get("remark") or "").strip()
+        color = r.get("color") or "#ffe066"
+        
+        # 🔥 CRITICAL FIX: Extract coordinates from payload
+        coordinates = r.get("coordinates") or {}
+        print(f"🔥 Raw coordinates from frontend: {coordinates}")
+
+        if not heading or not remark:
+            continue
+
+        # 🔥 CRITICAL FIX: Convert coordinates dict to JSON string for TextField
+        if isinstance(coordinates, dict):
+            coords_json = json.dumps(coordinates)
+        elif isinstance(coordinates, str):
+            coords_json = coordinates
+        else:
+            coords_json = "{}"
+        
+        print(f"💾 Saving: '{heading}' for {file_type}")
+        print(f"🔥 Coordinates JSON (first 100 chars): {coords_json[:100]}")
+
+        obj, created = ZerothReviewRemark.objects.update_or_create(
+            team_name=team_name,
+            mentor_name=mentor_name,
+            heading=heading,
+            file_type=file_type,
+            defaults={
+                "remark": remark,
+                "color": color,
+                "coordinates": coords_json,  # 🔥 FIXED: Now saving coordinates!
+            }
+        )
+
+        print(f"✅ Saved record ID={obj.id}, coordinates in DB={obj.coordinates[:100] if obj.coordinates else 'EMPTY'}")
+
+        if created:
+            inserted += 1
+        else:
+            updated += 1
+
+    print(f"✅ Done for {file_type}: {inserted} new, {updated} updated, {deleted_count} deleted")
+    
+    return JsonResponse({
+        "status": "success",
+        "file_type": file_type,
+        "inserted": inserted,
+        "updated": updated,
+        "deleted": deleted_count
+    })
 
 
 from django.http import JsonResponse
