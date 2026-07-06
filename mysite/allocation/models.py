@@ -29,16 +29,37 @@ class Stu_Login(models.Model):
 # =========================
 
 class Team(models.Model):
-    project_title = models.CharField(max_length=100, unique=True)
+    project_title = models.CharField(max_length=100, unique=True, blank=True, null=True)
     student_class = models.CharField(max_length=50)
-    domain = models.CharField(max_length=100)
+    domain = models.CharField(max_length=100, blank=True, null=True)
     members = models.TextField()
     member_names = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    # Leader tracking - stores the student_id of team creator
+    leader_id = models.CharField(max_length=50, blank=True, null=True)
+    
+    # Status tracking
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('pending_update', 'Pending Update'),
+        ('approved', 'Approved'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    
+    # Modification tracking fields (coordinator ticks these)
+    needs_update_problem = models.BooleanField(default=False)
+    needs_update_domain = models.BooleanField(default=False)
+    needs_update_members = models.BooleanField(default=False)
+    
+    # Coordinator feedback reason
+    modification_reason = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return self.project_title
+        return self.project_title or "Untitled Team"
 
+    class Meta:
+        db_table = 'team'  # optional: keeps same table name if migrating
 
 class Mentor_Login(models.Model):
     username = models.CharField(max_length=80, unique=True)
@@ -131,18 +152,26 @@ class ModifyRequest(models.Model):
 # =========================
 # ZEROTH REVIEW REMARK
 # =========================
-
 class ZerothReviewRemark(models.Model):
     team_name = models.CharField(max_length=255)
     mentor_name = models.CharField(max_length=255)
     heading = models.CharField(max_length=255)
     remark = models.TextField()
-    color = models.CharField(max_length=20)
-
-    # ✅ New column to identify pdf / ppt / abstract
-    file_type = models.CharField(max_length=20)
-
+    color = models.CharField(max_length=20, default="#ffe066")
+    file_type = models.CharField(max_length=20, default="abstract")
+    
+    # 🔥 Use TextField to store JSON string (more compatible)
+    coordinates = models.TextField(default="{}", blank=True)
+    
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['team_name', 'mentor_name', 'heading']
+
+    def __str__(self):
+        return f"{self.team_name} - {self.heading[:50]}"
+
 
 class FirstReviewRemark(models.Model):
     team_name = models.CharField(max_length=255)
@@ -301,3 +330,34 @@ class ProjectRemarks(models.Model):
 
     def __str__(self):
         return f"{self.team_name} - {self.review_type} - {self.mentor_name}"
+
+
+from django.db import models
+
+class Annotation(models.Model):
+    HIGHLIGHT = 'highlight'
+    COMMENT = 'comment'
+    ANNOTATION_TYPES = [
+        (HIGHLIGHT, 'Highlight'),
+        (COMMENT, 'Comment'),
+    ]
+
+    team = models.ForeignKey('ProjectFile', on_delete=models.CASCADE, related_name='annotations')
+    page_number = models.IntegerField()
+    annotation_type = models.CharField(max_length=20, choices=ANNOTATION_TYPES, default=HIGHLIGHT)
+    x = models.FloatField()
+    y = models.FloatField()
+    width = models.FloatField()
+    height = models.FloatField()
+    color = models.CharField(max_length=20, default='#FFFF00')
+    selected_text = models.TextField(blank=True)
+    comment = models.TextField(blank=True)
+    mentor = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['page_number', 'created_at']
+
+    def __str__(self):
+        return f"{self.annotation_type} on page {self.page_number} by {self.mentor}"
