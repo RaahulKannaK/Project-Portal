@@ -499,7 +499,7 @@ body {
   <div style="background:#fff; border-radius:16px; padding:30px; max-width:450px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
     <h5 style="color:var(--primary); margin-bottom:15px;"><i class="fas fa-redo me-2"></i>Request Re-upload</h5>
     <p style="color:#666; font-size:14px; margin-bottom:15px;">
-      This will allow the student to re-upload their files. The current files will be removed.
+      This will allow the student to re-upload their files. All previous uploads, remarks, and highlights will be permanently deleted.
     </p>
     <div class="mb-3">
       <label style="font-weight:500; color:#555; font-size:13px; display:block; margin-bottom:6px;">Reason (optional):</label>
@@ -1005,71 +1005,6 @@ function saveRemark() {
   renderTags();
   showToast("Remark saved!", "success");
 }
-// ─── Save Remark ───
-function saveRemark() {
-  if (!pendingHighlight) {
-    showToast("No highlight to save remark for", "error");
-    return;
-  }
-  
-  const remark = els.remarkText.value.trim();
-  if (!remark) {
-    showToast("Please enter a remark", "error");
-    return;
-  }
-  if (remark.length < 3) {
-    showToast("Remark too short", "error");
-    return;
-  }
-  
-  // Create tag with coordinates
-  const tag = {
-    heading: pendingHighlight.text,
-    remark: remark,
-    color: pendingHighlight.color,
-    coordinates: {
-      page: pendingHighlight.page,
-      rects: pendingHighlight.rects,
-      x: pendingHighlight.rects[0].x,
-      y: pendingHighlight.rects[0].y,
-      width: pendingHighlight.rects[0].width,
-      height: pendingHighlight.rects[0].height
-    },
-    timestamp: new Date().toISOString(),
-    fromDB: false
-  };
-  
-  tags.push(tag);
-  
-  // Fix highlight divs - remove pending style
-  pendingHighlight.divs.forEach(div => {
-    div.classList.remove("pending-highlight");
-    div.classList.add("has-comment");
-    div.title = remark;
-    div.dataset.heading = tag.heading;
-    div.dataset.remark = remark;
-    
-    div.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (eraserMode) {
-        deleteTagByHeading(tag.heading, tag.remark);
-      } else {
-        showToast(`💬 ${remark}`, "success");
-      }
-    });
-  });
-  
-  // Clear pending
-  pendingHighlight = null;
-  els.commentSection.style.display = "none";
-  els.remarkText.value = "";
-  els.charCount.textContent = "0";
-  
-  updateStats();
-  renderTags();
-  showToast("Remark saved!", "success");
-}
-
 // ─── 🔥 FIXED: Draw existing highlight from DB ───
 // ─── Draw existing highlight from DB ───
 function drawHighlightFromTag(tag) {
@@ -1409,7 +1344,8 @@ async function confirmReupload() {
         const data = await response.json();
         
         if (data.status === "success") {
-            showToast("✅ Re-upload request sent to student!", "success");
+            showToast("✅ Re-upload request sent! Cleared: " + 
+                (data.cleared.files + data.cleared.remarks + data.cleared.annotations) + " items", "success");
             closeReuploadModal();
             // Disable the button after success
             document.getElementById('requestReuploadBtn').disabled = true;

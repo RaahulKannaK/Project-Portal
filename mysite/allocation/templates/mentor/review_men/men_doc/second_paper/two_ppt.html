@@ -433,26 +433,52 @@ body{
 
 <!-- HEADER CARD -->
 <div class="main-card">
-  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <div>
-      <h5>
-        <i class="fas fa-file-powerpoint me-2"></i>Review PPT 
-        <span class="review-indicator"><i class="fas fa-presentation"></i>REVIEW 2</span>
-      </h5>
-      <small class="opacity-75">
-        Team: {{ team_name|default:"Not Assigned" }} | 
-        Mentor: {{ mentor_name|default:"Unknown" }} | 
-        <span class="status-badge ppt-status">
-          <i class="fas fa-database me-1"></i><span id="savedCount">{{ saved_remarks|length }}</span> Saved
-        </span>
-      </small>
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <h5>
+            <i class="fas fa-file-powerpoint me-2"></i>Review PPT 
+            <span class="review-indicator"><i class="fas fa-presentation"></i>REVIEW 2</span>
+          </h5>
+          <small class="opacity-75">
+            Team: {{ team_name|default:"Not Assigned" }} | 
+            Mentor: {{ mentor_name|default:"Unknown" }} | 
+            <span class="status-badge ppt-status">
+              <i class="fas fa-database me-1"></i><span id="savedCount">{{ saved_remarks|length }}</span> Saved
+            </span>
+          </small>
+        </div>
+        <div class="d-flex gap-2">
+            {% if ppt_path %}
+            <button class="glass-btn ppt-action" id="openPptBtn">
+              <i class="fa fa-eye me-2"></i>View PPT
+            </button>
+            {% endif %}
+            <button class="glass-btn" id="requestReuploadBtn" style="background: #ff6b6b; color: #fff;" onclick="openReuploadModal()">
+              <i class="fas fa-redo me-2"></i>Request Re-upload
+            </button>
+        </div>
     </div>
-    {% if ppt_path %}
-    <button class="glass-btn ppt-action" id="openPptBtn">
-      <i class="fa fa-eye me-2"></i>View PPT
-    </button>
-    {% endif %}
-  </div>
+
+</div>
+
+<!-- 🔥 RE-UPLOAD MODAL -->
+<div id="reuploadModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:100000; justify-content:center; align-items:center;">
+    <div style="background:#fff; border-radius:16px; padding:30px; max-width:450px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <h5 style="color:var(--primary); margin-bottom:15px;"><i class="fas fa-redo me-2"></i>Request Re-upload</h5>
+        <p style="color:#666; font-size:14px; margin-bottom:15px;">
+            This will allow the student to re-upload their files. All previous second review uploads, remarks, and highlights will be permanently deleted.
+        </p>
+        <div class="mb-3">
+            <label style="font-weight:500; color:#555; font-size:13px; display:block; margin-bottom:6px;">Reason (optional):</label>
+            <textarea id="reuploadReason" class="form-control" rows="3" placeholder="e.g., Please upload a clearer PPT..."></textarea>
+        </div>
+        <div class="d-flex gap-2 justify-content-end">
+            <button class="glass-btn" onclick="closeReuploadModal()" style="background:#e9ecef; color:#333;">Cancel</button>
+            <button class="glass-btn" onclick="confirmReupload()" style="background:#ff6b6b; color:#fff;">
+                <i class="fas fa-paper-plane me-1"></i>Send Request
+            </button>
+        </div>
+    </div>
 </div>
 
 <!-- EMPTY STATE -->
@@ -1089,6 +1115,59 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       e.returnValue = "You have unsaved Second Review changes. Are you sure you want to leave?";
     }
+  });
+
+  // ─── RE-UPLOAD FUNCTIONS ───
+  window.openReuploadModal = () => {
+      document.getElementById('reuploadModal').style.display = 'flex';
+  };
+
+  window.closeReuploadModal = () => {
+      document.getElementById('reuploadModal').style.display = 'none';
+      document.getElementById('reuploadReason').value = '';
+  };
+
+  window.confirmReupload = async () => {
+      const reason = document.getElementById('reuploadReason').value.trim();
+      const btn = document.querySelector('#reuploadModal button[onclick="confirmReupload()"]');
+      
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading-spinner me-2"></span>Sending...';
+      
+      try {
+          const response = await fetch("{% url 'request_reupload_second' %}", {
+              method: "POST",
+              headers: {
+                  "Content-Type": "application/json",
+                  "X-CSRFToken": "{{ csrf_token }}"
+              },
+              body: JSON.stringify({
+                  team_name: "{{ team_name|escapejs }}",
+                  reason: reason || "Please re-upload your files."
+              })
+          });
+          
+          const data = await response.json();
+          
+          if (data.status === "success") {
+              showSuccessFeedback("Re-upload sent!");
+              closeReuploadModal();
+              document.getElementById('requestReuploadBtn').disabled = true;
+              document.getElementById('requestReuploadBtn').innerHTML = '<i class="fas fa-check me-2"></i>Re-upload Requested';
+          } else {
+              alert("❌ " + data.message);
+          }
+      } catch (err) {
+          alert("❌ Error: " + err.message);
+      } finally {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Send Request';
+      }
+  };
+
+  // Close modal on outside click
+  document.getElementById('reuploadModal').addEventListener('click', function(e) {
+      if (e.target === this) closeReuploadModal();
   });
 
 });

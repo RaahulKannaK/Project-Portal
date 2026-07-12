@@ -1,0 +1,1382 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HOD - ML Allocation</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #06B6D4;
+      --secondary: #0891B2;
+      --accent: #22D3EE;
+      --background: #ECFEFF;
+      --text-dark: #164E63;
+      --text-light: #FFFFFF;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --info: #3b82f6;
+    }
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background: var(--background);
+      color: var(--text-dark);
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: white;
+      padding: 20px 40px;
+      margin-bottom: 35px;
+      box-shadow: 0 10px 15px -3px rgba(8, 145, 178, 0.1);
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .brand-avatar {
+      width: 45px;
+      height: 45px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.25rem;
+      font-weight: 700;
+      box-shadow: 0 4px 6px rgba(8, 145, 178, 0.2);
+    }
+
+    .brand-text {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .back-btn {
+      background: #f8fafc;
+      color: var(--primary);
+      border: 1.5px solid #CFFAFE;
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: 0.3s;
+    }
+
+    .back-btn:hover {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .more-options-btn {
+      background: #f8fafc;
+      color: var(--primary);
+      border: 1.5px solid #CFFAFE;
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .more-options-btn:hover {
+      background: var(--accent);
+      color: white;
+    }
+
+    .main-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 30px 50px;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 20px;
+      padding: 25px;
+      border: 1px solid #CFFAFE;
+      text-align: center;
+      transition: 0.3s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 30px rgba(8, 145, 178, 0.1);
+    }
+
+    .stat-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin: 0 auto 12px;
+    }
+
+    .stat-icon.cyan { background: rgba(6, 182, 212, 0.1); color: var(--primary); }
+    .stat-icon.green { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+    .stat-icon.orange { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    .section-card {
+      background: white;
+      border-radius: 24px;
+      padding: 30px;
+      border: 1px solid #CFFAFE;
+      box-shadow: 0 10px 25px -5px rgba(8, 145, 178, 0.1);
+      margin-bottom: 30px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid var(--background);
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin: 0;
+    }
+
+    .badge-section {
+      background: #CFFAFE;
+      color: var(--text-dark);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .btn-action {
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+
+    .btn-primary-hod {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+    }
+
+    .btn-primary-hod:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(6, 182, 212, 0.3);
+    }
+
+    .btn-success-hod {
+      background: var(--success);
+      color: white;
+    }
+
+    .btn-success-hod:hover {
+      background: #059669;
+      transform: translateY(-2px);
+    }
+
+    .btn-warning-hod {
+      background: var(--warning);
+      color: white;
+    }
+
+    .btn-warning-hod:hover {
+      background: #d97706;
+      transform: translateY(-2px);
+    }
+
+    .btn-info-hod {
+      background: var(--info);
+      color: white;
+    }
+
+    .btn-info-hod:hover {
+      background: #2563eb;
+      transform: translateY(-2px);
+    }
+
+    /* Table Styles - HOD Cyan Theme */
+    .hod-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 8px;
+    }
+
+    .hod-table thead th {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      padding: 15px 20px;
+      border: none;
+    }
+
+    .hod-table thead th:first-child {
+      border-top-left-radius: 12px;
+      border-bottom-left-radius: 12px;
+    }
+
+    .hod-table thead th:last-child {
+      border-top-right-radius: 12px;
+      border-bottom-right-radius: 12px;
+    }
+
+    .hod-table tbody td {
+      background: #f8fafc;
+      padding: 15px 20px;
+      font-size: 0.9rem;
+      border: none;
+      vertical-align: middle;
+    }
+
+    .hod-table tbody td:first-child {
+      border-top-left-radius: 12px;
+      border-bottom-left-radius: 12px;
+      font-weight: 700;
+    }
+
+    .hod-table tbody td:last-child {
+      border-top-right-radius: 12px;
+      border-bottom-right-radius: 12px;
+    }
+
+    .hod-table tbody tr:hover td {
+      background: #E0F7FA;
+    }
+
+    .badge-domain {
+      background: #CFFAFE;
+      color: var(--text-dark);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      display: inline-block;
+    }
+
+    .badge-score-high {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--success);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    .badge-score-mid {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--warning);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    .badge-score-low {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    .action-btn-sm {
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-right: 5px;
+    }
+
+    .btn-edit-hod {
+      background: rgba(6, 182, 212, 0.1);
+      color: var(--primary);
+    }
+
+    .btn-edit-hod:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-save-hod {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+    }
+
+    .btn-save-hod:hover {
+      background: var(--success);
+      color: white;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 15px;
+      color: #CFFAFE;
+    }
+
+    .modal-content {
+      border-radius: 20px;
+      border: none;
+    }
+
+    .modal-header {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      border-radius: 20px 20px 0 0;
+      padding: 20px 25px;
+    }
+
+    .modal-body {
+      padding: 25px;
+    }
+
+    .form-control, .form-select {
+      border-radius: 12px;
+      border: 1.5px solid #e2e8f0;
+      padding: 12px 15px;
+      font-size: 0.95rem;
+    }
+
+    .form-control:focus, .form-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.1);
+    }
+
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999;
+    }
+
+    .toast-custom {
+      background: white;
+      border-radius: 16px;
+      padding: 16px 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: slideIn 0.3s ease;
+      border-left: 4px solid var(--success);
+      margin-bottom: 10px;
+    }
+
+    .toast-custom.error { border-left-color: var(--danger); }
+
+    @keyframes slideIn {
+      from { transform: translateX(100px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .dropdown-menu {
+      border-radius: 15px;
+      border: none;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      padding: 10px;
+    }
+
+    .dropdown-item {
+      border-radius: 8px;
+      padding: 10px 15px;
+      font-weight: 500;
+    }
+
+    .dropdown-item:hover {
+      background: var(--background);
+      color: var(--primary);
+    }
+
+    .ml-badge {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .manual-badge {
+      background: var(--warning);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .editable-row input {
+      border: 2px solid var(--primary);
+      border-radius: 8px;
+      padding: 6px 10px;
+      width: 100%;
+      font-size: 0.85rem;
+    }
+
+    .progress-bar-custom {
+      height: 8px;
+      border-radius: 10px;
+      background: #e2e8f0;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 10px;
+      transition: width 0.5s ease;
+    }
+
+    .progress-high { background: linear-gradient(90deg, var(--success), #34d399); }
+    .progress-mid { background: linear-gradient(90deg, var(--warning), #fbbf24); }
+    .progress-low { background: linear-gradient(90deg, var(--danger), #f87171); }
+
+    /* ==================== MANUAL ALLOCATION TABLE STYLES (Coordinator-style) ==================== */
+
+    .edit-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 10px;
+    }
+
+    .edit-table th {
+      color: var(--primary);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      padding: 12px 15px;
+      border: none;
+      background: transparent;
+    }
+
+    .edit-table td {
+      background: white;
+      padding: 0;
+      font-size: 0.9rem;
+      border: none;
+      vertical-align: middle;
+      box-shadow: 0 2px 8px rgba(8, 145, 178, 0.06);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .edit-table tr:hover td {
+      box-shadow: 0 4px 15px rgba(8, 145, 178, 0.12);
+    }
+
+    .cell-input {
+      width: 100%;
+      border: none;
+      padding: 14px 15px;
+      font-size: 0.9rem;
+      font-family: 'Montserrat', sans-serif;
+      background: transparent;
+      outline: none;
+      color: var(--text-dark);
+    }
+
+    .cell-input:focus {
+      background: var(--background);
+    }
+
+    .cell-input::placeholder {
+      color: #aaa;
+      font-size: 0.85rem;
+    }
+
+    /* Autocomplete Dropdown */
+    .autocomplete-wrap {
+      position: relative;
+    }
+
+    .autocomplete-list {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(8, 145, 178, 0.15);
+      max-height: 220px;
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+      margin-top: 4px;
+      border: 1px solid #CFFAFE;
+    }
+
+    .autocomplete-list.active {
+      display: block;
+    }
+
+    .autocomplete-item {
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: 0.2s;
+      border-bottom: 1px solid #E0F7FA;
+      font-size: 0.9rem;
+    }
+
+    .autocomplete-item:hover,
+    .autocomplete-item.selected {
+      background: var(--background);
+      color: var(--primary);
+    }
+
+    .autocomplete-item .item-domain {
+      font-size: 0.75rem;
+      color: #888;
+      margin-top: 2px;
+    }
+
+    /* Action Buttons */
+    .btn-add-row {
+      background: var(--success);
+      color: white;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: 0.3s;
+      font-size: 1.1rem;
+    }
+
+    .btn-add-row:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-remove-row {
+      background: var(--danger);
+      color: white;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: 0.3s;
+      font-size: 0.85rem;
+    }
+
+    .btn-remove-row:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-save {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .btn-save:hover {
+      background: var(--secondary);
+      transform: translateY(-2px);
+    }
+
+    .btn-download {
+      background: var(--info);
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-download:hover {
+      background: #2563eb;
+      transform: translateY(-2px);
+    }
+
+    .actions-bar {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .row-number {
+      width: 36px;
+      height: 36px;
+      background: #CFFAFE;
+      color: var(--primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    .cell-display {
+      padding: 14px 15px;
+      font-size: 0.9rem;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Header -->
+  <div class="top-header">
+    <div class="d-flex align-items-center gap-3">
+      <a href="{% url 'hod_dashboard' %}" class="back-btn">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+      </a>
+      <div class="brand-section">
+        <div class="brand-avatar"><i class="fas fa-magic"></i></div>
+        <span class="brand-text">ML Allocation</span>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-3">
+
+      <div class="dropdown">
+        <button class="more-options-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          <i class="fas fa-user-circle"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="{% url 'hod_dashboard' %}"><i class="fas fa-home me-2"></i>Dashboard</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-container">
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon cyan"><i class="fas fa-users"></i></div>
+        <div class="stat-value">{{ teams_data|length }}</div>
+        <div class="stat-label">Total Teams</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-link"></i></div>
+        <div class="stat-value">{{ allocations|length }}</div>
+        <div class="stat-label">Allocations Made</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon orange"><i class="fas fa-chart-line"></i></div>
+        <div class="stat-value">{{ avg_similarity }}%</div>
+        <div class="stat-label">Avg Similarity</div>
+      </div>
+    </div>
+
+    {% if error %}
+    <div class="section-card">
+      <div class="empty-state">
+        <i class="fas fa-exclamation-circle"></i>
+        <h5>{{ error }}</h5>
+        <p class="text-muted">Add teams and mentors to run allocation</p>
+      </div>
+    </div>
+    {% else %}
+
+    <!-- ML Results Table -->
+    <div class="section-card">
+      <div class="section-header">
+        <div>
+          <h3 class="section-title"><i class="fas fa-robot me-2"></i>ML Allocation Results</h3>
+          <small class="text-muted">AI-powered mentor-team matching based on domain similarity</small>
+        </div>
+        <div class="d-flex gap-2">
+          <span class="badge-section">Auto-saved to Database</span>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="hod-table" id="mlTable">
+          <thead>
+            <tr>
+              <th>S.No</th>
+              <th>Team</th>
+              <th>Team Domain</th>
+              <th>Assigned Mentor</th>
+              <th>Mentor Domain</th>
+              <th>Alt Domains</th>
+              <th>Experience</th>
+              <th>Similarity</th>
+              <th>Reason</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for alloc in allocations %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td class="fw-bold">{{ alloc.team_name }}</td>
+              <td><span class="badge-domain">{{ alloc.team_domain|default:"N/A" }}</span></td>
+              <td><i class="fas fa-user-tie me-2 text-info"></i>{{ alloc.mentor_name }}</td>
+              <td><span class="badge-domain">{{ alloc.mentor_domain|default:"N/A" }}</span></td>
+              <td><small class="text-muted">{{ alloc.alt_domains|truncatechars:25 }}</small></td>
+              <td>{{ alloc.experience|default:"N/A" }}</td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress-bar-custom" style="width: 60px;">
+                    <div class="progress-bar-fill {% if alloc.similarity_score >= 80 %}progress-high{% elif alloc.similarity_score >= 50 %}progress-mid{% else %}progress-low{% endif %}" 
+                         style="width: {{ alloc.similarity_score }}%;"></div>
+                  </div>
+                  {% if alloc.similarity_score >= 80 %}
+                  <span class="badge-score-high">{{ alloc.similarity_score }}%</span>
+                  {% elif alloc.similarity_score >= 50 %}
+                  <span class="badge-score-mid">{{ alloc.similarity_score }}%</span>
+                  {% else %}
+                  <span class="badge-score-low">{{ alloc.similarity_score }}%</span>
+                  {% endif %}
+                </div>
+              </td>
+              <td><small class="text-muted">{{ alloc.reason|truncatechars:35 }}</small></td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="9">
+                <div class="empty-state">
+                  <i class="fas fa-inbox"></i>
+                  <h5>No allocations generated</h5>
+                  <p class="text-muted">Run the ML algorithm to see results</p>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==================== MANUAL ALLOCATION (Coordinator-style) ==================== -->
+    <div class="section-card">
+      <div class="section-header">
+        <div>
+          <h3 class="section-title"><i class="fas fa-hand-pointer me-2"></i>Manual Override</h3>
+          <small class="text-muted">Edit, add, or remove allocation entries with autocomplete</small>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn-download" onclick="downloadExcel()">
+            <i class="fas fa-file-excel"></i> Download Excel
+          </button>
+          <span class="badge-section"><i class="fas fa-pen me-1"></i>Editable</span>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="edit-table" id="editTable">
+          <thead>
+            <tr>
+              <th style="width: 50px;">#</th>
+              <th>Team</th>
+              <th>Team Domain</th>
+              <th>Mentor Domain</th>
+              <th>Mentor</th>
+              <th style="width: 60px;"></th>
+            </tr>
+          </thead>
+          <tbody id="editTableBody">
+            <!-- Rows inserted by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="actions-bar mt-4">
+        <button class="btn-add-row" onclick="addRow()" title="Add new row">
+          <i class="fas fa-plus"></i>
+        </button>
+        <button class="btn-save" onclick="saveManualAllocations()">
+          <i class="fas fa-save me-2"></i>Save Changes
+        </button>
+      </div>
+    </div>
+
+    <!-- Teams & Mentors Reference -->
+    <div class="row">
+      <div class="col-md-6">
+        <div class="section-card">
+          <div class="section-header">
+            <h3 class="section-title"><i class="fas fa-users me-2"></i>Available Teams</h3>
+            <span class="badge-section">{{ teams_data|length }}</span>
+          </div>
+          <div class="table-responsive">
+            <table class="hod-table">
+              <thead>
+                <tr>
+                  <th>Team</th>
+                  <th>Domain</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for t in teams_data %}
+                <tr>
+                  <td>{{ t.name }}</td>
+                  <td><span class="badge-domain">{{ t.domain|default:"N/A" }}</span></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="section-card">
+          <div class="section-header">
+            <h3 class="section-title"><i class="fas fa-chalkboard-teacher me-2"></i>Available Mentors</h3>
+            <span class="badge-section">{{ mentors_data|length }}</span>
+          </div>
+          <div class="table-responsive">
+            <table class="hod-table">
+              <thead>
+                <tr>
+                  <th>Mentor</th>
+                  <th>Domain</th>
+                  <th>Alt Domains</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for m in mentors_data %}
+                <tr>
+                  <td>{{ m.name }}</td>
+                  <td><span class="badge-domain">{{ m.domain }}</span></td>
+                  <td><small class="text-muted">{{ m.alt_domains|truncatechars:20 }}</small></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% endif %}
+
+    <!-- Allocation Status Message -->
+    <div class="section-card" id="statusMessageCard" style="display: none;">
+      <div class="d-flex align-items-center gap-3">
+        <div class="stat-icon green" style="margin: 0;">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <div>
+          <h5 class="fw-bold mb-1" style="color: var(--success);">All Teams Allocated!</h5>
+          <p class="mb-0 text-muted">Every team has been matched with a mentor. No pending allocations remaining.</p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Show status message if no unallocated teams
+      {% if not unallocated_teams and allocations %}
+        document.getElementById('statusMessageCard').style.display = 'block';
+      {% endif %}
+    </script>
+
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Hidden data for JS -->
+  <script>
+    // Inject Django data for autocomplete
+    const TEAMS_DATA = [
+      {% for team in teams_data %}
+      {
+        id: {{ team.id }},
+        name: "{{ team.name|escapejs }}",
+        domain: "{{ team.domain|escapejs }}"
+      }{% if not forloop.last %}, {% endif %}
+      {% endfor %}
+    ];
+
+    const MENTORS_DATA = [
+      {% for mentor in mentors_data %}
+      {
+        id: {{ mentor.id }},
+        name: "{{ mentor.name|escapejs }}",
+        domain: "{{ mentor.domain|escapejs }}",
+        altDomains: {{ mentor.alt_domains|safe }}
+      }{% if not forloop.last %}, {% endif %}
+      {% endfor %}
+    ];
+
+    // Initial allocation data for editable table
+    const INITIAL_ALLOCATIONS = [
+      {% for row in allocations %}
+      {
+        teamName: "{{ row.team_name|escapejs }}",
+        teamDomain: "{{ row.team_domain|escapejs }}",
+        mentorName: "{{ row.mentor_name|escapejs }}",
+        mentorDomain: "{{ row.mentor_domain|escapejs }}"
+      }{% if not forloop.last %}, {% endif %}
+      {% endfor %}
+    ];
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <script>
+    let rowCounter = 0;
+
+    // ==================== AUTOCOMPLETE COMPONENT ====================
+    class AutocompleteInput {
+      constructor(container, dataSource, displayField, filterFields, onSelect) {
+        this.container = container;
+        this.dataSource = dataSource;
+        this.displayField = displayField;
+        this.filterFields = filterFields;
+        this.onSelect = onSelect;
+        this.selectedIndex = -1;
+        this.filteredItems = [];
+
+        this.render();
+        this.attachEvents();
+      }
+
+      render() {
+        this.container.innerHTML = `
+          <div class="autocomplete-wrap">
+            <input type="text" class="cell-input" placeholder="Type to search..." autocomplete="off">
+            <div class="autocomplete-list"></div>
+          </div>
+        `;
+        this.input = this.container.querySelector('input');
+        this.list = this.container.querySelector('.autocomplete-list');
+      }
+
+      attachEvents() {
+        this.input.addEventListener('input', (e) => this.handleInput(e));
+        this.input.addEventListener('keydown', (e) => this.handleKeydown(e));
+        this.input.addEventListener('focus', () => {
+          if (this.input.value.trim()) this.showList();
+        });
+        document.addEventListener('click', (e) => {
+          if (!this.container.contains(e.target)) this.hideList();
+        });
+      }
+
+      handleInput(e) {
+        const query = e.target.value.toLowerCase().trim();
+        if (!query) {
+          this.hideList();
+          return;
+        }
+
+        this.filteredItems = this.dataSource.filter(item => {
+          return this.filterFields.some(field => {
+            const val = (item[field] || '').toLowerCase();
+            return val.includes(query);
+          });
+        });
+
+        this.selectedIndex = -1;
+        this.renderList();
+      }
+
+      handleKeydown(e) {
+        if (!this.list.classList.contains('active')) return;
+
+        switch (e.key) {
+          case 'ArrowDown':
+            e.preventDefault();
+            this.selectedIndex = Math.min(this.selectedIndex + 1, this.filteredItems.length - 1);
+            this.highlightItem();
+            break;
+          case 'ArrowUp':
+            e.preventDefault();
+            this.selectedIndex = Math.max(this.selectedIndex - 1, -1);
+            this.highlightItem();
+            break;
+          case 'Enter':
+            e.preventDefault();
+            if (this.selectedIndex >= 0 && this.filteredItems[this.selectedIndex]) {
+              this.selectItem(this.filteredItems[this.selectedIndex]);
+            }
+            break;
+          case 'Escape':
+            this.hideList();
+            break;
+        }
+      }
+
+      renderList() {
+        if (this.filteredItems.length === 0) {
+          this.list.innerHTML = '<div class="autocomplete-item">No matches found</div>';
+          this.list.classList.add('active');
+          return;
+        }
+
+        this.list.innerHTML = this.filteredItems.map((item, idx) => `
+          <div class="autocomplete-item" data-index="${idx}">
+            <div>${item[this.displayField]}</div>
+            ${item.domain ? `<div class="item-domain">${item.domain}</div>` : ''}
+          </div>
+        `).join('');
+
+        this.list.querySelectorAll('.autocomplete-item').forEach(el => {
+          el.addEventListener('click', () => {
+            const idx = parseInt(el.dataset.index);
+            this.selectItem(this.filteredItems[idx]);
+          });
+        });
+
+        this.list.classList.add('active');
+      }
+
+      highlightItem() {
+        const items = this.list.querySelectorAll('.autocomplete-item');
+        items.forEach((el, idx) => {
+          el.classList.toggle('selected', idx === this.selectedIndex);
+        });
+        if (this.selectedIndex >= 0 && items[this.selectedIndex]) {
+          items[this.selectedIndex].scrollIntoView({ block: 'nearest' });
+        }
+      }
+
+      selectItem(item) {
+        this.input.value = item[this.displayField];
+        this.hideList();
+        if (this.onSelect) this.onSelect(item);
+      }
+
+      hideList() {
+        this.list.classList.remove('active');
+        this.selectedIndex = -1;
+      }
+
+      showList() {
+        if (this.filteredItems.length > 0) {
+          this.list.classList.add('active');
+        }
+      }
+
+      getValue() {
+        return this.input.value;
+      }
+
+      setValue(val) {
+        this.input.value = val;
+      }
+
+      focus() {
+        this.input.focus();
+      }
+    }
+
+    // ==================== EDITABLE ROWS ====================
+
+    function createRow(data = {}, index) {
+      const tr = document.createElement('tr');
+      tr.dataset.rowId = index;
+
+      // Row number
+      const tdNum = document.createElement('td');
+      tdNum.innerHTML = `<div class="row-number">${index}</div>`;
+      tr.appendChild(tdNum);
+
+      // Team (autocomplete)
+      const tdTeam = document.createElement('td');
+      const teamWrap = document.createElement('div');
+      new AutocompleteInput(teamWrap, TEAMS_DATA, 'name', ['name', 'domain'], (item) => {
+        // Auto-fill team domain when team selected
+        const domainInput = tr.querySelector('[data-field="teamDomain"] input');
+        if (domainInput && item.domain) domainInput.value = item.domain;
+      });
+      if (data.teamName) teamWrap.querySelector('input').value = data.teamName;
+      tdTeam.appendChild(teamWrap);
+      tr.appendChild(tdTeam);
+
+      // Team Domain (autocomplete from team domains)
+      const tdTeamDomain = document.createElement('td');
+      tdTeamDomain.dataset.field = 'teamDomain';
+      const teamDomainWrap = document.createElement('div');
+      // Extract unique domains from teams
+      const teamDomains = [...new Set(TEAMS_DATA.map(t => t.domain).filter(Boolean))].map(d => ({ name: d, domain: d }));
+      new AutocompleteInput(teamDomainWrap, teamDomains, 'name', ['name'], null);
+      if (data.teamDomain) teamDomainWrap.querySelector('input').value = data.teamDomain;
+      tdTeamDomain.appendChild(teamDomainWrap);
+      tr.appendChild(tdTeamDomain);
+
+      // Mentor Domain (autocomplete from mentor domains)
+      const tdMentorDomain = document.createElement('td');
+      const mentorDomainWrap = document.createElement('div');
+      // Extract unique domains from mentors (primary + alt)
+      const mentorDomainsSet = new Set();
+      MENTORS_DATA.forEach(m => {
+        if (m.domain) mentorDomainsSet.add(m.domain);
+        if (m.altDomains) m.altDomains.forEach(d => mentorDomainsSet.add(d));
+      });
+      const mentorDomains = [...mentorDomainsSet].map(d => ({ name: d, domain: d }));
+      new AutocompleteInput(mentorDomainWrap, mentorDomains, 'name', ['name'], null);
+      if (data.mentorDomain) mentorDomainWrap.querySelector('input').value = data.mentorDomain;
+      tdMentorDomain.appendChild(mentorDomainWrap);
+      tr.appendChild(tdMentorDomain);
+
+      // Mentor (autocomplete)
+      const tdMentor = document.createElement('td');
+      const mentorWrap = document.createElement('div');
+      new AutocompleteInput(mentorWrap, MENTORS_DATA, 'name', ['name', 'domain'], (item) => {
+        // Auto-fill mentor domain when mentor selected
+        const domainInput = tr.querySelector('[data-field="mentorDomain"] input');
+        if (domainInput && item.domain) domainInput.value = item.domain;
+      });
+      if (data.mentorName) mentorWrap.querySelector('input').value = data.mentorName;
+      tdMentor.appendChild(mentorWrap);
+      tr.appendChild(tdMentor);
+
+      // Remove button
+      const tdRemove = document.createElement('td');
+      tdRemove.innerHTML = `<button class="btn-remove-row" onclick="removeRow(this)" title="Remove row"><i class="fas fa-times"></i></button>`;
+      tr.appendChild(tdRemove);
+
+      return tr;
+    }
+
+    function addRow(data = {}) {
+      rowCounter++;
+      const tbody = document.getElementById('editTableBody');
+      const row = createRow(data, rowCounter);
+      tbody.appendChild(row);
+      // Focus the first input of new row
+      const firstInput = row.querySelector('input');
+      if (firstInput) firstInput.focus();
+    }
+
+    function removeRow(btn) {
+      const tr = btn.closest('tr');
+      tr.style.opacity = '0';
+      tr.style.transform = 'translateX(20px)';
+      setTimeout(() => tr.remove(), 200);
+    }
+
+    function renumberRows() {
+      const rows = document.querySelectorAll('#editTableBody tr');
+      rows.forEach((row, idx) => {
+        const numDiv = row.querySelector('.row-number');
+        if (numDiv) numDiv.textContent = idx + 1;
+      });
+    }
+
+    // ==================== INITIALIZE ====================
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Load initial data into editable table
+      if (INITIAL_ALLOCATIONS.length > 0) {
+        INITIAL_ALLOCATIONS.forEach(alloc => addRow(alloc));
+      } else {
+        // Add one empty row if no data
+        addRow();
+      }
+    });
+
+    // ==================== SAVE ====================
+
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+
+    function saveManualAllocations() {
+      const rows = document.querySelectorAll('#editTableBody tr');
+      const allocations = [];
+
+      rows.forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        const team = inputs[0]?.value?.trim();
+        const teamDomain = inputs[1]?.value?.trim();
+        const mentorDomain = inputs[2]?.value?.trim();
+        const mentor = inputs[3]?.value?.trim();
+
+        if (team || mentor) {
+          allocations.push({
+            teamName: team,
+            teamDomain: teamDomain,
+            mentorDomain: mentorDomain,
+            mentorName: mentor
+          });
+        }
+      });
+
+      if (allocations.length === 0) {
+        showToast('No valid allocations to save', 'error');
+        return;
+      }
+
+      console.log('Saving allocations:', allocations);
+
+      fetch("{% url 'save_allocations' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ allocations: allocations })
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === 'success') {
+            showToast('Changes saved successfully!', 'success');
+            setTimeout(() => location.reload(), 1500);
+          } else {
+            showToast('Error: ' + data.message, 'error');
+          }
+        })
+        .catch(err => {
+          showToast('Network error: ' + err.message, 'error');
+        });
+    }
+
+    // ==================== DOWNLOAD EXCEL ====================
+
+    function downloadExcel() {
+      const rows = document.querySelectorAll('#editTableBody tr');
+      const data = [];
+
+      // Header
+      data.push(['#', 'Team', 'Team Domain', 'Mentor Domain', 'Mentor']);
+
+      // Rows
+      rows.forEach((row, idx) => {
+        const inputs = row.querySelectorAll('input');
+        data.push([
+          idx + 1,
+          inputs[0]?.value || '',
+          inputs[1]?.value || '',
+          inputs[2]?.value || '',
+          inputs[3]?.value || ''
+        ]);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Allocations');
+
+      // Auto-width
+      const colWidths = [6, 30, 25, 25, 30];
+      ws['!cols'] = colWidths.map(w => ({ wch: w }));
+
+      const timestamp = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `HOD_Team_Mentor_Allocations_${timestamp}.xlsx`);
+
+      showToast('Excel downloaded!', 'success');
+    }
+
+    // ==================== TOAST ====================
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast-custom ${type === 'error' ? 'error' : ''}`;
+      const icon = type === 'success' ? 'check-circle text-success' : 'exclamation-circle text-danger';
+      toast.innerHTML = `
+        <i class="fas fa-${icon} fa-lg"></i>
+        <span class="fw-semibold">${message}</span>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+  </script>
+</body>
+</html>
