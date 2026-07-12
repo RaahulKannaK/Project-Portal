@@ -3289,12 +3289,22 @@ def zero_ma1(request):
     # 3️⃣ Handle POST → Upload Files
     # ---------------------------
     if request.method == "POST":
+        # 🔥 Check if re-upload is allowed (mentor requested)
+        reupload_allowed = team.reupload_allowed if team else False
+        
         ppt_file = request.FILES.get("pptFile")
         pdf_file = request.FILES.get("pdfFile")
         abstract_file = request.FILES.get("abstractFile")
         print("DEBUG: Files received →", ppt_file, pdf_file, abstract_file)
 
         uploaded = {}
+
+        # 🔥 If re-upload allowed, clear existing files first
+        if reupload_allowed:
+            ProjectFile.objects.filter(team_name=team_title, review_type="zero").delete()
+            team.reupload_allowed = False  # Reset after re-upload
+            team.save()
+            print("DEBUG: Cleared existing files for re-upload")
 
         if ppt_file:
             uploaded["ppt"] = upload_to_cloudinary(ppt_file, "PPT", folder_name)
@@ -3323,7 +3333,8 @@ def zero_ma1(request):
         return JsonResponse({
             "status": "success",
             "message": "Files uploaded to Cloudinary",
-            "files": uploaded
+            "files": uploaded,
+            "reupload": reupload_allowed
         })
 
     # ---------------------------
@@ -3401,6 +3412,13 @@ def zero_ma1(request):
     # ---------------------------
     # 8️⃣ Final Render
     # ---------------------------
+    reupload_info = {
+        "allowed": team.reupload_allowed if team else False,
+        "reason": team.reupload_reason if team else "",
+        "requested_by": team.reupload_requested_by if team else "",
+        "requested_at": team.reupload_requested_at.strftime("%Y-%m-%d %H:%M") if team and team.reupload_requested_at else ""
+    }
+    
     return render(request, "student/review/zero_ma.html", {
         "student_name": student_name,
         "username": username,
@@ -3408,6 +3426,7 @@ def zero_ma1(request):
         "uploaded_files": uploaded_files,
         "remarks_by_type": remarks_by_type,
         "highlighted_pdfs": highlighted_pdfs,
+        "reupload_info": reupload_info,  # 🔥 Pass re-upload info
     })
 # ============================================
 # 🔹 Student Zero Review File Upload View
@@ -5449,3 +5468,52 @@ def save_evaluation_review3(request):
             {"status": "error", "message": str(e)},
             status=500
         )
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+
+@csrf_exempt
+def request_reupload(request):
+    """Mentor requests student to re-upload files"""
+    mentor_name = request.session.get("mentor_name")
+    username = request.session.get("username")
+    
+    if not mentor_name:
+        return JsonResponse({"status": "fail", "message": "Not logged in"}, status=401)
+    
+    if request.method != "POST":
+        return JsonResponse({"status": "fail", "message": "POST only"}, status=405)
+    
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        team_name = data.get("team_name")
+        reason = data.get("reason", "Please re-upload your files.")
+        
+        allocation = AllocationResult.objects.filter(
+            mentor_name=mentor_name, 
+            team_name=team_name
+        ).first()
+        
+        if not allocation:
+            return JsonResponse({"status": "fail", "message": "Team not found"}, status=404)
+        
+        # Update Team model
+        team = Team.objects.filter(project_title=team_name).first()
+        if team:
+            team.reupload_allowed = True
+            team.reupload_reason = reason
+            team.reupload_requested_at = timezone.now()
+            team.reupload_requested_by = mentor_name
+            team.save()
+            
+            # 🔥 Delete existing ProjectFile records so student can re-upload
+            ProjectFile.objects.filter(team_name=team_name, review_type="zero").delete()
+            
+            return JsonResponse({
+                "status": "success", 
+                "message": "Re-upload requested. Student can now upload again."
+            })
+        else:
+            return JsonResponse({"status": "fail", "message": "Team not found"}, status=404)
+            
+    except Exception as e:
+        return JsonResponse({"status": "fail", "message": str(e)}, status=500)
