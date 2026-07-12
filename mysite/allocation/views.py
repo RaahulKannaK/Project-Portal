@@ -4,7 +4,7 @@ from django.shortcuts import render,get_object_or_404, redirect # type: ignore
 from django.contrib import messages # type: ignore
 from django.contrib.auth import logout # type: ignore
 from django.http import JsonResponse # type: ignore
-from .models import Student, Mentor_Login, Stu_Login,Team,Mentor,AllocationResult,Coordinator_Login
+from .models import Student, Mentor_Login, Stu_Login,Team,Mentor,AllocationResult,Coordinator_Login,HOD,HOD_Login
 from django.conf import settings # type: ignore
 from .train import allocate_mentors_ml
 from django.http import JsonResponse # type: ignore
@@ -104,15 +104,16 @@ def login_view(request):
 
         elif role == "hod":
             try:
-                mentor = Mentor_Login.objects.get(username=username, password=password)
+                hod = HOD_Login.objects.get(username=username, password=password)
                 request.session.update({
-                    "mentor_id": mentor.id,
-                    "username": mentor.username,
-                    "mentor_name": mentor.name
+                    "hod_id": hod.id,
+                    "username": hod.username,
+                    "hod_name": hod.name
                 })
                 return redirect("hod_dashboard")
-            except Mentor_Login.DoesNotExist:
-                messages.error(request, "Invalid mentor credentials")
+            except HOD_Login.DoesNotExist:
+                messages.error(request, "Invalid HOD credentials")
+
         elif role == "coordinator":
             try:
                 coordinator = Coordinator_Login.objects.get(username=username, password=password)
@@ -123,15 +124,26 @@ def login_view(request):
                 })
                 return redirect("coordinator_dashboard")
             except Coordinator_Login.DoesNotExist:
-                messages.error(request, "Invalid mentor credentials")
-
+                messages.error(request, "Invalid coordinator credentials")
 
         else:
             messages.error(request, "Invalid role selected")
 
     return render(request, "accounts/login.html")
+# =========================
+# HOD AUTHENTICATION HELPER
+# =========================
 
-
+def get_hod_session(request):
+    """Get HOD info from session"""
+    hod_id = request.session.get("coordinator_id")
+    username = request.session.get("username")
+    hod_name = request.session.get("mentor_name")
+    return {
+        'id': hod_id,
+        'username': username,
+        'name': hod_name
+    }
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from .models import AnnouncementStatus, Stu_Login
@@ -314,7 +326,1225 @@ def mentor_dashboard(request):
     })
 
 def hod_dashboard(request):
-    return render(request, "accounts/hod_dash.html")
+    """Complete HOD Dashboard with full system overview"""
+    hod_info = get_hod_session(request)
+    if not hod_info['id']:
+        return redirect("login")
+    
+    # Dashboard Statistics
+    stats = {
+        'total_students': Student.objects.count(),
+        'total_mentors': Mentor.objects.count(),
+        'total_teams': Team.objects.count(),
+        'total_coordinators': Coordinator_Login.objects.count(),
+        'approved_teams': Team.objects.filter(status='approved').count(),
+        'pending_teams': Team.objects.filter(status='pending').count(),
+        'pending_update_teams': Team.objects.filter(status='pending_update').count(),
+        'total_allocations': AllocationResult.objects.count(),
+        'unallocated_teams': Team.objects.exclude(
+            project_title__in=AllocationResult.objects.values_list('team_name', flat=True)
+        ).count(),
+    }
+    
+    # Recent Activity
+    recent_teams = Team.objects.all().order_by('-created_at')[:5]
+    recent_allocations = AllocationResult.objects.all().order_by('-allocated_at')[:5]
+    
+    # Domain distribution for chart
+    domain_stats = {}
+    for team in Team.objects.exclude(domain__isnull=True).exclude(domain=''):
+        domain = team.domain.strip().upper()
+        domain_stats[domain] = domain_stats.get(domain, 0) + 1
+    
+    # Mentor workload
+    mentor_workload = []
+    for mentor in Mentor.objects.all():
+        alloc_count = AllocationResult.objects.filter(mentor_name=mentor.name).count()
+        mentor_workload.append({
+            'name': mentor.name,
+            'domain': mentor.primary_domain,
+            'teams_assigned': alloc_count
+        })
+    
+    context = {
+        'hod_name': hod_info['name'],
+        'username': hod_info['username'],
+        'stats': stats,
+        'recent_teams': recent_teams,
+        'recent_allocations': recent_allocations,
+        'domain_stats': json.dumps(domain_stats),
+        'mentor_workload': mentor_workload,
+    }
+    
+    return render(request, "accounts/hod_dash.html", context)
+
+
+# views.py - Complete HOD Dashboard Views (Add these to your existing views.py)
+
+import json
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse, HttpResponse
+from django.contrib import messages
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST, require_http_methods
+from django.db.models import Q, Count, Avg
+from django.utils import timezone
+from django.db import transaction
+
+from .models import (
+    Student, Stu_Login, Mentor, Mentor_Login, Coordinator_Login,
+    Team, AllocationResult, ApprovedTeam, ModifyRequest,
+    ProjectFile, ProjectDocument, ProjectRemarks,
+    ZerothReviewRemark, FirstReviewRemark, SecondReviewRemark, ThirdReviewRemark,
+    Announcement, AnnouncementStatus, Annotation
+)
+
+
+# =========================
+# HOD AUTHENTICATION HELPER
+# =========================
+
+def get_hod_session(request):
+    """Get HOD info from session - HOD uses HOD_Login table"""
+    hod_id = request.session.get("hod_id")
+    username = request.session.get("username")
+    hod_name = request.session.get("hod_name")  # Stored as mentor_name in session
+    
+    return {
+        'id': hod_id,
+        'username': username,
+        'name': hod_name
+    }
+
+
+def hod_required(view_func):
+    """Decorator to check if HOD is logged in"""
+    def wrapper(request, *args, **kwargs):
+        hod_info = get_hod_session(request)
+        if not hod_info['id']:
+            return redirect("login")
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+# =========================
+# MAIN HOD DASHBOARD
+# =========================
+
+@hod_required
+def hod_dashboard(request):
+    """Complete HOD Dashboard with full system overview"""
+    hod_info = get_hod_session(request)
+    
+    # Dashboard Statistics
+    stats = {
+        'total_students': Student.objects.count(),
+        'total_mentors': Mentor.objects.count(),
+        'total_teams': Team.objects.count(),
+        'total_coordinators': Coordinator_Login.objects.count(),
+        'approved_teams': Team.objects.filter(status='approved').count(),
+        'pending_teams': Team.objects.filter(status='pending').count(),
+        'pending_update_teams': Team.objects.filter(status='pending_update').count(),
+        'total_allocations': AllocationResult.objects.count(),
+        'unallocated_teams': Team.objects.exclude(
+            project_title__in=AllocationResult.objects.values_list('team_name', flat=True)
+        ).count(),
+    }
+    
+    # Recent Activity
+    recent_teams = Team.objects.all().order_by('-created_at')[:5]
+    recent_allocations = AllocationResult.objects.all().order_by('-allocated_at')[:5]
+    recent_announcements = Announcement.objects.all().order_by('-created_at')[:5]
+    
+    # Domain distribution for chart
+    domain_stats = {}
+    for team in Team.objects.exclude(domain__isnull=True).exclude(domain=''):
+        domain = team.domain.strip().upper()
+        domain_stats[domain] = domain_stats.get(domain, 0) + 1
+    
+    # Mentor workload distribution
+    mentor_workload = []
+    for mentor in Mentor.objects.all():
+        alloc_count = AllocationResult.objects.filter(mentor_name=mentor.name).count()
+        mentor_workload.append({
+            'name': mentor.name,
+            'domain': mentor.primary_domain,
+            'teams_assigned': alloc_count
+        })
+    
+    context = {
+        'hod_name': hod_info['name'],
+        'username': hod_info['username'],
+        'stats': stats,
+        'recent_teams': recent_teams,
+        'recent_allocations': recent_allocations,
+        'recent_announcements': recent_announcements,
+        'domain_stats': json.dumps(domain_stats),
+        'mentor_workload': mentor_workload,
+    }
+    
+    return render(request, "accounts/hod_dash.html", context)
+
+
+# =========================
+# HOD PASSWORD RESET
+# =========================
+
+@hod_required
+@require_POST
+def hod_reset_password(request):
+    """HOD password reset"""
+    hod_info = get_hod_session(request)
+    new_password = request.POST.get("new_password")
+    confirm_password = request.POST.get("confirm_password")
+    
+    if not new_password or not confirm_password:
+        return JsonResponse({"status": "error", "message": "Both fields required"})
+    
+    if new_password != confirm_password:
+        return JsonResponse({"status": "error", "message": "Passwords don't match"})
+    
+    try:
+        user = HOD_Login.objects.get(id=hod_info['id'])
+        user.password = new_password
+        user.save()
+        return JsonResponse({"status": "success", "message": "Password updated"})
+    except Coordinator_Login.DoesNotExist:
+        return JsonResponse({"status": "error", "message": "User not found"})
+
+
+# =========================
+# STUDENT MANAGEMENT (HOD)
+# =========================
+
+@hod_required
+def hod_students(request):
+    """View all students with full management"""
+    students = Student.objects.all().order_by('student_id')
+    student_data = []
+    
+    for s in students:
+        login = Stu_Login.objects.filter(username=s.student_id).first()
+        # Check if student is in a team
+        team = None
+        for t in Team.objects.all():
+            if t.members and s.student_id in t.members.split(','):
+                team = t
+                break
+        
+        student_data.append({
+            'student': s,
+            'login': login,
+            'team': team,
+            'team_name': team.project_title if team else 'Not Assigned'
+        })
+    
+    return render(request, "hod/hod_students.html", {
+        'students_data': student_data,
+        'total_count': len(student_data)
+    })
+
+
+@hod_required
+@require_POST
+def hod_add_student(request):
+    """Add new student"""
+    try:
+        student_id = request.POST.get('student_id', '').strip().upper()
+        name = request.POST.get('name', '').strip()
+        cgpa = request.POST.get('cgpa', '0')
+        clas = request.POST.get('class', '').strip()
+        password = request.POST.get('password', 'student123')
+        
+        if not student_id or not name:
+            return JsonResponse({"status": "error", "message": "ID and Name required"})
+        
+        # Create student
+        student, created = Student.objects.update_or_create(
+            student_id=student_id,
+            defaults={
+                'name': name,
+                'cgpa': float(cgpa) if cgpa else 0.0,
+                'clas': clas or get_class_from_roll(student_id)
+            }
+        )
+        
+        # Create login
+        Stu_Login.objects.update_or_create(
+            username=student_id,
+            defaults={'password': password}
+        )
+        
+        return JsonResponse({
+            "status": "success", 
+            "message": f"Student {'created' if created else 'updated'} successfully",
+            "student_id": student_id
+        })
+        
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+@require_POST
+def hod_delete_student(request, student_id):
+    """Delete student and related data"""
+    try:
+        with transaction.atomic():
+            # Remove from teams first
+            teams = Team.objects.all()
+            for team in teams:
+                if team.members and student_id in team.members.split(','):
+                    members = team.members.split(',')
+                    names = team.member_names.split(',') if team.member_names else []
+                    
+                    # Find index
+                    try:
+                        idx = members.index(student_id)
+                        members.pop(idx)
+                        if idx < len(names):
+                            names.pop(idx)
+                    except ValueError:
+                        pass
+                    
+                    if len(members) < 3:
+                        # Delete team if too few members
+                        team.delete()
+                    else:
+                        team.members = ','.join(members)
+                        team.member_names = ','.join(names)
+                        team.save()
+            
+            # Delete login and student
+            Stu_Login.objects.filter(username=student_id).delete()
+            Student.objects.filter(student_id=student_id).delete()
+            
+            return JsonResponse({"status": "success", "message": "Student deleted"})
+            
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+# =========================
+# MENTOR MANAGEMENT (HOD)
+# =========================
+
+@hod_required
+def hod_mentors(request):
+    """View all mentors with full management"""
+    mentors = Mentor.objects.all().order_by('name')
+    mentor_data = []
+    
+    for m in mentors:
+        login = Mentor_Login.objects.filter(username=m.username).first()
+        alloc_count = AllocationResult.objects.filter(mentor_name=m.name).count()
+        teams = AllocationResult.objects.filter(mentor_name=m.name)
+        
+        mentor_data.append({
+            'mentor': m,
+            'login': login,
+            'teams_count': alloc_count,
+            'teams': teams
+        })
+    
+    return render(request, "hod/hod_mentors.html", {
+        'mentors_data': mentor_data,
+        'total_count': len(mentor_data)
+    })
+
+
+@hod_required
+@require_POST
+def hod_add_mentor(request):
+    """Add new mentor"""
+    try:
+        username = request.POST.get('username', '').strip()
+        name = request.POST.get('name', '').strip()
+        primary_domain = request.POST.get('primary_domain', '').strip()
+        experience = request.POST.get('experience', '0')
+        alt_domains = request.POST.get('alternative_domains', '').strip()
+        password = request.POST.get('password', 'mentor123')
+        
+        if not username or not name:
+            return JsonResponse({"status": "error", "message": "Username and Name required"})
+        
+        # Create mentor profile
+        mentor, created = Mentor.objects.update_or_create(
+            username=username,
+            defaults={
+                'name': name,
+                'primary_domain': primary_domain,
+                'experience': int(experience) if experience else 0,
+                'alternative_domains': alt_domains if alt_domains else None
+            }
+        )
+        
+        # Create login
+        Mentor_Login.objects.update_or_create(
+            username=username,
+            defaults={
+                'name': name,
+                'password': password
+            }
+        )
+        
+        return JsonResponse({
+            "status": "success",
+            "message": f"Mentor {'created' if created else 'updated'} successfully"
+        })
+        
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+@require_POST
+def hod_delete_mentor(request, username):
+    """Delete mentor and handle reallocation"""
+    try:
+        with transaction.atomic():
+            mentor = Mentor.objects.filter(username=username).first()
+            if mentor:
+                # Delete allocations for this mentor
+                AllocationResult.objects.filter(mentor_name=mentor.name).delete()
+                
+                # Delete login and mentor
+                Mentor_Login.objects.filter(username=username).delete()
+                mentor.delete()
+            
+            return JsonResponse({"status": "success", "message": "Mentor deleted. Teams are now unallocated."})
+            
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+# =========================
+# COORDINATOR MANAGEMENT (HOD)
+# =========================
+
+@hod_required
+def hod_hods(request):
+    """View all HODs"""
+    hods = HOD.objects.all().order_by('name')
+    hod_data = []
+    
+    for h in hods:
+        login = HOD_Login.objects.filter(username=h.username).first()
+        hod_data.append({
+            'hod': h,
+            'login': login
+        })
+    
+    return render(request, "hod/hod_hods.html", {
+        'hods_data': hod_data,
+        'total_count': len(hod_data)
+    })
+
+
+@hod_required
+@require_POST
+def hod_add_hod(request):
+    """Add new HOD"""
+    try:
+        username = request.POST.get('username', '').strip()
+        name = request.POST.get('name', '').strip()
+        department = request.POST.get('department', 'CSE').strip()
+        email = request.POST.get('email', '').strip()
+        phone = request.POST.get('phone', '').strip()
+        password = request.POST.get('password', 'hod123')
+        
+        if not username or not name:
+            return JsonResponse({"status": "error", "message": "Username and Name required"})
+        
+        # Create HOD profile
+        HOD.objects.update_or_create(
+            username=username,
+            defaults={
+                'name': name,
+                'department': department,
+                'email': email if email else None,
+                'phone': phone if phone else None
+            }
+        )
+        
+        # Create login
+        HOD_Login.objects.update_or_create(
+            username=username,
+            defaults={
+                'name': name,
+                'password': password
+            }
+        )
+        
+        return JsonResponse({"status": "success", "message": "HOD added successfully"})
+        
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+@require_POST
+def hod_delete_hod(request, username):
+    """Delete HOD"""
+    try:
+        HOD_Login.objects.filter(username=username).delete()
+        HOD.objects.filter(username=username).delete()
+        return JsonResponse({"status": "success", "message": "HOD deleted"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+# =========================
+# TEAM MANAGEMENT (HOD)
+# =========================
+
+@hod_required
+def hod_teams(request):
+    """View all teams with full management"""
+    teams = Team.objects.all().order_by('-created_at')
+    team_data = []
+    
+    for t in teams:
+        members = []
+        if t.members:
+            member_ids = t.members.split(',')
+            member_names = t.member_names.split(',') if t.member_names else []
+            for i, mid in enumerate(member_ids):
+                name = member_names[i] if i < len(member_names) else mid
+                members.append({'id': mid, 'name': name})
+        
+        allocation = AllocationResult.objects.filter(team_name=t.project_title).first()
+        
+        team_data.append({
+            'team': t,
+            'members': members,
+            'member_count': len(members),
+            'allocation': allocation,
+            'mentor_name': allocation.mentor_name if allocation else 'Not Assigned'
+        })
+    
+    return render(request, "hod/hod_teams.html", {
+        'teams_data': team_data,
+        'total_count': len(team_data),
+        'approved_count': Team.objects.filter(status='approved').count(),
+        'pending_count': Team.objects.filter(status='pending').count(),
+        'update_count': Team.objects.filter(status='pending_update').count()
+    })
+
+
+@hod_required
+@require_POST
+def hod_create_team(request):
+    """Create team manually"""
+    try:
+        project_title = request.POST.get('project_title', '').strip()
+        domain = request.POST.get('domain', '').strip().upper()
+        student_class = request.POST.get('student_class', '').strip()
+        members = request.POST.getlist('members[]')
+        member_names = request.POST.getlist('member_names[]')
+        
+        if not project_title or len(members) < 3:
+            return JsonResponse({"status": "error", "message": "Title and at least 3 members required"})
+        
+        team = Team.objects.create(
+            project_title=project_title,
+            student_class=student_class,
+            domain=domain,
+            members=','.join(members),
+            member_names=','.join(member_names),
+            status='approved',  # HOD created teams are auto-approved
+            leader_id=members[0] if members else None
+        )
+        
+        return JsonResponse({
+            "status": "success",
+            "message": "Team created successfully",
+            "team_id": team.id
+        })
+        
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+@require_POST
+def hod_delete_team(request, team_id):
+    """Delete team completely"""
+    try:
+        with transaction.atomic():
+            team = get_object_or_404(Team, id=team_id)
+            
+            # Delete related files
+            ProjectFile.objects.filter(team_name=team.project_title).delete()
+            ProjectRemarks.objects.filter(team_name=team.project_title).delete()
+            
+            # Delete remarks
+            ZerothReviewRemark.objects.filter(team_name=team.project_title).delete()
+            FirstReviewRemark.objects.filter(team_name=team.project_title).delete()
+            SecondReviewRemark.objects.filter(team_name=team.project_title).delete()
+            ThirdReviewRemark.objects.filter(team_name=team.project_title).delete()
+            
+            # Delete allocation
+            AllocationResult.objects.filter(team_name=team.project_title).delete()
+            
+            # Delete team
+            team.delete()
+            
+            return JsonResponse({"status": "success", "message": "Team and all related data deleted"})
+            
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+@require_POST
+def hod_update_team_status(request, team_id):
+    """Update team status"""
+    try:
+        team = get_object_or_404(Team, id=team_id)
+        new_status = request.POST.get('status')
+        
+        if new_status in ['pending', 'approved', 'pending_update']:
+            team.status = new_status
+            
+            if new_status == 'approved':
+                team.needs_update_problem = False
+                team.needs_update_domain = False
+                team.needs_update_members = False
+                team.modification_reason = ''
+            
+            team.save()
+            return JsonResponse({"status": "success", "message": f"Status updated to {new_status}"})
+        
+        return JsonResponse({"status": "error", "message": "Invalid status"})
+        
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+@require_POST
+def hod_edit_team(request, team_id):
+    """Edit team details"""
+    try:
+        team = get_object_or_404(Team, id=team_id)
+        
+        team.project_title = request.POST.get('project_title', team.project_title)
+        team.domain = request.POST.get('domain', team.domain).strip().upper()
+        team.student_class = request.POST.get('student_class', team.student_class)
+        
+        # Update members if provided
+        new_members = request.POST.get('members')
+        if new_members:
+            team.members = new_members
+            member_ids = new_members.split(',')
+            names = []
+            for mid in member_ids:
+                stu = Student.objects.filter(student_id=mid.strip()).first()
+                names.append(stu.name if stu else mid)
+            team.member_names = ','.join(names)
+        
+        team.save()
+        return JsonResponse({"status": "success", "message": "Team updated successfully"})
+        
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+# =========================
+# ALLOCATION MANAGEMENT (HOD)
+# =========================
+# =========================
+# HOD ALLOCATION MANAGEMENT
+# =========================
+
+@hod_required
+def hod_allocations(request):
+    """View all allocations with management"""
+    allocations = AllocationResult.objects.all().order_by('-allocated_at')
+    
+    # Teams without allocation
+    allocated_team_names = AllocationResult.objects.values_list('team_name', flat=True)
+    unallocated_teams = Team.objects.exclude(project_title__in=allocated_team_names)
+    
+    # Available mentors for manual allocation
+    mentors = Mentor.objects.all()
+    
+    return render(request, "accounts/hod_allocations.html", {
+        'allocations': allocations,
+        'unallocated_teams': unallocated_teams,
+        'mentors': mentors,
+        'total_allocations': allocations.count(),
+        'unallocated_count': unallocated_teams.count()
+    })
+
+
+@hod_required
+@require_POST
+def hod_manual_allocate(request):
+    """Manually allocate mentor to team"""
+    try:
+        team_name = request.POST.get('team_name')
+        mentor_username = request.POST.get('mentor_username')
+        
+        team = get_object_or_404(Team, project_title=team_name)
+        mentor = get_object_or_404(Mentor, username=mentor_username)
+        
+        AllocationResult.objects.update_or_create(
+            team_name=team_name,
+            defaults={
+                'team_domain': team.domain or '',
+                'mentor_name': mentor.name,
+                'mentor_domain': mentor.primary_domain,
+                'alt_domains': mentor.alternative_domains or '',
+                'experience': 'Expert' if mentor.experience >= 4 else 'Beginner',
+                'similarity_score': 100.0,
+                'reason': 'Manually assigned by HOD'
+            }
+        )
+        
+        return JsonResponse({"status": "success", "message": "Allocation created successfully"})
+        
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+@require_POST
+def hod_delete_allocation(request, allocation_id):
+    """Delete allocation"""
+    try:
+        alloc = get_object_or_404(AllocationResult, id=allocation_id)
+        alloc.delete()
+        return JsonResponse({"status": "success", "message": "Allocation removed"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+@require_POST
+def hod_reallocate_team(request):
+    """Reallocate team to different mentor"""
+    try:
+        team_name = request.POST.get('team_name')
+        new_mentor_username = request.POST.get('new_mentor_username')
+        
+        mentor = get_object_or_404(Mentor, username=new_mentor_username)
+        alloc = get_object_or_404(AllocationResult, team_name=team_name)
+        
+        alloc.mentor_name = mentor.name
+        alloc.mentor_domain = mentor.primary_domain
+        alloc.alt_domains = mentor.alternative_domains or ''
+        alloc.experience = 'Expert' if mentor.experience >= 4 else 'Beginner'
+        alloc.reason = 'Reassigned by HOD'
+        alloc.save()
+        
+        return JsonResponse({"status": "success", "message": "Team reallocated successfully"})
+        
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+# =========================
+# REVIEW MANAGEMENT (HOD)
+# =========================
+# =========================
+# HOD ML ALLOCATION (HOD Style)
+# =========================
+
+@hod_required
+def hod_run_allocation(request):
+    """
+    HOD ML Allocation page - same features as coordinator but with HOD styling.
+    HOD can run allocation, view results, edit manually, and save.
+    """
+    # ---------------------
+    # Fetch teams from DB
+    # ---------------------
+    teams_qs = Team.objects.all()
+    teams = [{"id": t.id, "name": t.project_title, "domain": t.domain} for t in teams_qs]
+    print("✅ Teams fetched from DB:", teams)
+
+    if not teams:
+        return render(request, "hod/hod_allocation.html", {
+            "allocations": [],
+            "teams_data": [],
+            "mentors_data": [],
+            "avg_similarity": 0,
+            "error": "No teams available."
+        })
+
+    # ---------------------
+    # Fetch mentors from DB
+    # ---------------------
+    mentors_qs = Mentor.objects.all()
+    mentors = []
+    mentors_data = []  # For JS autocomplete in template
+    
+    for m in mentors_qs:
+        alt_list = [d.strip() for d in m.alternative_domains.split(",")] if m.alternative_domains else []
+        
+        mentors.append({
+            "id": m.id,
+            "domain": m.primary_domain,
+            "name": m.name,
+            "experience": "Expert" if m.experience >= 4 else "Beginner",
+            "alt_domains": alt_list
+        })
+        
+        mentors_data.append({
+            "id": m.id,
+            "name": m.name,
+            "domain": m.primary_domain,
+            "alt_domains": json.dumps(alt_list)
+        })
+    
+    print("✅ Mentors fetched from DB:", mentors)
+
+    if not mentors:
+        return render(request, "hod/hod_allocation.html", {
+            "allocations": [],
+            "teams_data": [],
+            "mentors_data": [],
+            "avg_similarity": 0,
+            "error": "No mentors available."
+        })
+
+    # ---------------------
+    # ML Allocation
+    # ---------------------
+    allocations_df = allocate_mentors_ml(teams, mentors)
+    print("✅ Allocations DataFrame:\n", allocations_df)
+
+    # ---------------------
+    # Rename columns for template & DB
+    # ---------------------
+    allocations_df.rename(columns={
+        "Team": "team_name",
+        "Team Domain": "team_domain",
+        "Mentor": "mentor_name",
+        "Mentor Domain": "mentor_domain",
+        "Mentor Alt Domains": "alt_domains",
+        "Experience": "experience",
+        "Similarity Score": "similarity_score",
+        "Reason": "reason"
+    }, inplace=True)
+
+    # Convert alt_domains to comma-separated strings
+    allocations_df["alt_domains"] = allocations_df["alt_domains"].fillna("").apply(
+        lambda x: x if isinstance(x, str) else ", ".join(x)
+    )
+
+    # Calculate average similarity
+    avg_similarity = round(allocations_df["similarity_score"].mean(), 1) if not allocations_df.empty else 0
+
+    # ---------------------
+    # Save allocations to DB
+    # ---------------------
+    for _, row in allocations_df.iterrows():
+        AllocationResult.objects.update_or_create(
+            team_name=row["team_name"],
+            defaults={
+                "team_domain": row["team_domain"],
+                "mentor_name": row["mentor_name"],
+                "mentor_domain": row["mentor_domain"],
+                "alt_domains": row["alt_domains"],
+                "experience": row["experience"],
+                "similarity_score": row["similarity_score"],
+                "reason": row["reason"]
+            }
+        )
+
+    # ---------------------
+    # Prepare template data
+    # ---------------------
+    allocations = allocations_df.to_dict(orient="records")
+    print("✅ Allocations list for template:", allocations)
+
+    # Teams data for JS autocomplete
+    teams_data = [{
+        "id": t.id,
+        "name": t.project_title,
+        "domain": t.domain
+    } for t in teams_qs]
+
+    return render(request, "hod/hod_allocation.html", {
+        "allocations": allocations,
+        "teams_data": teams_data,
+        "mentors_data": mentors_data,
+        "avg_similarity": avg_similarity,
+    })
+
+
+@hod_required
+@csrf_exempt
+def hod_save_allocations(request):
+    """
+    Save manually edited allocations from HOD allocation page
+    """
+    if request.method != "POST":
+        return JsonResponse({"status": "fail", "message": "POST required"}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        allocations = data.get("allocations", [])
+        
+        print(f"💾 HOD saving {len(allocations)} allocations...")
+
+        for idx, alloc in enumerate(allocations):
+            team_name = alloc.get("teamName", "").strip()
+            if not team_name:
+                continue
+                
+            AllocationResult.objects.update_or_create(
+                team_name=team_name,
+                defaults={
+                    "team_domain": alloc.get("teamDomain", ""),
+                    "mentor_name": alloc.get("mentorName", ""),
+                    "mentor_domain": alloc.get("mentorDomain", ""),
+                    "experience": "Unknown",
+                    "similarity_score": 0,
+                    "reason": "Manually assigned by HOD",
+                    "alt_domains": ""
+                }
+            )
+
+        return JsonResponse({
+            "status": "success",
+            "saved": len(allocations),
+            "message": f"{len(allocations)} allocations saved successfully"
+        })
+
+    except Exception as e:
+        print("❌ HOD save error:", e)
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            "status": "fail",
+            "message": str(e)
+        }, status=500)
+    
+@hod_required
+def hod_reviews(request):
+    """View all review data across all teams"""
+    
+    # Get all teams with their review status
+    teams = Team.objects.all().order_by('project_title')
+    review_data = []
+    
+    for team in teams:
+        allocation = AllocationResult.objects.filter(team_name=team.project_title).first()
+        mentor_name = allocation.mentor_name if allocation else None
+        
+        # Check files for each review stage
+        files = {
+            'zeroth': {
+                'abstract': ProjectFile.objects.filter(team_name=team.project_title, review_type='zero', file_type='abstract').first(),
+                'pdf': ProjectFile.objects.filter(team_name=team.project_title, review_type='zero', file_type='pdf').first(),
+                'ppt': ProjectFile.objects.filter(team_name=team.project_title, review_type='zero', file_type='ppt').first(),
+            },
+            'first': {
+                'ppt': ProjectFile.objects.filter(team_name=team.project_title, review_type='one', file_type='ppt').first(),
+            },
+            'second': {
+                'ppt': ProjectFile.objects.filter(team_name=team.project_title, review_type='two', file_type='ppt').first(),
+            },
+            'third': {
+                'ppt': ProjectFile.objects.filter(team_name=team.project_title, review_type='three', file_type='ppt').first(),
+            }
+        }
+        
+        # Get remarks count
+        remarks_count = {
+            'zeroth': ZerothReviewRemark.objects.filter(team_name=team.project_title).count(),
+            'first': FirstReviewRemark.objects.filter(team_name=team.project_title).count(),
+            'second': SecondReviewRemark.objects.filter(team_name=team.project_title).count(),
+            'third': ThirdReviewRemark.objects.filter(team_name=team.project_title).count(),
+        }
+        
+        review_data.append({
+            'team': team,
+            'mentor_name': mentor_name,
+            'files': files,
+            'remarks_count': remarks_count,
+            'allocation': allocation
+        })
+    
+    return render(request, "hod/hod_reviews.html", {
+        'review_data': review_data,
+        'total_teams': len(review_data)
+    })
+
+
+@hod_required
+def hod_view_team_remarks(request, team_name, review_stage):
+    """View specific team remarks for a review stage"""
+    team = get_object_or_404(Team, project_title=team_name)
+    
+    if review_stage == 'zeroth':
+        remarks = ZerothReviewRemark.objects.filter(team_name=team_name).order_by('created_at')
+    elif review_stage == 'first':
+        remarks = FirstReviewRemark.objects.filter(team_name=team_name).order_by('created_at')
+    elif review_stage == 'second':
+        remarks = SecondReviewRemark.objects.filter(team_name=team_name).order_by('created_at')
+    elif review_stage == 'third':
+        remarks = ThirdReviewRemark.objects.filter(team_name=team_name).order_by('created_at')
+    else:
+        remarks = []
+    
+    return render(request, "hod/hod_team_remarks.html", {
+        'team': team,
+        'review_stage': review_stage,
+        'remarks': remarks
+    })
+
+
+# =========================
+# ANNOUNCEMENT MANAGEMENT (HOD)
+# =========================
+
+@hod_required
+def hod_announcements(request):
+    """Manage all announcements"""
+    announcements = Announcement.objects.all().order_by('-created_at')
+    
+    # Stats
+    stats = {
+        'total': announcements.count(),
+        'deadline': announcements.filter(ann_type='deadline').count(),
+        'schedule': announcements.filter(ann_type='schedule').count(),
+        'instruction': announcements.filter(ann_type='instruction').count(),
+    }
+    
+    return render(request, "hod/hod_announcements.html", {
+        'announcements': announcements,
+        'stats': stats
+    })
+
+
+@hod_required
+@require_POST
+def hod_create_announcement(request):
+    """Create announcement as HOD"""
+    try:
+        hod_info = get_hod_session(request)
+        title = request.POST.get('title')
+        ann_type = request.POST.get('ann_type')
+        target = request.POST.get('target')
+        message = request.POST.get('message', '')
+        
+        if not title or not ann_type or not target:
+            return JsonResponse({"status": "error", "message": "Required fields missing"})
+        
+        announcement = Announcement.objects.create(
+            title=title,
+            ann_type=ann_type,
+            target_role=target,
+            message=message,
+            created_by_username=hod_info['username'],
+            created_by_name=hod_info['name']
+        )
+        
+        # Create status records
+        status_objects = []
+        if target in ['student', 'both']:
+            for s in Student.objects.all():
+                status_objects.append(AnnouncementStatus(
+                    announcement=announcement,
+                    receiver_role='student',
+                    receiver_id=s.student_id,
+                    receiver_name=s.name
+                ))
+        
+        if target in ['mentor', 'both']:
+            for m in Mentor_Login.objects.all():
+                status_objects.append(AnnouncementStatus(
+                    announcement=announcement,
+                    receiver_role='mentor',
+                    receiver_id=m.username,
+                    receiver_name=m.name
+                ))
+        
+        AnnouncementStatus.objects.bulk_create(status_objects)
+        
+        return JsonResponse({"status": "success", "message": "Announcement sent to all"})
+        
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+@require_POST
+def hod_delete_announcement(request, ann_id):
+    """Delete announcement"""
+    try:
+        Announcement.objects.filter(id=ann_id).delete()
+        return JsonResponse({"status": "success", "message": "Announcement deleted"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+# =========================
+# REPORTS & ANALYTICS (HOD)
+# =========================
+
+@hod_required
+def hod_reports(request):
+    """Generate system reports"""
+    
+    # Class-wise team distribution
+    class_distribution = {}
+    for team in Team.objects.all():
+        cls = team.student_class or 'Unknown'
+        class_distribution[cls] = class_distribution.get(cls, 0) + 1
+    
+    # Domain-wise distribution
+    domain_distribution = {}
+    for team in Team.objects.exclude(domain__isnull=True).exclude(domain=''):
+        dom = team.domain.strip().upper()
+        domain_distribution[dom] = domain_distribution.get(dom, 0) + 1
+    
+    # Mentor allocation stats
+    mentor_stats = []
+    for mentor in Mentor.objects.all():
+        allocs = AllocationResult.objects.filter(mentor_name=mentor.name)
+        mentor_stats.append({
+            'name': mentor.name,
+            'domain': mentor.primary_domain,
+            'experience': mentor.experience,
+            'teams_count': allocs.count(),
+            'avg_similarity': round(allocs.aggregate(Avg('similarity_score'))['similarity_score__avg'] or 0, 2)
+        })
+    
+    # Review completion stats
+    review_stats = []
+    for team in Team.objects.all():
+        zeroth_files = ProjectFile.objects.filter(team_name=team.project_title, review_type='zero').count()
+        first_files = ProjectFile.objects.filter(team_name=team.project_title, review_type='one').count()
+        second_files = ProjectFile.objects.filter(team_name=team.project_title, review_type='two').count()
+        third_files = ProjectFile.objects.filter(team_name=team.project_title, review_type='three').count()
+        
+        review_stats.append({
+            'team_name': team.project_title,
+            'zeroth': zeroth_files > 0,
+            'first': first_files > 0,
+            'second': second_files > 0,
+            'third': third_files > 0,
+            'status': team.status
+        })
+    
+    context = {
+        'class_distribution': json.dumps(class_distribution),
+        'domain_distribution': json.dumps(domain_distribution),
+        'mentor_stats': mentor_stats,
+        'review_stats': review_stats,
+        'total_students': Student.objects.count(),
+        'total_teams': Team.objects.count(),
+        'total_mentors': Mentor.objects.count(),
+    }
+    
+    return render(request, "hod/hod_reports.html", context)
+
+
+# =========================
+# DATABASE CLEANUP (HOD)
+# =========================
+
+@hod_required
+@require_POST
+def hod_clear_all_data(request):
+    """⚠️ DANGER: Clear all system data"""
+    try:
+        password = request.POST.get('confirm_password')
+        hod_info = get_hod_session(request)
+        
+        # Verify HOD password
+        hod = Coordinator_Login.objects.filter(id=hod_info['id']).first()
+        if not hod or hod.password != password:
+            return JsonResponse({"status": "error", "message": "Invalid password"})
+        
+        with transaction.atomic():
+            # Delete in order to avoid FK constraints
+            Annotation.objects.all().delete()
+            ProjectRemarks.objects.all().delete()
+            ProjectFile.objects.all().delete()
+            ProjectDocument.objects.all().delete()
+            ZerothReviewRemark.objects.all().delete()
+            FirstReviewRemark.objects.all().delete()
+            SecondReviewRemark.objects.all().delete()
+            ThirdReviewRemark.objects.all().delete()
+            AnnouncementStatus.objects.all().delete()
+            Announcement.objects.all().delete()
+            AllocationResult.objects.all().delete()
+            ApprovedTeam.objects.all().delete()
+            ModifyRequest.objects.all().delete()
+            Team.objects.all().delete()
+            Student.objects.all().delete()
+            Stu_Login.objects.all().delete()
+            Mentor.objects.all().delete()
+            Mentor_Login.objects.all().delete()
+            Coordinator_Login.objects.all().delete()
+            HOD_Login.objects.exclude(id=hod_info['id']).delete()
+            HOD.objects.exclude(username=hod_info['username']).delete()
+            
+            return JsonResponse({
+                "status": "success",
+                "message": "All data cleared. Only your HOD account remains."
+            })
+            
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+# =========================
+# SEARCH API (HOD)
+# =========================
+
+@hod_required
+def hod_search(request):
+    """Global search across all entities"""
+    query = request.GET.get('q', '').strip()
+    
+    if not query:
+        return JsonResponse({"results": []})
+    
+    results = []
+    
+    # Search students
+    students = Student.objects.filter(
+        Q(student_id__icontains=query) | Q(name__icontains=query)
+    )[:5]
+    for s in students:
+        results.append({
+            'type': 'student',
+            'id': s.student_id,
+            'name': s.name,
+            'url': f'/hod/students/'
+        })
+    
+    # Search mentors
+    mentors = Mentor.objects.filter(
+        Q(name__icontains=query) | Q(username__icontains=query) | Q(primary_domain__icontains=query)
+    )[:5]
+    for m in mentors:
+        results.append({
+            'type': 'mentor',
+            'id': m.username,
+            'name': m.name,
+            'url': f'/hod/mentors/'
+        })
+    
+    # Search teams
+    teams = Team.objects.filter(
+        Q(project_title__icontains=query) | Q(domain__icontains=query)
+    )[:5]
+    for t in teams:
+        results.append({
+            'type': 'team',
+            'id': t.id,
+            'name': t.project_title,
+            'url': f'/hod/teams/'
+        })
+    
+    return JsonResponse({"results": results, "query": query})
+
 
 import csv
 import io
@@ -367,19 +1597,35 @@ def get_all_data():
             'password': login.password if login else '—'
         })
     
-    # HODs
-    hods_qs = Coordinator_Login.objects.all()
-    hods_data = [{
-        'username': h.username,
-        'name': h.name,
-        'password': h.password
-    } for h in hods_qs]
+    # Coordinators (separate from HODs)
+    coordinators_qs = Coordinator_Login.objects.all()
+    coordinators_data = []
+    for c in coordinators_qs:
+        coordinators_data.append({
+            'username': c.username,
+            'name': c.name,
+            'password': c.password
+        })
+    
+    # HODs (from new dedicated HOD table)
+    hods_qs = HOD.objects.all()
+    hods_data = []
+    for h in hods_qs:
+        login = HOD_Login.objects.filter(username=h.username).first()
+        hods_data.append({
+            'username': h.username,
+            'name': h.name,
+            'department': h.department,
+            'password': login.password if login else '—'
+        })
     
     return {
         'students_data': students_data,
         'student_count': len(students_data),
         'mentors_data': mentors_data,
         'mentor_count': len(mentors_data),
+        'coordinators_data': coordinators_data,
+        'coordinator_count': len(coordinators_data),
         'hods_data': hods_data,
         'hod_count': len(hods_data),
     }
@@ -680,13 +1926,16 @@ def upload_mentor_csv(request):
 # HOD CSV UPLOAD
 # =========================
 
+# =========================
+# HOD CSV UPLOAD
+# =========================
+
 REQUIRED_HOD_COLUMNS = {"username", "name", "password"}
 
 def upload_hod_csv(request):
     allowed = []
     not_allowed = []
     
-    # Start with all existing data
     context = get_all_data()
     context['active_tab'] = 'hod_csv'
     context['hod_uploaded'] = 0
@@ -698,57 +1947,47 @@ def upload_hod_csv(request):
             context['error'] = 'No file uploaded'
             return render(request, 'coordinator/coord_dash.html', context)
 
-        if file.name.endswith(('.xlsx', '.xls')):
-            context['error'] = 'Excel files are not supported. Please upload a CSV file.'
-            return render(request, 'coordinator/coord_dash.html', context)
-
         if not file.name.endswith('.csv'):
-            context['error'] = 'Invalid file type. Only CSV files are allowed.'
+            context['error'] = 'Invalid file type. Only CSV files allowed.'
             return render(request, 'coordinator/coord_dash.html', context)
 
         try:
             df = pd.read_csv(file)
         except Exception:
-            context['error'] = 'Unable to read CSV file. Please check the format.'
+            context['error'] = 'Unable to read CSV file.'
             return render(request, 'coordinator/coord_dash.html', context)
 
         if df.empty:
             context['error'] = 'CSV file is empty.'
             return render(request, 'coordinator/coord_dash.html', context)
 
-        # Normalize column names
         df.columns = df.columns.str.strip().str.lower()
 
-        # Validate required columns
         missing_columns = REQUIRED_HOD_COLUMNS - set(df.columns)
         if missing_columns:
-            context['error'] = f'Missing required columns: {", ".join(missing_columns)}. Please download the template.'
+            context['error'] = f'Missing columns: {", ".join(missing_columns)}'
             return render(request, 'coordinator/coord_dash.html', context)
 
-        # Validate structure
-        validation_errors = []
-        for idx, row in df.iterrows():
-            row_num = idx + 2
-            
-            for col in REQUIRED_HOD_COLUMNS:
-                if pd.isna(row.get(col)) or str(row.get(col)).strip() == '':
-                    validation_errors.append(f"Row {row_num}: Missing '{col}'")
-
-        if validation_errors:
-            context['error'] = f"Validation failed ({len(validation_errors)} errors):<br>" + "<br>".join(validation_errors[:5])
-            if len(validation_errors) > 5:
-                context['error'] += f"<br>... and {len(validation_errors) - 5} more errors"
-            return render(request, 'coordinator/coord_dash.html', context)
-
-        # Process rows
         for _, row in df.iterrows():
             try:
                 username = str(row['username']).strip()
                 name = str(row['name']).strip()
                 password = str(row['password']).strip()
+                department = str(row.get('department', 'CSE')).strip()
+                email = str(row.get('email', '')).strip()
+                phone = str(row.get('phone', '')).strip()
 
-                # Create/Update HOD
-                Coordinator_Login.objects.update_or_create(
+                HOD.objects.update_or_create(
+                    username=username,
+                    defaults={
+                        'name': name,
+                        'department': department,
+                        'email': email if email else None,
+                        'phone': phone if phone else None
+                    }
+                )
+
+                HOD_Login.objects.update_or_create(
                     username=username,
                     defaults={
                         'name': name,
@@ -756,10 +1995,7 @@ def upload_hod_csv(request):
                     }
                 )
 
-                allowed.append({
-                    'username': username,
-                    'name': name
-                })
+                allowed.append({'username': username, 'name': name})
 
             except Exception as e:
                 not_allowed.append({
@@ -768,7 +2004,6 @@ def upload_hod_csv(request):
                     'reason': str(e)
                 })
 
-        # Refresh ALL data after upload
         context = get_all_data()
         context.update({
             'active_tab': 'hod_csv',
@@ -781,9 +2016,7 @@ def upload_hod_csv(request):
 
         return render(request, 'coordinator/coord_dash.html', context)
 
-    # GET request - just show existing data
     return render(request, 'coordinator/coord_dash.html', context)
-
 
 # =========================
 # COORDINATOR DASHBOARD
@@ -1867,18 +3100,18 @@ def zero_review(request):
             team_name = allocation.team_name
             inserted = updated = deleted_count = 0
 
-            # Handle deletions
+            # Handle deletions - FILTER BY file_type="abstract"
             if deleted:
                 for heading in deleted:
                     heading = heading.strip()
                     if not heading:
                         continue
                     count, _ = ZerothReviewRemark.objects.filter(
-                        team_name=team_name, mentor_name=mentor_name, heading=heading
+                        team_name=team_name, mentor_name=mentor_name, heading=heading, file_type="abstract"
                     ).delete()
                     if count == 0:
                         count, _ = ZerothReviewRemark.objects.filter(
-                            team_name=team_name, mentor_name=mentor_name, heading__icontains=heading[:50]
+                            team_name=team_name, mentor_name=mentor_name, heading__icontains=heading[:50], file_type="abstract"
                         ).delete()
                     deleted_count += count
 
@@ -1916,11 +3149,11 @@ def zero_review(request):
                         team_name=team_name,
                         mentor_name=mentor_name,
                         heading=heading,
+                        file_type="abstract",  # 🔥 MOVED to lookup fields
                         defaults={
                             "remark": remark,
                             "color": color,
                             "coordinates": coords_json,
-                            "file_type": "abstract"
                         },
                     )
                     print(f"🔥 update_or_create result: created={created}, id={obj.id}")
@@ -1932,7 +3165,8 @@ def zero_review(request):
                     ZerothReviewRemark.objects.filter(
                         team_name=team_name,
                         mentor_name=mentor_name,
-                        heading=heading
+                        heading=heading,
+                        file_type="abstract"
                     ).delete()
                     
                     obj = ZerothReviewRemark.objects.create(
@@ -1973,9 +3207,9 @@ def zero_review(request):
     team_name = allocation.team_name
     print("Team:", team_name)
 
-    # Load remarks
+    # Load remarks - FILTER BY file_type="abstract"
     saved_remarks = ZerothReviewRemark.objects.filter(
-        team_name=team_name, mentor_name=mentor_name
+        team_name=team_name, mentor_name=mentor_name, file_type="abstract"
     ).order_by("id")
     print("🔥 Loaded remarks from DB:", saved_remarks.count())
 
@@ -2273,6 +3507,7 @@ def serve_temp_html(request, team, filename):
         content_type="text/html"
     )
 
+
 import json
 import os
 import requests
@@ -2314,8 +3549,9 @@ def zero_base(request):
                     heading = heading.strip()
                     if not heading:
                         continue
+
                     count, _ = ZerothReviewRemark.objects.filter(
-                        team_name=team_name, mentor_name=mentor_name, 
+                        team_name=team_name, mentor_name=mentor_name,
                         heading=heading, file_type="pdf"
                     ).delete()
                     if count == 0:
@@ -2384,11 +3620,11 @@ def zero_base(request):
     team_name = allocation.team_name
     print("Team:", team_name)
 
-    # Load remarks for BASE PAPER (file_type="pdf")
+    # Load remarks - FILTER BY file_type="pdf" for base paper
     saved_remarks = ZerothReviewRemark.objects.filter(
         team_name=team_name, mentor_name=mentor_name, file_type="pdf"
     ).order_by("id")
-    print("🔥 Loaded base paper remarks:", saved_remarks.count())
+    print("🔥 Loaded base paper remarks from DB:", saved_remarks.count())
 
     # Parse coordinates
     for r in saved_remarks:
@@ -3289,8 +4525,8 @@ def zero_ma1(request):
     # 3️⃣ Handle POST → Upload Files
     # ---------------------------
     if request.method == "POST":
-        # 🔥 Check if re-upload is allowed (mentor requested)
-        reupload_allowed = team.reupload_allowed if team else False
+        # 🔥 Check if re-upload is allowed (mentor requested using existing fields)
+        reupload_allowed = team.needs_update_problem if team else False
         
         ppt_file = request.FILES.get("pptFile")
         pdf_file = request.FILES.get("pdfFile")
@@ -3299,12 +4535,15 @@ def zero_ma1(request):
 
         uploaded = {}
 
-        # 🔥 If re-upload allowed, clear existing files first
+        # 🔥 If re-upload allowed, clear existing files first and reset flags
         if reupload_allowed:
             ProjectFile.objects.filter(team_name=team_title, review_type="zero").delete()
-            team.reupload_allowed = False  # Reset after re-upload
+            # Reset using EXISTING fields only
+            team.needs_update_problem = False
+            team.status = 'pending'
+            team.modification_reason = ''
             team.save()
-            print("DEBUG: Cleared existing files for re-upload")
+            print("DEBUG: Cleared existing files for re-upload, reset team flags")
 
         if ppt_file:
             uploaded["ppt"] = upload_to_cloudinary(ppt_file, "PPT", folder_name)
@@ -3412,21 +4651,14 @@ def zero_ma1(request):
     # ---------------------------
     # 8️⃣ Final Render
     # ---------------------------
-    reupload_info = {
-        "allowed": team.reupload_allowed if team else False,
-        "reason": team.reupload_reason if team else "",
-        "requested_by": team.reupload_requested_by if team else "",
-        "requested_at": team.reupload_requested_at.strftime("%Y-%m-%d %H:%M") if team and team.reupload_requested_at else ""
-    }
-    
     return render(request, "student/review/zero_ma.html", {
         "student_name": student_name,
         "username": username,
         "team_name": team_title,
+        "team": team,  # 🔥 Pass full team object for reupload checks
         "uploaded_files": uploaded_files,
         "remarks_by_type": remarks_by_type,
         "highlighted_pdfs": highlighted_pdfs,
-        "reupload_info": reupload_info,  # 🔥 Pass re-upload info
     })
 # ============================================
 # 🔹 Student Zero Review File Upload View
@@ -3862,6 +5094,7 @@ def save_zeroth_remark(request):
         deleted = data.get("deleted", [])
         
         file_type = data.get("file_type", "abstract")
+        print(f"🔥 Received file_type from frontend: '{file_type}'")
         
         if file_type not in ["abstract", "pdf", "ppt"]:
             print(f"⚠️ Invalid file_type '{file_type}', using 'abstract'")
@@ -5468,12 +6701,14 @@ def save_evaluation_review3(request):
             {"status": "error", "message": str(e)},
             status=500
         )
+
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
+import json
 
 @csrf_exempt
 def request_reupload(request):
-    """Mentor requests student to re-upload files"""
+    """Mentor requests student to re-upload files - clears ALL zeroth review data"""
     mentor_name = request.session.get("mentor_name")
     username = request.session.get("username")
     
@@ -5496,24 +6731,800 @@ def request_reupload(request):
         if not allocation:
             return JsonResponse({"status": "fail", "message": "Team not found"}, status=404)
         
-        # Update Team model
+        # Get team and set reupload flag using EXISTING fields only
         team = Team.objects.filter(project_title=team_name).first()
         if team:
-            team.reupload_allowed = True
-            team.reupload_reason = reason
-            team.reupload_requested_at = timezone.now()
-            team.reupload_requested_by = mentor_name
+            # Use existing modification fields to track reupload request
+            team.status = 'pending_update'
+            team.modification_reason = f"[REUPLOAD REQUESTED by {mentor_name}]: {reason}"
+            team.needs_update_problem = True  # Flag that something needs update
             team.save()
             
-            # 🔥 Delete existing ProjectFile records so student can re-upload
-            ProjectFile.objects.filter(team_name=team_name, review_type="zero").delete()
+            # 🔥 DELETE ALL zeroth review related data for this team (no schema changes)
+            
+            # 1. Delete ProjectFile records (uploaded files)
+            files_deleted, _ = ProjectFile.objects.filter(
+                team_name=team_name, 
+                review_type="zero"
+            ).delete()
+            print(f"🔥 Deleted {files_deleted} ProjectFile records for {team_name}")
+            
+            # 2. Delete all zeroth review remarks/highlights
+            remarks_deleted, _ = ZerothReviewRemark.objects.filter(
+                team_name=team_name,
+                mentor_name=mentor_name
+            ).delete()
+            print(f"🔥 Deleted {remarks_deleted} ZerothReviewRemark records")
+            
+            # 3. Delete all annotations (PDF.js highlights)
+            annotations_deleted, _ = Annotation.objects.filter(
+                team__team_name=team_name,
+                mentor=mentor_name
+            ).delete()
+            print(f"🔥 Deleted {annotations_deleted} Annotation records")
+            
+            # 4. Delete ProjectRemarks (annotated PDFs)
+            project_remarks_deleted, _ = ProjectRemarks.objects.filter(
+                team_name=team_name,
+                review_type="zero"
+            ).delete()
+            print(f"🔥 Deleted {project_remarks_deleted} ProjectRemarks records")
             
             return JsonResponse({
                 "status": "success", 
-                "message": "Re-upload requested. Student can now upload again."
+                "message": "Re-upload requested. All previous zeroth review data cleared.",
+                "cleared": {
+                    "files": files_deleted,
+                    "remarks": remarks_deleted,
+                    "annotations": annotations_deleted,
+                    "project_remarks": project_remarks_deleted
+                }
             })
         else:
             return JsonResponse({"status": "fail", "message": "Team not found"}, status=404)
             
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return JsonResponse({"status": "fail", "message": str(e)}, status=500)
+
+
+import json
+import traceback
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+
+@csrf_exempt
+def request_reupload_first(request):
+    """Mentor requests student to re-upload files - clears ALL first review data"""
+    mentor_name = request.session.get("mentor_name")
+    
+    if not mentor_name:
+        return JsonResponse({"status": "fail", "message": "Not logged in"}, status=401)
+    
+    if request.method != "POST":
+        return JsonResponse({"status": "fail", "message": "POST only"}, status=405)
+    
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        team_name = data.get("team_name")
+        reason = data.get("reason", "Please re-upload your files.")
+        
+        allocation = AllocationResult.objects.filter(
+            mentor_name=mentor_name, 
+            team_name=team_name
+        ).first()
+        
+        if not allocation:
+            return JsonResponse({"status": "fail", "message": "Team not found"}, status=404)
+        
+        # Get team and set reupload flag using EXISTING fields only
+        team = Team.objects.filter(project_title=team_name).first()
+        if team:
+            # Use existing modification fields to track reupload request
+            team.status = 'pending_update'
+            team.modification_reason = f"[FIRST REVIEW REUPLOAD REQUESTED by {mentor_name}]: {reason}"
+            team.needs_update_problem = True
+            team.save()
+            
+            # 🔥 DELETE ALL first review related data for this team
+            
+            # 1. Delete ProjectFile records (uploaded files for first review)
+            files_deleted, _ = ProjectFile.objects.filter(
+                team_name=team_name, 
+                review_type="first"
+            ).delete()
+            print(f"🔥 Deleted {files_deleted} ProjectFile records for first review {team_name}")
+            
+            # 2. Delete all first review remarks/highlights
+            remarks_deleted, _ = FirstReviewRemark.objects.filter(
+                team_name=team_name,
+                mentor_name=mentor_name
+            ).delete()
+            print(f"🔥 Deleted {remarks_deleted} FirstReviewRemark records")
+            
+            # 3. Delete all annotations (PDF.js highlights)
+            annotations_deleted, _ = Annotation.objects.filter(
+                team__team_name=team_name,
+                mentor=mentor_name
+            ).delete()
+            print(f"🔥 Deleted {annotations_deleted} Annotation records")
+            
+            # 4. Delete ProjectRemarks (annotated PDFs)
+            project_remarks_deleted, _ = ProjectRemarks.objects.filter(
+                team_name=team_name,
+                review_type="first"
+            ).delete()
+            print(f"🔥 Deleted {project_remarks_deleted} ProjectRemarks records")
+            
+            return JsonResponse({
+                "status": "success", 
+                "message": "Re-upload requested. All previous first review data cleared.",
+                "cleared": {
+                    "files": files_deleted,
+                    "remarks": remarks_deleted,
+                    "annotations": annotations_deleted,
+                    "project_remarks": project_remarks_deleted
+                }
+            })
+        else:
+            return JsonResponse({"status": "fail", "message": "Team not found"}, status=404)
+            
+    except Exception as e:
+        traceback.print_exc()
+        return JsonResponse({"status": "fail", "message": str(e)}, status=500)
+
+
+@csrf_exempt
+def request_reupload_second(request):
+    """Mentor requests student to re-upload files - clears ALL second review data"""
+    mentor_name = request.session.get("mentor_name")
+    
+    if not mentor_name:
+        return JsonResponse({"status": "fail", "message": "Not logged in"}, status=401)
+    
+    if request.method != "POST":
+        return JsonResponse({"status": "fail", "message": "POST only"}, status=405)
+    
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        team_name = data.get("team_name")
+        reason = data.get("reason", "Please re-upload your files.")
+        
+        allocation = AllocationResult.objects.filter(
+            mentor_name=mentor_name, 
+            team_name=team_name
+        ).first()
+        
+        if not allocation:
+            return JsonResponse({"status": "fail", "message": "Team not found"}, status=404)
+        
+        team = Team.objects.filter(project_title=team_name).first()
+        if team:
+            team.status = 'pending_update'
+            team.modification_reason = f"[SECOND REVIEW REUPLOAD REQUESTED by {mentor_name}]: {reason}"
+            team.needs_update_problem = True
+            team.save()
+            
+            # Delete all second review data
+            files_deleted, _ = ProjectFile.objects.filter(
+                team_name=team_name, 
+                review_type="second"
+            ).delete()
+            
+            remarks_deleted, _ = SecondReviewRemark.objects.filter(
+                team_name=team_name,
+                mentor_name=mentor_name
+            ).delete()
+            
+            annotations_deleted, _ = Annotation.objects.filter(
+                team__team_name=team_name,
+                mentor=mentor_name
+            ).delete()
+            
+            project_remarks_deleted, _ = ProjectRemarks.objects.filter(
+                team_name=team_name,
+                review_type="second"
+            ).delete()
+            
+            return JsonResponse({
+                "status": "success", 
+                "message": "Re-upload requested. All previous second review data cleared.",
+                "cleared": {
+                    "files": files_deleted,
+                    "remarks": remarks_deleted,
+                    "annotations": annotations_deleted,
+                    "project_remarks": project_remarks_deleted
+                }
+            })
+        else:
+            return JsonResponse({"status": "fail", "message": "Team not found"}, status=404)
+            
+    except Exception as e:
+        traceback.print_exc()
+        return JsonResponse({"status": "fail", "message": str(e)}, status=500)
+
+
+@csrf_exempt
+def request_reupload_third(request):
+    """Mentor requests student to re-upload files - clears ALL third review data"""
+    mentor_name = request.session.get("mentor_name")
+    
+    if not mentor_name:
+        return JsonResponse({"status": "fail", "message": "Not logged in"}, status=401)
+    
+    if request.method != "POST":
+        return JsonResponse({"status": "fail", "message": "POST only"}, status=405)
+    
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        team_name = data.get("team_name")
+        reason = data.get("reason", "Please re-upload your files.")
+        
+        allocation = AllocationResult.objects.filter(
+            mentor_name=mentor_name, 
+            team_name=team_name
+        ).first()
+        
+        if not allocation:
+            return JsonResponse({"status": "fail", "message": "Team not found"}, status=404)
+        
+        team = Team.objects.filter(project_title=team_name).first()
+        if team:
+            team.status = 'pending_update'
+            team.modification_reason = f"[THIRD REVIEW REUPLOAD REQUESTED by {mentor_name}]: {reason}"
+            team.needs_update_problem = True
+            team.save()
+            
+            # Delete all third review data
+            files_deleted, _ = ProjectFile.objects.filter(
+                team_name=team_name, 
+                review_type="third"
+            ).delete()
+            
+            remarks_deleted, _ = ThirdReviewRemark.objects.filter(
+                team_name=team_name,
+                mentor_name=mentor_name
+            ).delete()
+            
+            annotations_deleted, _ = Annotation.objects.filter(
+                team__team_name=team_name,
+                mentor=mentor_name
+            ).delete()
+            
+            project_remarks_deleted, _ = ProjectRemarks.objects.filter(
+                team_name=team_name,
+                review_type="third"
+            ).delete()
+            
+            return JsonResponse({
+                "status": "success", 
+                "message": "Re-upload requested. All previous third review data cleared.",
+                "cleared": {
+                    "files": files_deleted,
+                    "remarks": remarks_deleted,
+                    "annotations": annotations_deleted,
+                    "project_remarks": project_remarks_deleted
+                }
+            })
+        else:
+            return JsonResponse({"status": "fail", "message": "Team not found"}, status=404)
+            
+    except Exception as e:
+        traceback.print_exc()
+        return JsonResponse({"status": "fail", "message": str(e)}, status=500)
+    
+# =========================
+# HOD API ENDPOINTS (for AJAX)
+# =========================
+
+def hod_required(view_func):
+    """Decorator to check if HOD is logged in"""
+    def wrapper(request, *args, **kwargs):
+        hod_info = get_hod_session(request)
+        if not hod_info['id']:
+            return redirect("login")
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+@hod_required
+def api_students(request):
+    students = Student.objects.all().order_by('student_id')
+    data = []
+    for s in students:
+        team = Team.objects.filter(members__contains=s.student_id).first()
+        data.append({
+            'student_id': s.student_id,
+            'name': s.name,
+            'cgpa': str(s.cgpa),
+            'class': s.clas or get_class_from_roll(s.student_id),
+            'team_name': team.project_title if team else 'Not Assigned'
+        })
+    return JsonResponse({'students': data})
+
+
+@hod_required
+def api_mentors(request):
+    mentors = Mentor.objects.all().order_by('name')
+    data = []
+    for m in mentors:
+        alloc_count = AllocationResult.objects.filter(mentor_name=m.name).count()
+        data.append({
+            'username': m.username,
+            'name': m.name,
+            'primary_domain': m.primary_domain,
+            'experience': m.experience,
+            'teams_count': alloc_count
+        })
+    return JsonResponse({'mentors': data})
+
+
+@hod_required
+def api_teams(request):
+    teams = Team.objects.all().order_by('-created_at')
+    data = []
+    for t in teams:
+        members = t.members.split(',') if t.members else []
+        allocation = AllocationResult.objects.filter(team_name=t.project_title).first()
+        data.append({
+            'id': t.id,
+            'project_title': t.project_title,
+            'domain': t.domain,
+            'student_class': t.student_class,
+            'member_count': len(members),
+            'status': t.status,
+            'mentor_name': allocation.mentor_name if allocation else 'Not Assigned'
+        })
+    return JsonResponse({'teams': data})
+
+
+@hod_required
+def api_allocations(request):
+    allocations = AllocationResult.objects.all().order_by('-allocated_at')
+    data = []
+    for a in allocations:
+        data.append({
+            'id': a.id,
+            'team_name': a.team_name,
+            'team_domain': a.team_domain,
+            'mentor_name': a.mentor_name,
+            'mentor_domain': a.mentor_domain,
+            'similarity_score': a.similarity_score
+        })
+    return JsonResponse({'allocations': data})
+
+
+@hod_required
+def api_unallocated_teams(request):
+    allocated = AllocationResult.objects.values_list('team_name', flat=True)
+    teams = Team.objects.exclude(project_title__in=allocated)
+    data = [{'project_title': t.project_title, 'domain': t.domain} for t in teams]
+    return JsonResponse({'teams': data})
+
+
+@hod_required
+def api_available_students(request):
+    used_ids = set()
+    for t in Team.objects.all():
+        if t.members:
+            used_ids.update(t.members.split(','))
+    students = Student.objects.exclude(student_id__in=used_ids).order_by('name')
+    data = [{'student_id': s.student_id, 'name': s.name, 'class': s.clas or get_class_from_roll(s.student_id)} for s in students]
+    return JsonResponse({'students': data})
+
+
+@hod_required
+def api_reviews(request):
+    teams = Team.objects.all().order_by('project_title')
+    data = []
+    for team in teams:
+        allocation = AllocationResult.objects.filter(team_name=team.project_title).first()
+        files = {
+            'zeroth': {
+                'abstract': ProjectFile.objects.filter(team_name=team.project_title, review_type='zero', file_type='abstract').exists(),
+                'pdf': ProjectFile.objects.filter(team_name=team.project_title, review_type='zero', file_type='pdf').exists(),
+                'ppt': ProjectFile.objects.filter(team_name=team.project_title, review_type='zero', file_type='ppt').exists(),
+            },
+            'first': {'ppt': ProjectFile.objects.filter(team_name=team.project_title, review_type='one', file_type='ppt').exists()},
+            'second': {'ppt': ProjectFile.objects.filter(team_name=team.project_title, review_type='two', file_type='ppt').exists()},
+            'third': {'ppt': ProjectFile.objects.filter(team_name=team.project_title, review_type='three', file_type='ppt').exists()},
+        }
+        remarks_count = {
+            'zeroth': ZerothReviewRemark.objects.filter(team_name=team.project_title).count(),
+            'first': FirstReviewRemark.objects.filter(team_name=team.project_title).count(),
+            'second': SecondReviewRemark.objects.filter(team_name=team.project_title).count(),
+            'third': ThirdReviewRemark.objects.filter(team_name=team.project_title).count(),
+        }
+        data.append({
+            'team_name': team.project_title,
+            'mentor_name': allocation.mentor_name if allocation else None,
+            'files': files,
+            'remarks_count': remarks_count
+        })
+    return JsonResponse({'reviews': data})
+
+
+@hod_required
+def api_announcements(request):
+    announcements = Announcement.objects.all().order_by('-created_at')
+    data = [{
+        'id': a.id,
+        'title': a.title,
+        'ann_type': a.ann_type,
+        'target_role': a.target_role,
+        'message': a.message,
+        'created_by_name': a.created_by_name,
+        'created_at': a.created_at.isoformat() if a.created_at else None
+    } for a in announcements]
+    return JsonResponse({'announcements': data})
+
+
+# =========================
+# HOD ACTION VIEWS
+# =========================
+
+@hod_required
+@require_POST
+def hod_add_student(request):
+    try:
+        student_id = request.POST.get('student_id', '').strip().upper()
+        name = request.POST.get('name', '').strip()
+        cgpa = request.POST.get('cgpa', '0')
+        clas = request.POST.get('class', '').strip()
+        password = request.POST.get('password', 'student123')
+        if not student_id or not name:
+            return JsonResponse({"status": "error", "message": "ID and Name required"})
+        Student.objects.update_or_create(
+            student_id=student_id,
+            defaults={'name': name, 'cgpa': float(cgpa) if cgpa else 0.0, 'clas': clas or get_class_from_roll(student_id)}
+        )
+        Stu_Login.objects.update_or_create(username=student_id, defaults={'password': password})
+        return JsonResponse({"status": "success", "message": "Student created successfully"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+@require_POST
+def hod_delete_student(request, student_id):
+    try:
+        with transaction.atomic():
+            for team in Team.objects.all():
+                if team.members and student_id in team.members.split(','):
+                    members = team.members.split(',')
+                    names = team.member_names.split(',') if team.member_names else []
+                    try:
+                        idx = members.index(student_id)
+                        members.pop(idx)
+                        if idx < len(names):
+                            names.pop(idx)
+                    except ValueError:
+                        pass
+                    if len(members) < 3:
+                        team.delete()
+                    else:
+                        team.members = ','.join(members)
+                        team.member_names = ','.join(names)
+                        team.save()
+            Stu_Login.objects.filter(username=student_id).delete()
+            Student.objects.filter(student_id=student_id).delete()
+            return JsonResponse({"status": "success", "message": "Student deleted"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+@require_POST
+def hod_add_mentor(request):
+    try:
+        username = request.POST.get('username', '').strip()
+        name = request.POST.get('name', '').strip()
+        primary_domain = request.POST.get('primary_domain', '').strip()
+        experience = request.POST.get('experience', '0')
+        alt_domains = request.POST.get('alternative_domains', '').strip()
+        password = request.POST.get('password', 'mentor123')
+        if not username or not name:
+            return JsonResponse({"status": "error", "message": "Username and Name required"})
+        Mentor.objects.update_or_create(
+            username=username,
+            defaults={'name': name, 'primary_domain': primary_domain, 'experience': int(experience) if experience else 0, 'alternative_domains': alt_domains if alt_domains else None}
+        )
+        Mentor_Login.objects.update_or_create(username=username, defaults={'name': name, 'password': password})
+        return JsonResponse({"status": "success", "message": "Mentor created successfully"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+@require_POST
+def hod_delete_mentor(request, username):
+    try:
+        with transaction.atomic():
+            mentor = Mentor.objects.filter(username=username).first()
+            if mentor:
+                AllocationResult.objects.filter(mentor_name=mentor.name).delete()
+                Mentor_Login.objects.filter(username=username).delete()
+                mentor.delete()
+            return JsonResponse({"status": "success", "message": "Mentor deleted"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+@require_POST
+def hod_create_team(request):
+    try:
+        project_title = request.POST.get('project_title', '').strip()
+        domain = request.POST.get('domain', '').strip().upper()
+        student_class = request.POST.get('student_class', '').strip()
+        members = request.POST.get('members', '').split(',')
+        member_names = request.POST.get('member_names', '').split(',')
+        if not project_title or len(members) < 3:
+            return JsonResponse({"status": "error", "message": "Title and at least 3 members required"})
+        Team.objects.create(
+            project_title=project_title,
+            student_class=student_class,
+            domain=domain,
+            members=','.join(members),
+            member_names=','.join(member_names),
+            status='approved',
+            leader_id=members[0] if members else None
+        )
+        return JsonResponse({"status": "success", "message": "Team created successfully"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+@require_POST
+def hod_delete_team(request, team_id):
+    try:
+        with transaction.atomic():
+            team = get_object_or_404(Team, id=team_id)
+            ProjectFile.objects.filter(team_name=team.project_title).delete()
+            ProjectRemarks.objects.filter(team_name=team.project_title).delete()
+            ZerothReviewRemark.objects.filter(team_name=team.project_title).delete()
+            FirstReviewRemark.objects.filter(team_name=team.project_title).delete()
+            SecondReviewRemark.objects.filter(team_name=team.project_title).delete()
+            ThirdReviewRemark.objects.filter(team_name=team.project_title).delete()
+            AllocationResult.objects.filter(team_name=team.project_title).delete()
+            team.delete()
+            return JsonResponse({"status": "success", "message": "Team and all data deleted"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+@require_POST
+def hod_edit_team(request, team_id):
+    try:
+        team = get_object_or_404(Team, id=team_id)
+        team.project_title = request.POST.get('project_title', team.project_title)
+        team.domain = request.POST.get('domain', team.domain).strip().upper()
+        team.student_class = request.POST.get('student_class', team.student_class)
+        team.save()
+        return JsonResponse({"status": "success", "message": "Team updated"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+@require_POST
+def hod_update_team_status(request, team_id):
+    try:
+        team = get_object_or_404(Team, id=team_id)
+        new_status = request.POST.get('status')
+        if new_status in ['pending', 'approved', 'pending_update']:
+            team.status = new_status
+            if new_status == 'approved':
+                team.needs_update_problem = False
+                team.needs_update_domain = False
+                team.needs_update_members = False
+                team.modification_reason = ''
+            team.save()
+            return JsonResponse({"status": "success", "message": f"Status: {new_status}"})
+        return JsonResponse({"status": "error", "message": "Invalid status"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+@require_POST
+def hod_manual_allocate(request):
+    try:
+        team_name = request.POST.get('team_name')
+        mentor_username = request.POST.get('mentor_username')
+        team = get_object_or_404(Team, project_title=team_name)
+        mentor = get_object_or_404(Mentor, username=mentor_username)
+        AllocationResult.objects.update_or_create(
+            team_name=team_name,
+            defaults={
+                'team_domain': team.domain or '',
+                'mentor_name': mentor.name,
+                'mentor_domain': mentor.primary_domain,
+                'alt_domains': mentor.alternative_domains or '',
+                'experience': 'Expert' if mentor.experience >= 4 else 'Beginner',
+                'similarity_score': 100.0,
+                'reason': 'Manually assigned by HOD'
+            }
+        )
+        return JsonResponse({"status": "success", "message": "Allocated successfully"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+@require_POST
+def hod_delete_allocation(request, allocation_id):
+    try:
+        alloc = get_object_or_404(AllocationResult, id=allocation_id)
+        alloc.delete()
+        return JsonResponse({"status": "success", "message": "Allocation removed"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+@require_POST
+def hod_reallocate_team(request):
+    try:
+        team_name = request.POST.get('team_name')
+        new_mentor_username = request.POST.get('new_mentor_username')
+        mentor = get_object_or_404(Mentor, username=new_mentor_username)
+        alloc = get_object_or_404(AllocationResult, team_name=team_name)
+        alloc.mentor_name = mentor.name
+        alloc.mentor_domain = mentor.primary_domain
+        alloc.alt_domains = mentor.alternative_domains or ''
+        alloc.experience = 'Expert' if mentor.experience >= 4 else 'Beginner'
+        alloc.reason = 'Reassigned by HOD'
+        alloc.save()
+        return JsonResponse({"status": "success", "message": "Reallocated successfully"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+@require_POST
+def hod_create_announcement(request):
+    try:
+        hod_info = get_hod_session(request)
+        title = request.POST.get('title')
+        ann_type = request.POST.get('ann_type')
+        target = request.POST.get('target')
+        message = request.POST.get('message', '')
+        if not title or not ann_type or not target:
+            return JsonResponse({"status": "error", "message": "Required fields missing"})
+        announcement = Announcement.objects.create(
+            title=title, ann_type=ann_type, target_role=target, message=message,
+            created_by_username=hod_info['username'], created_by_name=hod_info['name']
+        )
+        status_objects = []
+        if target in ['student', 'both']:
+            for s in Student.objects.all():
+                status_objects.append(AnnouncementStatus(
+                    announcement=announcement, receiver_role='student',
+                    receiver_id=s.student_id, receiver_name=s.name
+                ))
+        if target in ['mentor', 'both']:
+            for m in Mentor_Login.objects.all():
+                status_objects.append(AnnouncementStatus(
+                    announcement=announcement, receiver_role='mentor',
+                    receiver_id=m.username, receiver_name=m.name
+                ))
+        AnnouncementStatus.objects.bulk_create(status_objects)
+        return JsonResponse({"status": "success", "message": "Announcement sent"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+@require_POST
+def hod_delete_announcement(request, ann_id):
+    try:
+        Announcement.objects.filter(id=ann_id).delete()
+        return JsonResponse({"status": "success", "message": "Deleted"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+@require_POST
+def hod_reset_password(request):
+    hod_info = get_hod_session(request)
+    new_password = request.POST.get("new_password")
+    confirm_password = request.POST.get("confirm_password")
+    if not new_password or not confirm_password:
+        return JsonResponse({"status": "error", "message": "Both fields required"})
+    if new_password != confirm_password:
+        return JsonResponse({"status": "error", "message": "Passwords don't match"})
+    try:
+        user = HOD_Login.objects.get(id=hod_info['id'])
+        user.password = new_password
+        user.save()
+        return JsonResponse({"status": "success", "message": "Password updated"})
+    except Coordinator_Login.DoesNotExist:
+        return JsonResponse({"status": "error", "message": "User not found"})
+
+
+@hod_required
+def hod_search(request):
+    query = request.GET.get('q', '').strip()
+    if not query:
+        return JsonResponse({"results": []})
+    results = []
+    students = Student.objects.filter(Q(student_id__icontains=query) | Q(name__icontains=query))[:5]
+    for s in students:
+        results.append({'type': 'student', 'id': s.student_id, 'name': s.name, 'url': '/hod/'})
+    mentors = Mentor.objects.filter(Q(name__icontains=query) | Q(username__icontains=query) | Q(primary_domain__icontains=query))[:5]
+    for m in mentors:
+        results.append({'type': 'mentor', 'id': m.username, 'name': m.name, 'url': '/hod/'})
+    teams = Team.objects.filter(Q(project_title__icontains=query) | Q(domain__icontains=query))[:5]
+    for t in teams:
+        results.append({'type': 'team', 'id': t.id, 'name': t.project_title, 'url': '/hod/'})
+    return JsonResponse({"results": results, "query": query})
+
+
+@hod_required
+@require_POST
+def hod_clear_all_data(request):
+    try:
+        password = request.POST.get('confirm_password')
+        hod_info = get_hod_session(request)
+        hod = Coordinator_Login.objects.filter(id=hod_info['id']).first()
+        if not hod or hod.password != password:
+            return JsonResponse({"status": "error", "message": "Invalid password"})
+        with transaction.atomic():
+            Annotation.objects.all().delete()
+            ProjectRemarks.objects.all().delete()
+            ProjectFile.objects.all().delete()
+            ProjectDocument.objects.all().delete()
+            ZerothReviewRemark.objects.all().delete()
+            FirstReviewRemark.objects.all().delete()
+            SecondReviewRemark.objects.all().delete()
+            ThirdReviewRemark.objects.all().delete()
+            AnnouncementStatus.objects.all().delete()
+            Announcement.objects.all().delete()
+            AllocationResult.objects.all().delete()
+            ApprovedTeam.objects.all().delete()
+            ModifyRequest.objects.all().delete()
+            Team.objects.all().delete()
+            Student.objects.all().delete()
+            Stu_Login.objects.all().delete()
+            Mentor.objects.all().delete()
+            Mentor_Login.objects.all().delete()
+            Coordinator_Login.objects.all().delete()
+            HOD_Login.objects.exclude(id=hod_info['id']).delete()
+            HOD.objects.exclude(username=hod_info['username']).delete()
+            return JsonResponse({"status": "success", "message": "All data cleared. Only HOD account remains."})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+@hod_required
+def hod_export_csv(request):
+    import csv
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="hod_export.csv"'
+    writer = csv.writer(response)
+    writer.writerow(['=== STUDENTS ==='])
+    writer.writerow(['Student ID', 'Name', 'CGPA', 'Class'])
+    for s in Student.objects.all():
+        writer.writerow([s.student_id, s.name, s.cgpa, s.clas])
+    writer.writerow([])
+    writer.writerow(['=== MENTORS ==='])
+    writer.writerow(['Username', 'Name', 'Domain', 'Experience'])
+    for m in Mentor.objects.all():
+        writer.writerow([m.username, m.name, m.primary_domain, m.experience])
+    writer.writerow([])
+    writer.writerow(['=== TEAMS ==='])
+    writer.writerow(['Project Title', 'Domain', 'Class', 'Members', 'Status'])
+    for t in Team.objects.all():
+        writer.writerow([t.project_title, t.domain, t.student_class, t.member_names, t.status])
+    writer.writerow([])
+    writer.writerow(['=== ALLOCATIONS ==='])
+    writer.writerow(['Team', 'Mentor', 'Score'])
+    for a in AllocationResult.objects.all():
+        writer.writerow([a.team_name, a.mentor_name, a.similarity_score])
+    return response
