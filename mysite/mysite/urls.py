@@ -35,6 +35,10 @@ from allocation.views import (
     delete_annotation,
     update_annotation,
     export_annotated_pdf,
+    # ─────────────────────────────────────────────
+    # 🔥 NEW: Mentor Request Re-upload View
+    # ─────────────────────────────────────────────
+    request_reupload,
 )
 
 # ✅ Import for serving media files
@@ -98,6 +102,11 @@ urlpatterns = [
     path("api/delete-annotation/", delete_annotation, name="delete_annotation"),
     path("api/update-annotation/", update_annotation, name="update_annotation"),
     path("api/export-annotated-pdf/", export_annotated_pdf, name="export_annotated_pdf"),
+
+    # ─────────────────────────────────────────────
+    # 🔥 NEW: Mentor Request Re-upload Endpoint
+    # ─────────────────────────────────────────────
+    path("mentor/request-reupload/", request_reupload, name="request_reupload"),
 
 
     # ---------------- Student Reviews ----------------

@@ -54,13 +54,13 @@ class Team(models.Model):
     
     # Coordinator feedback reason
     modification_reason = models.TextField(blank=True, null=True)
-
-    def __str__(self):
-        return self.project_title or "Untitled Team"
-
-    class Meta:
-        db_table = 'team'  # optional: keeps same table name if migrating
-
+    
+    # 🔥 NEW: Allow mentor to request re-upload from student
+    reupload_allowed = models.BooleanField(default=False)
+    reupload_reason = models.TextField(blank=True, null=True)
+    reupload_requested_at = models.DateTimeField(null=True, blank=True)
+    reupload_requested_by = models.CharField(max_length=80, blank=True, null=True)
+    
 class Mentor_Login(models.Model):
     username = models.CharField(max_length=80, unique=True)
     name = models.CharField(max_length=80, unique=True)

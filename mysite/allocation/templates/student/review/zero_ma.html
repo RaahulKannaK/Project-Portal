@@ -7,8 +7,8 @@
   <title>Zeroth Review - Student</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
   <!-- PDF.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -20,44 +20,539 @@
 
   <style>
     :root {
-      --primary: #333da4;
-      --secondary: #a1a7c9;
-      --accent: #d1d9ff;
-      --background: #f8f9fc;
+      --primary: #4f46e5;
+      --primary-dark: #4338ca;
+      --primary-light: #e0e7ff;
+      --secondary: #8b5cf6;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --background: #f8fafc;
+      --surface: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+      --radius: 12px;
+      --radius-lg: 16px;
     }
+
+    * { box-sizing: border-box; }
+    
     body {
       margin: 0;
-      font-family: "Montserrat", sans-serif;
-      background: linear-gradient(120deg, var(--background), #ffffff);
+      font-family: "Inter", sans-serif;
+      background: var(--background);
       min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      color: var(--text);
     }
-    .dashboard-wrapper { display:flex; width:95%; max-width:1400px; height:90vh; background:var(--primary); border-radius:20px; overflow:hidden; }
-    .sidebar { width:280px; padding:30px 20px; background:linear-gradient(180deg, var(--primary), var(--secondary)); color:#fff; }
-    .sidebar-header { text-align:center; margin-bottom:25px; border-bottom:1px solid rgba(255,255,255,0.2); }
-    .sidebar-nav .nav-item { display:flex; align-items:center; padding:14px 18px; margin-bottom:12px; color:#fff; border-radius:12px; cursor:pointer; transition:0.3s; }
-    .sidebar-nav .nav-item:hover, .sidebar-nav .nav-item.active { background: rgba(255,255,255,0.2); }
-    .main-content { flex-grow:1; background:var(--background); padding:30px; overflow-y:auto; display:flex; flex-direction:column; }
-    .upload-section { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:25px; }
-    .upload-card { background:#fff; border-radius:16px; padding:25px; text-align:center; box-shadow:0 8px 25px rgba(0,0,0,0.1); }
-    .file-label { display:flex; justify-content:center; align-items:center; background:linear-gradient(135deg,var(--primary),var(--secondary)); color:#fff; padding:12px; border-radius:10px; cursor:pointer; margin-top:10px; }
-    .file-label.success { background:#28a745; cursor:default; }
-    .submit-button { margin-top:20px; padding:12px 20px; border:none; border-radius:10px; background:var(--accent); font-weight:600; }
-    .remarks-wrapper { display:none; }
-    .remarks-layout { display:flex; gap:20px; height:100%; }
+
+    /* ─── Layout ─── */
+    .dashboard-wrapper {
+      display: flex;
+      width: 100%;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 260px;
+      background: linear-gradient(180deg, var(--primary), var(--secondary));
+      color: #fff;
+      padding: 24px 16px;
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+      z-index: 100;
+    }
+
+    .sidebar-header {
+      text-align: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+      margin-bottom: 20px;
+    }
+
+    .sidebar-header h4 {
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin: 0;
+    }
+
+    .sidebar-nav .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      margin-bottom: 6px;
+      color: rgba(255,255,255,0.85);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .sidebar-nav .nav-item:hover {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+
+    .sidebar-nav .nav-item.active {
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .main-content {
+      margin-left: 260px;
+      flex: 1;
+      padding: 30px;
+      max-width: calc(100% - 260px);
+    }
+
+    /* ─── Header ─── */
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .page-header h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin: 0;
+      color: var(--text);
+    }
+
+    .page-header p {
+      color: var(--text-muted);
+      margin: 4px 0 0 0;
+      font-size: 0.9rem;
+    }
+
+    /* ─── Re-upload Alert ─── */
+    .reupload-alert {
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      border: 1px solid #f59e0b;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      animation: slideDown 0.4s ease;
+    }
+
+    .reupload-alert i {
+      font-size: 1.5rem;
+      color: #d97706;
+    }
+
+    .reupload-alert .alert-content h6 {
+      margin: 0 0 4px 0;
+      font-weight: 600;
+      color: #92400e;
+    }
+
+    .reupload-alert .alert-content p {
+      margin: 0;
+      font-size: 0.85rem;
+      color: #a16207;
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── Upload Section ─── */
+    .upload-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    /* ─── Upload Card ─── */
+    .upload-card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      padding: 0;
+      box-shadow: var(--shadow);
+      border: 2px solid var(--border);
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+
+    .upload-card:hover {
+      box-shadow: var(--shadow-lg);
+      border-color: var(--primary-light);
+    }
+
+    .upload-card.has-file {
+      border-color: var(--success);
+    }
+
+    .upload-card.has-file .card-header {
+      background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+      border-bottom-color: #a7f3d0;
+    }
+
+    .upload-card.has-file .card-header i {
+      color: var(--success);
+    }
+
+    .upload-card.has-file .card-header h6 {
+      color: #065f46;
+    }
+
+    .card-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    }
+
+    .card-header i {
+      font-size: 1.4rem;
+      color: var(--primary);
+    }
+
+    .card-header h6 {
+      margin: 0;
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .card-header .badge {
+      margin-left: auto;
+      font-size: 0.7rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    .card-body {
+      padding: 24px;
+    }
+
+    /* ─── File Drop Zone ─── */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 32px 20px;
+      text-align: center;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      background: #fafafa;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .drop-zone i {
+      font-size: 2.5rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      transition: color 0.3s;
+    }
+
+    .drop-zone:hover i, .drop-zone.dragover i {
+      color: var(--primary);
+    }
+
+    .drop-zone p {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .drop-zone .file-types {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+
+    /* ─── File Preview ─── */
+    .file-preview {
+      display: none;
+      padding: 20px;
+      background: #f8fafc;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+
+    .file-preview.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .file-preview-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px;
+      background: #fff;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .file-preview-item .file-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+    }
+
+    .file-preview-item .file-icon.pdf { background: #fee2e2; color: #dc2626; }
+    .file-preview-item .file-icon.ppt { background: #fef3c7; color: #d97706; }
+    .file-preview-item .file-icon.abstract { background: #dbeafe; color: #2563eb; }
+
+    .file-preview-item .file-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .file-preview-item .file-info .file-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text);
+    }
+
+    .file-preview-item .file-info .file-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .file-preview-item .file-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .file-preview-item .file-actions button {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .file-preview-item .file-actions button:hover {
+      background: var(--danger);
+      color: #fff;
+      border-color: var(--danger);
+    }
+
+    .file-preview-item .file-actions button.view-btn:hover {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+
+    /* ─── Already Uploaded State ─── */
+    .uploaded-state {
+      text-align: center;
+      padding: 20px;
+    }
+
+    .uploaded-state .success-ring {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+    }
+
+    .uploaded-state .success-ring i {
+      font-size: 1.8rem;
+      color: var(--success);
+    }
+
+    .uploaded-state h6 {
+      margin: 0 0 8px 0;
+      font-weight: 600;
+      color: #065f46;
+    }
+
+    .uploaded-state p {
+      margin: 0 0 16px 0;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .uploaded-state .file-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .uploaded-state .file-link:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    .uploaded-state .replace-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-top: 12px;
+      transition: all 0.2s;
+    }
+
+    .uploaded-state .replace-btn:hover {
+      background: #fef2f2;
+      color: var(--danger);
+      border-color: #fecaca;
+    }
+
+    /* ─── Submit Section ─── */
+    .submit-section {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn-primary-custom {
+      padding: 12px 28px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+    }
+
+    .btn-primary-custom:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.45);
+    }
+
+    .btn-primary-custom:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary-custom {
+      padding: 12px 24px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--text-muted);
+      font-weight: 500;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary-custom:hover {
+      background: #f1f5f9;
+      color: var(--text);
+    }
+
+    /* ─── Progress Bar ─── */
+    .progress-bar-container {
+      display: none;
+      margin-top: 16px;
+    }
+
+    .progress-bar-container.active {
+      display: block;
+    }
+
+    .progress-bar {
+      height: 6px;
+      background: #e2e8f0;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      border-radius: 3px;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .progress-text {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+      text-align: center;
+    }
+
+    /* ─── Remarks Section ─── */
+    .remarks-wrapper { display: none; }
     
-    /* PDF Viewer - FIXED for proper zoom scrolling */
-    .pdf-viewer { 
-      flex:1; 
-      height:80vh; 
-      border-radius:12px; 
+    .remarks-layout {
+      display: flex;
+      gap: 20px;
+      height: calc(100vh - 200px);
+    }
+
+    .pdf-viewer {
+      flex: 1;
+      border-radius: var(--radius);
       overflow: auto;
-      background:#f0f0f0;
-      box-shadow:0 8px 25px rgba(0,0,0,0.1);
+      background: #f0f0f0;
+      box-shadow: var(--shadow);
       position: relative;
     }
+
     #pdfContainer {
       position: relative;
       margin: 0 auto;
@@ -67,6 +562,7 @@
       flex-direction: column;
       align-items: center;
     }
+
     .pdf-page {
       position: relative;
       margin: 0 auto 20px auto;
@@ -74,10 +570,12 @@
       background: #fff;
       flex-shrink: 0;
     }
+
     .pdf-page canvas {
       display: block;
       margin: 0 auto;
     }
+
     .annotation-layer {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -85,6 +583,7 @@
       z-index: 5;
       pointer-events: none;
     }
+
     .annotation-layer .highlight-rect {
       position: absolute;
       pointer-events: auto;
@@ -93,14 +592,15 @@
       transition: opacity 0.2s;
       border-radius: 2px;
     }
+
     .annotation-layer .highlight-rect:hover {
       opacity: 0.7;
     }
+
     .annotation-layer .highlight-rect.has-comment {
       border-bottom: 2px dashed #333;
     }
-    
-    /* Text Layer */
+
     .text-layer {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -108,6 +608,7 @@
       z-index: 10;
       cursor: text;
     }
+
     .text-layer span {
       position: absolute;
       white-space: pre;
@@ -117,8 +618,7 @@
       user-select: text;
       -webkit-user-select: text;
     }
-    
-    /* PDF Toolbar - STICKY */
+
     .pdf-toolbar {
       position: sticky;
       top: 0;
@@ -135,6 +635,7 @@
       justify-content: center;
       backdrop-filter: blur(5px);
     }
+
     .pdf-toolbar button {
       border-radius: 8px;
       padding: 6px 14px;
@@ -144,12 +645,15 @@
       cursor: pointer;
       transition: 0.2s;
     }
+
     .pdf-toolbar button:hover {
-      background: var(--accent);
+      background: var(--primary-light);
     }
+
     .pdf-toolbar button i {
       color: var(--primary);
     }
+
     .pdf-toolbar .zoom-level {
       padding: 6px 12px;
       font-weight: 600;
@@ -157,8 +661,7 @@
       min-width: 60px;
       text-align: center;
     }
-    
-    /* Page navigation */
+
     .page-nav {
       display: flex;
       justify-content: center;
@@ -171,6 +674,7 @@
       position: sticky;
       bottom: 0;
     }
+
     .page-nav button {
       padding: 5px 15px;
       border-radius: 6px;
@@ -179,95 +683,291 @@
       color: #fff;
       cursor: pointer;
     }
+
     .page-nav span {
       font-weight: 600;
       color: #333;
     }
-    
-    /* Remarks sidebar */
+
     .remarks-sidebar {
       width: 35%;
-      background: #fff;
-      border-radius: 12px;
+      background: var(--surface);
+      border-radius: var(--radius);
       padding: 20px;
       overflow-y: auto;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      box-shadow: var(--shadow);
     }
-    .remark-card { 
-      background: linear-gradient(135deg, var(--accent), #fff);
-      border-radius:12px; 
-      padding:15px; 
-      margin-bottom:10px; 
-      border-left:5px solid var(--primary); 
-      font-size:14px; 
+
+    .remark-card {
+      background: linear-gradient(135deg, var(--primary-light), #fff);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 10px;
+      border-left: 4px solid var(--primary);
+      font-size: 0.88rem;
+      transition: all 0.2s;
     }
-    .remark-card b { color: var(--primary); display: block; margin-bottom: 5px; }
-    .remark-card span { color: #333; }
-    .remark-card small { color: #666; display: block; margin-top: 5px; }
-    
-    /* File tabs */
-    .file-tabs { display:flex; gap:10px; margin-bottom:15px; }
-    .file-tab { padding:10px 20px; border:none; border-radius:8px; background:#fff; color:var(--primary); font-weight:600; cursor:pointer; transition:0.3s; box-shadow:0 2px 5px rgba(0,0,0,0.1); }
-    .file-tab:hover { background:var(--accent); }
-    .file-tab.active { background:var(--primary); color:#fff; }
-    .file-tab:disabled { opacity:0.5; cursor:not-allowed; background:#ccc; }
-    
-    /* Version toggle */
-    .version-toggle { display:flex; gap:10px; margin-bottom:15px; }
-    .version-btn { padding:8px 16px; border:2px solid var(--primary); border-radius:20px; background:#fff; color:var(--primary); font-weight:600; cursor:pointer; transition:0.3s; }
-    .version-btn:hover { background:var(--accent); }
-    .version-btn.active { background:var(--primary); color:#fff; }
-    .version-btn:disabled { opacity:0.4; cursor:not-allowed; border-color:#ccc; color:#666; }
-    
-    .highlighted-badge { 
-      display:inline-flex; 
-      align-items:center; 
-      background:linear-gradient(135deg, #ff6b6b, #ee5a24); 
-      color:#fff; 
-      padding:4px 12px; 
-      border-radius:20px; 
-      font-size:12px; 
-      font-weight:600;
-      margin-left:10px;
+
+    .remark-card:hover {
+      transform: translateX(3px);
+      box-shadow: var(--shadow);
     }
-    .mentor-info { 
-      background:#fff; 
-      padding:10px 15px; 
-      border-radius:8px; 
-      margin-bottom:10px; 
-      box-shadow:0 2px 5px rgba(0,0,0,0.1);
-      font-size:13px;
-      color:#555;
+
+    .remark-card b {
+      color: var(--primary);
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 600;
     }
-    .mentor-info i { color:var(--primary); margin-right:8px; }
-    
-    .no-file-message { display:flex; align-items:center; justify-content:center; height:100%; color:#666; font-size:16px; }
-    
+
+    .remark-card span {
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .remark-card small {
+      color: var(--text-muted);
+      display: block;
+      margin-top: 6px;
+      font-size: 0.75rem;
+    }
+
+    .file-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .file-tab {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 10px;
+      background: var(--surface);
+      color: var(--primary);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: var(--shadow-sm);
+      font-size: 0.9rem;
+    }
+
+    .file-tab:hover {
+      background: var(--primary-light);
+    }
+
+    .file-tab.active {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .file-tab:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: #e2e8f0;
+      color: #94a3b8;
+    }
+
+    .version-toggle {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .version-btn {
+      padding: 8px 18px;
+      border: 2px solid var(--border);
+      border-radius: 20px;
+      background: var(--surface);
+      color: var(--text-muted);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.85rem;
+    }
+
+    .version-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .version-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .version-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      border-color: #e2e8f0;
+      color: #cbd5e1;
+    }
+
+    .highlighted-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      color: #92400e;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+
+    .mentor-info {
+      background: var(--surface);
+      padding: 12px 18px;
+      border-radius: 10px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow-sm);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .mentor-info i {
+      color: var(--primary);
+    }
+
+    .no-file-message {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-muted);
+      font-size: 1rem;
+      gap: 10px;
+    }
+
     .remarks-count {
       background: var(--primary);
       color: #fff;
       padding: 2px 8px;
       border-radius: 12px;
-      font-size: 11px;
+      font-size: 0.7rem;
       margin-left: 8px;
+      font-weight: 600;
     }
-    
-    /* Toast */
+
+    /* ─── Toast ─── */
     .toast-notification {
       position: fixed;
-      top: 20px;
-      right: 20px;
-      padding: 12px 20px;
-      border-radius: 8px;
+      top: 24px;
+      right: 24px;
+      padding: 14px 24px;
+      border-radius: 12px;
       color: #fff;
       font-weight: 600;
       z-index: 100000;
-      transform: translateX(400px);
-      transition: transform 0.3s ease;
+      transform: translateX(450px);
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
-    .toast-notification.show { transform: translateX(0); }
-    .toast-notification.success { background: #69db7c; }
-    .toast-notification.info { background: #74c0fc; }
+
+    .toast-notification.show {
+      transform: translateX(0);
+    }
+
+    .toast-notification.success { background: linear-gradient(135deg, #10b981, #059669); }
+    .toast-notification.info { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .toast-notification.error { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    .toast-notification.warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+    /* ─── Empty State ─── */
+    .empty-upload {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-upload i {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      color: #cbd5e1;
+    }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 768px) {
+      .sidebar { width: 0; padding: 0; overflow: hidden; }
+      .main-content { margin-left: 0; max-width: 100%; padding: 16px; }
+      .upload-grid { grid-template-columns: 1fr; }
+      .remarks-layout { flex-direction: column; height: auto; }
+      .remarks-sidebar { width: 100%; height: 400px; }
+    }
+
+    /* ─── Modal ─── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100000;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.active {
+      display: flex;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .modal-box {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      max-width: 420px;
+      width: 90%;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-box h5 {
+      margin: 0 0 8px 0;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .modal-box p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin: 0 0 20px 0;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    /* ─── Loading Spinner ─── */
+    .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 
@@ -279,66 +979,241 @@
   <div class="sidebar">
     <div class="sidebar-header">
       <h4><i class="fas fa-folder-open me-2"></i>Zeroth Review</h4>
+      <small style="opacity:0.7; font-size:0.75rem;">Student Portal</small>
     </div>
     <nav class="sidebar-nav">
-      <div class="nav-item active" onclick="showUpload()">File Upload</div>
-      <div class="nav-item" onclick="showRemarks()">Remarks</div>
+      <div class="nav-item active" onclick="showUpload()">
+        <i class="fas fa-cloud-upload-alt"></i> File Upload
+      </div>
+      <div class="nav-item" onclick="showRemarks()">
+        <i class="fas fa-comments"></i> Mentor Remarks
+        {% if remarks_by_type.abstract|length > 0 or remarks_by_type.pdf|length > 0 or remarks_by_type.ppt|length > 0 %}
+        <span style="margin-left:auto; background:#ef4444; color:#fff; font-size:0.65rem; padding:2px 8px; border-radius:10px;">
+          {{ remarks_by_type.abstract|length|add:remarks_by_type.pdf|length|add:remarks_by_type.ppt|length }}
+        </span>
+        {% endif %}
+      </div>
     </nav>
   </div>
 
   <!-- MAIN CONTENT -->
   <div class="main-content">
 
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+      <div>
+        <h2><i class="fas fa-file-upload me-2" style="color:var(--primary);"></i>Upload Documents</h2>
+        <p>Submit your project files for zeroth review</p>
+      </div>
+      {% if team_name %}
+      <div style="text-align:right;">
+        <span style="font-size:0.8rem; color:var(--text-muted);">Team</span>
+        <div style="font-weight:600; color:var(--text);">{{ team_name }}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- 🔥 RE-UPLOAD ALERT -->
+    {% if reupload_info.allowed %}
+    <div class="reupload-alert">
+      <i class="fas fa-bell"></i>
+      <div class="alert-content">
+        <h6><i class="fas fa-redo me-1"></i>Re-upload Requested by {{ reupload_info.requested_by }}</h6>
+        <p>{{ reupload_info.reason|default:"Your mentor has requested you to re-upload your files." }} <small style="color:#a16207;">({{ reupload_info.requested_at }})</small></p>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- UPLOAD SECTION -->
     <div id="uploadSection">
-      <h5 class="mb-4"><i class="fas fa-upload me-2"></i>Upload Files</h5>
 
       <form id="uploadForm" method="POST" enctype="multipart/form-data">
-        <div class="upload-section">
+        <div class="upload-grid">
 
-          <!-- PPT -->
-          <div class="upload-card">
-            <h5>PPT</h5>
-            {% if uploaded_files.ppt %}
-              <div class="file-label success"><i class="fas fa-check-circle me-2"></i>{{ uploaded_files.ppt|slice:"-50:" }}</div>
-            {% else %}
-              <input type="file" id="pptFile" name="pptFile" accept=".ppt,.pptx" style="display:none;">
-              <label for="pptFile" class="file-label">Choose PPT</label>
-            {% endif %}
+          <!-- ====== PPT CARD ====== -->
+          <div class="upload-card {% if uploaded_files.ppt %}has-file{% endif %}" id="card-ppt">
+            <div class="card-header">
+              <i class="fas fa-file-powerpoint"></i>
+              <h6>PPT Presentation</h6>
+              <span class="badge" id="badge-ppt" style="{% if uploaded_files.ppt %}background:#d1fae5; color:#065f46;{% else %}background:#fee2e2; color:#991b1b;{% endif %}">
+                {% if uploaded_files.ppt %}Uploaded{% else %}Required{% endif %}
+              </span>
+            </div>
+            <div class="card-body">
+
+              <!-- State: Not uploaded -->
+              <div id="ppt-drop-zone" class="drop-zone" onclick="document.getElementById('pptFile').click()" 
+                   {% if uploaded_files.ppt and not reupload_info.allowed %}style="display:none;"{% endif %}>
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Click or drag file here</p>
+                <div class="file-types">Accepted: .ppt, .pptx (Max 20MB)</div>
+              </div>
+              <input type="file" id="pptFile" name="pptFile" accept=".ppt,.pptx" style="display:none;" onchange="handleFileSelect(this, 'ppt')">
+
+              <!-- State: File selected (preview) -->
+              <div id="ppt-preview" class="file-preview">
+                <div class="file-preview-item">
+                  <div class="file-icon ppt"><i class="fas fa-file-powerpoint"></i></div>
+                  <div class="file-info">
+                    <div class="file-name" id="ppt-filename">-</div>
+                    <div class="file-meta" id="ppt-filemeta">-</div>
+                  </div>
+                  <div class="file-actions">
+                    <button type="button" class="view-btn" onclick="previewFile('ppt')" title="Preview"><i class="fas fa-eye"></i></button>
+                    <button type="button" onclick="removeFile('ppt')" title="Remove"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- State: Already uploaded -->
+              {% if uploaded_files.ppt %}
+              <div id="ppt-uploaded" class="uploaded-state" {% if reupload_info.allowed %}style="display:none;"{% endif %}>
+                <div class="success-ring"><i class="fas fa-check"></i></div>
+                <h6>File Uploaded</h6>
+                <p style="font-size:0.8rem; color:var(--text-muted); word-break:break-all;">{{ uploaded_files.ppt|slice:"-60:" }}</p>
+                <a href="{{ uploaded_files.ppt }}" target="_blank" class="file-link"><i class="fas fa-external-link-alt"></i>View File</a>
+                {% if reupload_info.allowed %}
+                <br>
+                <button type="button" class="replace-btn" onclick="enableReplace('ppt')"><i class="fas fa-redo"></i>Replace File</button>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              <!-- Progress -->
+              <div id="ppt-progress" class="progress-bar-container">
+                <div class="progress-bar"><div class="progress-bar-fill" id="ppt-progress-fill"></div></div>
+                <div class="progress-text" id="ppt-progress-text">Uploading...</div>
+              </div>
+
+            </div>
           </div>
 
-          <!-- PDF -->
-          <div class="upload-card">
-            <h5>Report</h5>
-            {% if uploaded_files.pdf %}
-              <div class="file-label success"><i class="fas fa-check-circle me-2"></i>{{ uploaded_files.pdf|slice:"-50:" }}</div>
-            {% else %}
-              <input type="file" id="pdfFile" name="pdfFile" accept=".pdf" style="display:none;">
-              <label for="pdfFile" class="file-label">Choose PDF</label>
-            {% endif %}
+          <!-- ====== REPORT (PDF) CARD ====== -->
+          <div class="upload-card {% if uploaded_files.pdf %}has-file{% endif %}" id="card-pdf">
+            <div class="card-header">
+              <i class="fas fa-file-pdf"></i>
+              <h6>Project Report</h6>
+              <span class="badge" id="badge-pdf" style="{% if uploaded_files.pdf %}background:#d1fae5; color:#065f46;{% else %}background:#fee2e2; color:#991b1b;{% endif %}">
+                {% if uploaded_files.pdf %}Uploaded{% else %}Required{% endif %}
+              </span>
+            </div>
+            <div class="card-body">
+
+              <div id="pdf-drop-zone" class="drop-zone" onclick="document.getElementById('pdfFile').click()"
+                   {% if uploaded_files.pdf and not reupload_info.allowed %}style="display:none;"{% endif %}>
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Click or drag file here</p>
+                <div class="file-types">Accepted: .pdf (Max 20MB)</div>
+              </div>
+              <input type="file" id="pdfFile" name="pdfFile" accept=".pdf" style="display:none;" onchange="handleFileSelect(this, 'pdf')">
+
+              <div id="pdf-preview" class="file-preview">
+                <div class="file-preview-item">
+                  <div class="file-icon pdf"><i class="fas fa-file-pdf"></i></div>
+                  <div class="file-info">
+                    <div class="file-name" id="pdf-filename">-</div>
+                    <div class="file-meta" id="pdf-filemeta">-</div>
+                  </div>
+                  <div class="file-actions">
+                    <button type="button" class="view-btn" onclick="previewFile('pdf')" title="Preview"><i class="fas fa-eye"></i></button>
+                    <button type="button" onclick="removeFile('pdf')" title="Remove"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+                </div>
+              </div>
+
+              {% if uploaded_files.pdf %}
+              <div id="pdf-uploaded" class="uploaded-state" {% if reupload_info.allowed %}style="display:none;"{% endif %}>
+                <div class="success-ring"><i class="fas fa-check"></i></div>
+                <h6>File Uploaded</h6>
+                <p style="font-size:0.8rem; color:var(--text-muted); word-break:break-all;">{{ uploaded_files.pdf|slice:"-60:" }}</p>
+                <a href="{{ uploaded_files.pdf }}" target="_blank" class="file-link"><i class="fas fa-external-link-alt"></i>View File</a>
+                {% if reupload_info.allowed %}
+                <br>
+                <button type="button" class="replace-btn" onclick="enableReplace('pdf')"><i class="fas fa-redo"></i>Replace File</button>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              <div id="pdf-progress" class="progress-bar-container">
+                <div class="progress-bar"><div class="progress-bar-fill" id="pdf-progress-fill"></div></div>
+                <div class="progress-text" id="pdf-progress-text">Uploading...</div>
+              </div>
+
+            </div>
           </div>
 
-          <!-- ABSTRACT -->
-          <div class="upload-card">
-            <h5>Abstract</h5>
-            {% if uploaded_files.abstract %}
-              <div class="file-label success"><i class="fas fa-check-circle me-2"></i>{{ uploaded_files.abstract|slice:"-50:" }}</div>
-            {% else %}
-              <input type="file" id="abstractFile" name="abstractFile" accept=".pdf" style="display:none;">
-              <label for="abstractFile" class="file-label">Choose Abstract</label>
-            {% endif %}
+          <!-- ====== ABSTRACT CARD ====== -->
+          <div class="upload-card {% if uploaded_files.abstract %}has-file{% endif %}" id="card-abstract">
+            <div class="card-header">
+              <i class="fas fa-file-alt"></i>
+              <h6>Abstract</h6>
+              <span class="badge" id="badge-abstract" style="{% if uploaded_files.abstract %}background:#d1fae5; color:#065f46;{% else %}background:#fee2e2; color:#991b1b;{% endif %}">
+                {% if uploaded_files.abstract %}Uploaded{% else %}Required{% endif %}
+              </span>
+            </div>
+            <div class="card-body">
+
+              <div id="abstract-drop-zone" class="drop-zone" onclick="document.getElementById('abstractFile').click()"
+                   {% if uploaded_files.abstract and not reupload_info.allowed %}style="display:none;"{% endif %}>
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Click or drag file here</p>
+                <div class="file-types">Accepted: .pdf (Max 20MB)</div>
+              </div>
+              <input type="file" id="abstractFile" name="abstractFile" accept=".pdf" style="display:none;" onchange="handleFileSelect(this, 'abstract')">
+
+              <div id="abstract-preview" class="file-preview">
+                <div class="file-preview-item">
+                  <div class="file-icon abstract"><i class="fas fa-file-alt"></i></div>
+                  <div class="file-info">
+                    <div class="file-name" id="abstract-filename">-</div>
+                    <div class="file-meta" id="abstract-filemeta">-</div>
+                  </div>
+                  <div class="file-actions">
+                    <button type="button" class="view-btn" onclick="previewFile('abstract')" title="Preview"><i class="fas fa-eye"></i></button>
+                    <button type="button" onclick="removeFile('abstract')" title="Remove"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+                </div>
+              </div>
+
+              {% if uploaded_files.abstract %}
+              <div id="abstract-uploaded" class="uploaded-state" {% if reupload_info.allowed %}style="display:none;"{% endif %}>
+                <div class="success-ring"><i class="fas fa-check"></i></div>
+                <h6>File Uploaded</h6>
+                <p style="font-size:0.8rem; color:var(--text-muted); word-break:break-all;">{{ uploaded_files.abstract|slice:"-60:" }}</p>
+                <a href="{{ uploaded_files.abstract }}" target="_blank" class="file-link"><i class="fas fa-external-link-alt"></i>View File</a>
+                {% if reupload_info.allowed %}
+                <br>
+                <button type="button" class="replace-btn" onclick="enableReplace('abstract')"><i class="fas fa-redo"></i>Replace File</button>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              <div id="abstract-progress" class="progress-bar-container">
+                <div class="progress-bar"><div class="progress-bar-fill" id="abstract-progress-fill"></div></div>
+                <div class="progress-text" id="abstract-progress-text">Uploading...</div>
+              </div>
+
+            </div>
           </div>
 
         </div>
 
-        <button type="submit" class="submit-button">Submit Missing Files</button>
+        <!-- Submit Section -->
+        <div class="submit-section">
+          <button type="button" class="btn-secondary-custom" onclick="resetAllFiles()" id="resetBtn" style="display:none;">
+            <i class="fas fa-undo me-2"></i>Reset All
+          </button>
+          <button type="submit" class="btn-primary-custom" id="submitBtn">
+            <i class="fas fa-paper-plane me-2"></i>Submit Files
+          </button>
+        </div>
       </form>
     </div>
 
     <!-- REMARKS SECTION -->
     <div id="remarksSection" class="remarks-wrapper">
       <h5 class="mb-3">
-        <i class="fas fa-comments me-2"></i>Mentor Remarks
+        <i class="fas fa-comments me-2" style="color:var(--primary);"></i>Mentor Remarks
         <span id="highlightedBadge" class="highlighted-badge" style="display:none;">
           <i class="fas fa-highlighter me-1"></i>Highlighted Available
         </span>
@@ -374,25 +1249,36 @@
       <div id="mentorInfo" class="mentor-info" style="display:none;">
         <i class="fas fa-user-tie"></i>
         <span id="mentorName">Reviewed by: -</span>
-        <span id="reviewDate" class="float-end"></span>
+        <span id="reviewDate" style="margin-left:auto;"></span>
       </div>
 
       <div class="remarks-layout">
         <!-- PDF VIEWER -->
         <div class="pdf-viewer" id="pdfViewer">
-          <div class="no-file-message"><i class="fas fa-exclamation-circle me-2"></i>Select a file to view</div>
+          <div class="no-file-message"><i class="fas fa-exclamation-circle"></i>Select a file to view</div>
         </div>
         
         <!-- REMARKS SIDEBAR -->
         <div class="remarks-sidebar">
-          <h6 id="remarksTitle">Remarks for Abstract</h6>
+          <h6 id="remarksTitle" style="margin:0 0 16px 0; font-weight:700; color:var(--text);">Remarks for Abstract</h6>
           <div id="remarksContainer">
-            <p class="text-muted">No remarks yet for this file.</p>
+            <p class="text-muted" style="text-align:center; padding:20px;">No remarks yet for this file.</p>
           </div>
         </div>
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal-overlay" id="previewModal">
+  <div class="modal-box">
+    <h5><i class="fas fa-file-alt me-2" style="color:var(--primary);"></i>File Preview</h5>
+    <p id="previewModalText">Are you sure you want to remove this file?</p>
+    <div class="modal-actions">
+      <button class="btn-secondary-custom" onclick="closePreviewModal()">Close</button>
+    </div>
   </div>
 </div>
 
@@ -445,7 +1331,14 @@ const remarksByType = {
   ]
 };
 
-console.log("🔥 Remarks loaded:", remarksByType);
+const reuploadAllowed = {{ reupload_info.allowed|yesno:"true,false" }};
+
+// Track selected files
+const selectedFiles = {
+  ppt: null,
+  pdf: null,
+  abstract: null
+};
 
 let currentFileType = 'abstract';
 let currentVersion = 'original';
@@ -466,14 +1359,14 @@ function showUpload(){
   uploadSection.style.display="block";
   remarksSection.style.display="none";
   document.querySelector('.nav-item.active')?.classList.remove('active');
-  event.target.classList.add('active');
+  event.currentTarget.classList.add('active');
 }
 
 function showRemarks(){
   uploadSection.style.display="none";
   remarksSection.style.display="block";
   document.querySelector('.nav-item.active')?.classList.remove('active');
-  event.target.classList.add('active');
+  event.currentTarget.classList.add('active');
   
   const hasRemarks = Object.values(remarksByType).some(arr => arr.length > 0);
   if(hasRemarks) {
@@ -484,6 +1377,177 @@ function showRemarks(){
   else if(fileUrls.pdf) switchFile('pdf');
   else if(fileUrls.ppt) switchFile('ppt');
 }
+
+// ─── FILE HANDLING ───
+function handleFileSelect(input, type) {
+  if (!input.files || input.files.length === 0) return;
+  
+  const file = input.files[0];
+  const maxSize = 20 * 1024 * 1024; // 20MB
+  
+  if (file.size > maxSize) {
+    showToast("File too large! Max 20MB allowed.", "error");
+    input.value = '';
+    return;
+  }
+  
+  // Validate file type
+  const validTypes = {
+    ppt: ['application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'],
+    pdf: ['application/pdf'],
+    abstract: ['application/pdf']
+  };
+  
+  if (type === 'ppt') {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['ppt', 'pptx'].includes(ext)) {
+      showToast("Invalid file type! Please upload .ppt or .pptx", "error");
+      input.value = '';
+      return;
+    }
+  } else {
+    if (file.type !== 'application/pdf') {
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (ext !== 'pdf') {
+        showToast("Invalid file type! Please upload PDF", "error");
+        input.value = '';
+        return;
+      }
+    }
+  }
+  
+  selectedFiles[type] = file;
+  
+  // Hide drop zone, show preview
+  document.getElementById(type + '-drop-zone').style.display = 'none';
+  document.getElementById(type + '-preview').classList.add('active');
+  
+  // Hide uploaded state if visible
+  const uploadedEl = document.getElementById(type + '-uploaded');
+  if (uploadedEl) uploadedEl.style.display = 'none';
+  
+  // Update preview info
+  document.getElementById(type + '-filename').textContent = file.name;
+  document.getElementById(type + '-filemeta').textContent = formatFileSize(file.size) + ' • ' + file.type.split('/')[1].toUpperCase();
+  
+  // Update card style
+  document.getElementById('card-' + type).classList.add('has-file');
+  document.getElementById('badge-' + type).textContent = 'Ready';
+  document.getElementById('badge-' + type).style.background = '#dbeafe';
+  document.getElementById('badge-' + type).style.color = '#1e40af';
+  
+  // Show reset button
+  document.getElementById('resetBtn').style.display = 'inline-flex';
+  
+  showToast(`${type.toUpperCase()} file selected: ${file.name}`, "success");
+}
+
+function removeFile(type) {
+  selectedFiles[type] = null;
+  document.getElementById(type + 'File').value = '';
+  
+  // Hide preview
+  document.getElementById(type + '-preview').classList.remove('active');
+  
+  // Show appropriate state
+  const hasExisting = fileUrls[type];
+  if (hasExisting && !reuploadAllowed) {
+    // Show uploaded state
+    const uploadedEl = document.getElementById(type + '-uploaded');
+    if (uploadedEl) uploadedEl.style.display = 'block';
+    document.getElementById('card-' + type).classList.add('has-file');
+    document.getElementById('badge-' + type).textContent = 'Uploaded';
+    document.getElementById('badge-' + type).style.background = '#d1fae5';
+    document.getElementById('badge-' + type).style.color = '#065f46';
+  } else {
+    // Show drop zone
+    document.getElementById(type + '-drop-zone').style.display = 'block';
+    document.getElementById('card-' + type).classList.remove('has-file');
+    document.getElementById('badge-' + type).textContent = 'Required';
+    document.getElementById('badge-' + type).style.background = '#fee2e2';
+    document.getElementById('badge-' + type).style.color = '#991b1b';
+  }
+  
+  // Hide reset button if no selections
+  const hasAny = Object.values(selectedFiles).some(f => f !== null);
+  if (!hasAny) {
+    document.getElementById('resetBtn').style.display = 'none';
+  }
+}
+
+function enableReplace(type) {
+  // Hide uploaded state, show drop zone
+  const uploadedEl = document.getElementById(type + '-uploaded');
+  if (uploadedEl) uploadedEl.style.display = 'none';
+  document.getElementById(type + '-drop-zone').style.display = 'block';
+  document.getElementById('card-' + type).classList.remove('has-file');
+  document.getElementById('badge-' + type).textContent = 'Required';
+  document.getElementById('badge-' + type).style.background = '#fee2e2';
+  document.getElementById('badge-' + type).style.color = '#991b1b';
+}
+
+function resetAllFiles() {
+  ['ppt', 'pdf', 'abstract'].forEach(type => {
+    removeFile(type);
+  });
+  document.getElementById('resetBtn').style.display = 'none';
+  showToast("All selections cleared", "info");
+}
+
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function previewFile(type) {
+  const file = selectedFiles[type];
+  if (!file) return;
+  
+  // For PDFs, open in new tab with object URL
+  if (type === 'pdf' || type === 'abstract') {
+    const url = URL.createObjectURL(file);
+    window.open(url, '_blank');
+  } else {
+    // For PPT, just show info
+    document.getElementById('previewModalText').textContent = `File: ${file.name}\nSize: ${formatFileSize(file.size)}\nType: ${file.type || 'PPT'}`;
+    document.getElementById('previewModal').classList.add('active');
+  }
+}
+
+function closePreviewModal() {
+  document.getElementById('previewModal').classList.remove('active');
+}
+
+// ─── DRAG & DROP ───
+['ppt', 'pdf', 'abstract'].forEach(type => {
+  const zone = document.getElementById(type + '-drop-zone');
+  if (!zone) return;
+  
+  zone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    zone.classList.add('dragover');
+  });
+  
+  zone.addEventListener('dragleave', () => {
+    zone.classList.remove('dragover');
+  });
+  
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      const input = document.getElementById(type + 'File');
+      const dt = new DataTransfer();
+      dt.items.add(files[0]);
+      input.files = dt.files;
+      handleFileSelect(input, type);
+    }
+  });
+});
 
 // ─── FILE SWITCHING ───
 function switchFile(fileType) {
@@ -513,7 +1577,7 @@ function switchVersion(version) {
     const firstRemark = remarks[0];
     document.getElementById('mentorName').textContent = 'Reviewed by: ' + (firstRemark.mentor_name || 'Mentor');
     document.getElementById('reviewDate').textContent = firstRemark.created_at || '';
-    mentorInfoDiv.style.display = 'block';
+    mentorInfoDiv.style.display = 'flex';
   } else {
     mentorInfoDiv.style.display = 'none';
   }
@@ -526,7 +1590,7 @@ function loadRemarks(fileType) {
   const remarks = remarksByType[fileType] || [];
   
   if(remarks.length === 0) {
-    remarksContainer.innerHTML = '<p class="text-muted">No remarks yet for this file.</p>';
+    remarksContainer.innerHTML = '<p class="text-muted" style="text-align:center; padding:20px;">No remarks yet for this file.</p>';
     return;
   }
   
@@ -537,7 +1601,7 @@ function loadRemarks(fileType) {
         <b>${escapeHtml(r.heading.substring(0, 60))}${r.heading.length > 60 ? '...' : ''}</b>
         <span>${escapeHtml(r.remark)}</span>
         <small><i class="fas fa-clock me-1"></i>${r.created_at}</small>
-        ${r.mentor_name ? `<small class="text-primary"><i class="fas fa-user-tie me-1"></i>${r.mentor_name}</small>` : ''}
+        ${r.mentor_name ? `<small class="text-primary" style="color:var(--primary);"><i class="fas fa-user-tie me-1"></i>${r.mentor_name}</small>` : ''}
       </div>
     `;
   });
@@ -573,7 +1637,6 @@ async function rerenderPDF() {
   const container = document.getElementById('pdfPages');
   if(!container) return;
   
-  // Clear pages but keep toolbar
   container.innerHTML = '';
   renderedPages.clear();
   
@@ -581,12 +1644,10 @@ async function rerenderPDF() {
     await renderPage(i, container);
   }
   
-  // Redraw highlights if in highlighted mode
   if(currentVersion === 'highlighted') {
     drawHighlights();
   }
   
-  // Update zoom display
   const zoomDisplay = document.getElementById('zoomLevel');
   if(zoomDisplay) {
     zoomDisplay.textContent = Math.round(scale * 100) + '%';
@@ -598,7 +1659,7 @@ async function loadViewer() {
   let url = fileUrls[currentFileType];
   
   if(!url) {
-    pdfViewer.innerHTML = '<div class="no-file-message"><i class="fas fa-exclamation-circle me-2"></i>No file uploaded for this category</div>';
+    pdfViewer.innerHTML = '<div class="no-file-message"><i class="fas fa-exclamation-circle"></i>No file uploaded for this category</div>';
     return;
   }
   
@@ -606,14 +1667,13 @@ async function loadViewer() {
     pdfViewer.innerHTML = `
       <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
         <i class="fas fa-file-powerpoint" style="font-size:64px; color:var(--primary); margin-bottom:20px;"></i>
-        <p style="margin-bottom:20px;">PPT files cannot be previewed directly</p>
-        <a href="${url}" target="_blank" class="btn btn-primary"><i class="fas fa-download me-2"></i>Download PPT</a>
+        <p style="margin-bottom:20px; color:var(--text-muted);">PPT files cannot be previewed directly</p>
+        <a href="${url}" target="_blank" class="btn-primary-custom" style="text-decoration:none;"><i class="fas fa-download me-2"></i>Download PPT</a>
       </div>
     `;
     return;
   }
   
-  // PDF: Use PDF.js with toolbar + highlights
   pdfViewer.innerHTML = `
     <div id="pdfContainer">
       <div class="pdf-toolbar">
@@ -650,7 +1710,6 @@ async function loadViewer() {
       await renderPage(i, pagesContainer);
     }
     
-    // Draw highlights if in highlighted mode
     if(currentVersion === 'highlighted') {
       drawHighlights();
     }
@@ -730,11 +1789,10 @@ function scrollToPage(pageNum) {
 // ─── DRAW HIGHLIGHTS FROM COORDINATES ───
 function drawHighlights() {
   const remarks = remarksByType[currentFileType] || [];
-  console.log("🔥 Drawing highlights for", currentFileType, ":", remarks.length, "remarks");
+  console.log("Drawing highlights for", currentFileType, ":", remarks.length, "remarks");
   
   remarks.forEach((tag, idx) => {
     const coords = tag.coordinates || {};
-    console.log(`Tag ${idx}: coords=`, coords);
     
     if (!coords || Object.keys(coords).length === 0) {
       console.log(`Tag ${idx} has no coordinates, skipping`);
@@ -749,7 +1807,6 @@ function drawHighlights() {
       return;
     }
     
-    // 🔥 Get CURRENT page dimensions (after zoom)
     const currentPageWidth = parseFloat(pageData.pageDiv.style.width);
     const currentPageHeight = parseFloat(pageData.pageDiv.style.height);
     
@@ -763,7 +1820,6 @@ function drawHighlights() {
       const div = document.createElement("div");
       div.className = "highlight-rect has-comment";
       
-      // 🔥 CONVERT RATIOS to current pixel positions
       div.style.left = (rect.x * currentPageWidth) + "px";
       div.style.top = (rect.y * currentPageHeight) + "px";
       div.style.width = (rect.width * currentPageWidth) + "px";
@@ -776,7 +1832,6 @@ function drawHighlights() {
       });
       
       pageData.annotationLayer.appendChild(div);
-      console.log(`Drew rect ${ridx} on page ${pageNum} at scaled position`);
     });
   });
 }
@@ -807,9 +1862,9 @@ document.addEventListener("keydown", (e) => {
 // ─── UTILITIES ───
 function showToast(msg, type = "success") {
   const toast = document.getElementById("toast");
-  toast.textContent = msg;
+  toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i> ${msg}`;
   toast.className = `toast-notification ${type} show`;
-  setTimeout(() => toast.classList.remove("show"), 3000);
+  setTimeout(() => toast.classList.remove("show"), 3500);
 }
 
 function escapeHtml(text) {
@@ -821,15 +1876,39 @@ function escapeHtml(text) {
 // ─── UPLOAD HANDLERS ───
 document.getElementById("uploadForm").addEventListener("submit", function(e){
   e.preventDefault();
+  
   const formData = new FormData();
-  const pptFile = document.getElementById("pptFile");
-  const pdfFile = document.getElementById("pdfFile");
-  const abstractFile = document.getElementById("abstractFile");
-
-  if(pptFile && pptFile.files.length>0) formData.append("pptFile", pptFile.files[0]);
-  if(pdfFile && pdfFile.files.length>0) formData.append("pdfFile", pdfFile.files[0]);
-  if(abstractFile && abstractFile.files.length>0) formData.append("abstractFile", abstractFile.files[0]);
-
+  let hasFiles = false;
+  
+  ['ppt', 'pdf', 'abstract'].forEach(type => {
+    const input = document.getElementById(type + 'File');
+    if (selectedFiles[type]) {
+      formData.append(type + 'File', selectedFiles[type]);
+      hasFiles = true;
+    } else if (input.files.length > 0) {
+      formData.append(type + 'File', input.files[0]);
+      hasFiles = true;
+    }
+  });
+  
+  if (!hasFiles) {
+    showToast("Please select at least one file to upload", "warning");
+    return;
+  }
+  
+  // Show progress
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="spinner me-2"></span>Uploading...';
+  
+  // Show progress bars
+  ['ppt', 'pdf', 'abstract'].forEach(type => {
+    if (selectedFiles[type] || document.getElementById(type + 'File').files.length > 0) {
+      document.getElementById(type + '-progress').classList.add('active');
+      animateProgress(type);
+    }
+  });
+  
   fetch("{% url 'zero_ma1' %}", {
     method: "POST",
     headers: { "X-CSRFToken": "{{ csrf_token }}" },
@@ -837,27 +1916,63 @@ document.getElementById("uploadForm").addEventListener("submit", function(e){
   })
   .then(r => r.json())
   .then(d => {
-    if(d.files) {
-      if(d.files.ppt){ fileUrls.ppt = d.files.ppt; document.getElementById('tab-ppt').disabled = false; }
-      if(d.files.pdf){ fileUrls.pdf = d.files.pdf; document.getElementById('tab-pdf').disabled = false; }
-      if(d.files.abstract){ fileUrls.abstract = d.files.abstract; document.getElementById('tab-abstract').disabled = false; }
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Submit Files';
+    
+    // Hide progress bars
+    ['ppt', 'pdf', 'abstract'].forEach(type => {
+      document.getElementById(type + '-progress').classList.remove('active');
+      document.getElementById(type + '-progress-fill').style.width = '0%';
+    });
+    
+    if(d.status === "success") {
+      showToast(d.message, "success");
+      
+      // Update file URLs
+      if(d.files) {
+        if(d.files.ppt) fileUrls.ppt = d.files.ppt;
+        if(d.files.pdf) fileUrls.pdf = d.files.pdf;
+        if(d.files.abstract) fileUrls.abstract = d.files.abstract;
+      }
+      
+      // Reload after short delay
+      setTimeout(() => location.reload(), 1200);
+    } else {
+      showToast(d.message || "Upload failed", "error");
     }
-    alert(d.message);
-    location.reload();
   })
   .catch(err => {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Submit Files';
+    
+    ['ppt', 'pdf', 'abstract'].forEach(type => {
+      document.getElementById(type + '-progress').classList.remove('active');
+    });
+    
     console.error("Upload error:", err);
-    alert("Failed to upload files");
+    showToast("Failed to upload files: " + err.message, "error");
   });
 });
 
-document.querySelectorAll('input[type="file"]').forEach(input => {
-  input.addEventListener('change', function() {
-    if(this.files.length > 0) {
-      const label = document.querySelector(`label[for='${this.id}']`);
-      label.innerHTML = `<i class="fas fa-file me-2"></i>${this.files[0].name}`;
+function animateProgress(type) {
+  let width = 0;
+  const fill = document.getElementById(type + '-progress-fill');
+  const text = document.getElementById(type + '-progress-text');
+  const interval = setInterval(() => {
+    if (width >= 90) {
+      clearInterval(interval);
+      text.textContent = 'Finalizing...';
+      return;
     }
-  });
+    width += Math.random() * 15;
+    if (width > 90) width = 90;
+    fill.style.width = width + '%';
+  }, 300);
+}
+
+// Close modal on outside click
+document.getElementById('previewModal').addEventListener('click', function(e) {
+  if (e.target === this) closePreviewModal();
 });
 </script>
 
